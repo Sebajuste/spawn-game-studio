@@ -3,6 +3,7 @@
 // affichable ; sinon, Ouvrir passe la main à l'application du système.
 import { useCallback, useEffect, useState } from "react";
 import type { Api, StoryCapture, StoryFiles, TouchedFile } from "./api.ts";
+import { t } from "./i18n.ts";
 
 interface Props {
   api: Api;
@@ -15,20 +16,10 @@ interface Props {
 type Choice = { access: string; preview: TouchedFile["preview"]; title: string };
 
 const MARKS: Record<TouchedFile["state"], string> = { added: "A", modified: "M", deleted: "S", renamed: "R", untracked: "N" };
-const STATE_TITLES: Record<TouchedFile["state"], string> = { added: "ajouté", modified: "modifié", deleted: "supprimé", renamed: "renommé", untracked: "nouveau, pas encore commité" };
-// Catégories données par l'adaptateur de moteur (contrat en anglais), dites en français ; une inconnue reste telle quelle.
-const CATEGORY_LABELS: Record<string, string> = {
-  code: "code",
-  scene: "scène",
-  resource: "ressource",
-  shader: "shader",
-  "model-3d": "modèle 3D",
-  project: "projet",
-  text: "texte",
-  image: "image",
-  video: "vidéo",
-  audio: "audio",
-};
+const stateTitle = (s: TouchedFile["state"]): string => t(`files.state.${s}`);
+// Catégories données par l'adaptateur de moteur (contrat en anglais), dites dans la langue de l'interface ; une inconnue reste telle quelle.
+const CATEGORIES = ["code", "scene", "resource", "shader", "model-3d", "project", "text", "image", "video", "audio"] as const;
+const categoryLabel = (c: string): string => ((CATEGORIES as readonly string[]).includes(c) ? t(`files.category.${c as (typeof CATEGORIES)[number]}`) : c);
 
 export function Files({ api, events, project, story, gallery }: Props) {
   const [list, setList] = useState<StoryFiles | null>(null);
@@ -80,7 +71,7 @@ export function Files({ api, events, project, story, gallery }: Props) {
     <>
       {gallery && media.length > 0 && (
         <section className="card">
-          <h2>Galerie ({media.length})</h2>
+          <h2>{t("files.gallery", { count: media.length })}</h2>
           <div className="gallery">
             {media.map((m) => {
               const title = "name" in m ? m.name : m.path;
@@ -97,17 +88,17 @@ export function Files({ api, events, project, story, gallery }: Props) {
 
       <section className="card">
         <h2>
-          Fichiers touchés ({list.files.length})
-          {list.source === "merge" && <span className="muted"> · d'après le commit de fusion ; l'aperçu montre la version actuelle</span>}
+          {t("files.touched", { count: list.files.length })}
+          {list.source === "merge" && <span className="muted"> · {t("files.fromMerge")}</span>}
         </h2>
         {error && <div className="error-banner" onClick={() => setError(null)}>{error}</div>}
         {list.files.length === 0 ? (
-          <p className="muted">{list.source === "none" ? "Rien à montrer : ni worktree, ni fusion connue." : "Aucun fichier touché pour l'instant."}</p>
+          <p className="muted">{list.source === "none" ? t("files.nothing") : t("files.none")}</p>
         ) : (
           <ul className="files">
             {list.files.map((f) => (
               <li key={f.path} className={choice?.access === f.access ? "selected" : ""}>
-                <span className={`state state-${f.state}`} title={STATE_TITLES[f.state]}>
+                <span className={`state state-${f.state}`} title={stateTitle(f.state)}>
                   {MARKS[f.state]}
                 </span>
                 {f.access && f.preview ? (
@@ -117,10 +108,10 @@ export function Files({ api, events, project, story, gallery }: Props) {
                 ) : (
                   <span className={f.state === "deleted" ? "struck" : ""}>{f.path}</span>
                 )}
-                {f.category && <span className="muted"> {f.language ?? CATEGORY_LABELS[f.category] ?? f.category}</span>}
+                {f.category && <span className="muted"> {f.language ?? categoryLabel(f.category)}</span>}
                 {f.access && (
-                  <button className="muted mini" onClick={() => void open(f.access as string)} title="Ouvrir avec l'application du système">
-                    Ouvrir
+                  <button className="muted mini" onClick={() => void open(f.access as string)} title={t("files.openTitle")}>
+                    {t("files.open")}
                   </button>
                 )}
               </li>
@@ -151,10 +142,10 @@ function Preview({ api, project, choice, onClose, onOpen }: { api: Api; project:
         <strong>{choice.title}</strong>
         <span>
           <button className="muted mini" onClick={onOpen}>
-            Ouvrir
+            {t("files.open")}
           </button>
           <button className="muted mini" onClick={onClose}>
-            Fermer
+            {t("files.close")}
           </button>
         </span>
       </header>

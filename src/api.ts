@@ -20,6 +20,7 @@ import type {
   StoryView,
   TouchedFile,
 } from "../service/src/contract.ts";
+import { t } from "./i18n.ts";
 
 export type {
   AgentEvent,
@@ -66,7 +67,7 @@ export async function connect(): Promise<Connection> {
     const { invoke } = await import("@tauri-apps/api/core");
     return invoke<Connection>("service");
   }
-  throw new Error("service introuvable : lancer l'app par Tauri, ou ouvrir cette page avec ?port=…&token=… (sortie de node service/src/main.ts)");
+  throw new Error(t("api.serviceNotFound"));
 }
 
 export class Api {
@@ -85,7 +86,7 @@ export class Api {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const data = (await r.json()) as T & { error?: string };
-    if (!r.ok) throw new Error(data.error ?? `erreur ${r.status}`);
+    if (!r.ok) throw new Error(data.error ?? t("api.error", { status: r.status }));
     return data;
   }
 
@@ -96,7 +97,7 @@ export class Api {
 
   async text(project: string, access: string): Promise<string> {
     const r = await fetch(this.fileUrl(project, access));
-    if (!r.ok) throw new Error(`lecture impossible (${r.status})`);
+    if (!r.ok) throw new Error(t("api.readFailed", { status: r.status }));
     return r.text();
   }
 

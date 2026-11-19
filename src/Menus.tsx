@@ -1,6 +1,7 @@
 // Barre de menus classique (Fichier, Projet, Affichage, Aide) : ouverte au clic, puis au survol des voisins ; fermée par
 // un clic ailleurs ou Échap. Les raccourcis sont tenus par App.tsx, les menus ne font que les afficher.
 import { useEffect, useRef, useState } from "react";
+import { t } from "./i18n.ts";
 
 export interface Entry {
   title: string;
@@ -60,7 +61,7 @@ export function Menus({ menus }: { menus: Menu[] }) {
                     <span>{e.title}</span>
                     <span className="shortcut">›</span>
                     <ul>
-                      {e.sub.length === 0 && <li className="disabled">aucun</li>}
+                      {e.sub.length === 0 && <li className="disabled">{t("menus.none")}</li>}
                       {e.sub.map((s, k) => (
                         <li key={k} className={s.checked ? "checked" : ""} onClick={() => choose(s)} title={s.detail}>
                           <span>{s.title}</span>

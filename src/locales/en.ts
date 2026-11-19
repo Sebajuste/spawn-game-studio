@@ -1,4 +1,8 @@
-// Source des clés de l'interface : toute nouvelle clé s'écrit ici d'abord, `fr.ts` doit suivre (typecheck).
+﻿// Source des clés de l'interface : toute nouvelle clé s'écrit ici d'abord, `fr.ts` doit suivre (typecheck).
+import { project } from "./zones/project.ts";
+import { story } from "./zones/story.ts";
+import { misc } from "./zones/misc.ts";
+
 export const en = {
   "app.connecting": "Connecting to the service…",
   "app.dismiss": "Click to dismiss",
@@ -52,4 +56,7 @@ export const en = {
   "new.remoteNone": "None",
   "new.create": "Create",
   "new.pending": "Creating…",
+  ...project.en,
+  ...story.en,
+  ...misc.en,
 };

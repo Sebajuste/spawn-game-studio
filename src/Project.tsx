@@ -7,6 +7,7 @@ import { label, Refusal, useAction } from "./action.ts";
 import { Dialog } from "./Home.tsx";
 import type { Api, AgentName, ProjectSettings, ProjectView, StoryGroup, StoryView } from "./api.ts";
 import { Story } from "./Story.tsx";
+import { getLang, t, type Key } from "./i18n.ts";
 
 interface Props {
   api: Api;
@@ -21,59 +22,69 @@ interface Props {
 
 type Screen = { screen: "board" } | { screen: "story"; story: string } | { screen: "history" };
 
-export const AGENT_NAMES: Record<AgentName, string> = { "claude-code": "Claude Code", opencode: "OpenCode · modèle local", copilot: "GitHub Copilot" };
+// Les valeurs sont lues à l'affichage (accesseurs) : le texte suit la langue sans changer la signature exportée.
+export const AGENT_NAMES: Record<AgentName, string> = {
+  "claude-code": "Claude Code",
+  get opencode() {
+    return t("project.agent.opencode");
+  },
+  copilot: "GitHub Copilot",
+};
 
-const GROUPS: { id: StoryGroup; title: string; dot: string }[] = [
-  { id: "blocked", title: "Bloquée : ta décision", dot: "orange" },
-  { id: "acceptance", title: "En recette", dot: "blue" },
-  { id: "active", title: "En cours", dot: "green" },
+const GROUPS: { id: StoryGroup; title: () => string; dot: string }[] = [
+  { id: "blocked", title: () => t("project.group.blocked"), dot: "orange" },
+  { id: "acceptance", title: () => t("project.group.acceptance"), dot: "blue" },
+  { id: "active", title: () => t("project.group.active"), dot: "green" },
 ];
+
+// Étapes de `spawn next` (texte du kit, en français) → clé de message.
+const STEP_KEYS: Record<string, Key> = {
+  spec: "project.step.spec",
+  "en attente de l'utilisateur": "project.step.waitingUser",
+  plan: "project.step.plan",
+  "plan illisible": "project.step.plan",
+  "plan introuvable": "project.step.plan",
+  "relecture finale": "project.step.finalReview",
+  "preuve et captures": "project.step.proof",
+  "compte rendu à juger": "project.step.reportToJudge",
+  "à juger": "project.step.toJudge",
+  "worktree à commiter": "project.step.toCommit",
+  "relecture finale approuvée": "project.step.finalReviewApproved",
+  "corrections de la relecture finale": "project.step.finalReviewFixes",
+  "correction demandée": "project.step.fixRequested",
+  fusion: "project.step.merge",
+  "fusion en cours": "project.step.merge",
+  "après fusion": "project.step.afterMerge",
+};
 
 // L'étape de `spawn next` dite en mots d'utilisateur, sans le vocabulaire du kit.
 export function readableStep(step: string | null): string | null {
   if (step === null) return null;
   const task = /^tâche (\d+\/\d+) : (.+?), [^,]+$/.exec(step);
-  if (task) return `tâche ${task[1]} : ${task[2]}`;
-  if (step.startsWith("fusion refusée")) return "corrige un refus de fusion";
-  const words: Record<string, string> = {
-    spec: "cadre la feature",
-    "en attente de l'utilisateur": "bloquée : ta décision",
-    plan: "découpe en tâches",
-    "plan illisible": "découpe en tâches",
-    "plan introuvable": "découpe en tâches",
-    "relecture finale": "relit l'ensemble",
-    "preuve et captures": "tests et captures",
-    "compte rendu à juger": "prépare la recette",
-    "à juger": "en recette",
-    "worktree à commiter": "commite ses fichiers",
-    "relecture finale approuvée": "relecture finale approuvée",
-    "corrections de la relecture finale": "corrige la relecture finale",
-    "correction demandée": "corrige ce que tu as redemandé",
-    fusion: "fusion dans develop",
-    "fusion en cours": "fusion dans develop",
-    "après fusion": "range après la fusion",
-  };
-  return words[step] ?? step;
+  if (task) return t("project.step.task", { progress: task[1], name: task[2] });
+  if (step.startsWith("fusion refusée")) return t("project.step.mergeRefused");
+  const key = STEP_KEYS[step];
+  return key ? t(key) : step;
 }
 
 export function subtitle(f: StoryView): string {
-  if (f.group === "history") return f.result === "accepted" ? `livrée ${since(f.updated)}` : f.result === "abandoned" ? `abandonnée ${since(f.updated)}` : `fermée ${since(f.updated)}`;
-  if (f.group === "acceptance") return `en recette ${since(f.updated)}`;
-  if (f.waiting?.reason === "spec-approval") return "cadrage à valider";
-  if (f.waiting?.reason === "question") return "ta décision";
-  if (f.waiting?.reason === "interrupted") return "coupée : à reprendre";
-  if (f.waiting?.reason === "paused") return "en pause";
-  if (f.waiting?.reason === "stopped") return "arrêtée";
-  return readableStep(f.step) ?? (f.running ? "en cours" : "en attente");
+  if (f.group === "history") return t(f.result === "accepted" ? "project.sub.delivered" : f.result === "abandoned" ? "project.sub.abandoned" : "project.sub.closed", { since: since(f.updated) });
+  if (f.group === "acceptance") return t("project.sub.acceptance", { since: since(f.updated) });
+  if (f.waiting?.reason === "spec-approval") return t("project.sub.specApproval");
+  if (f.waiting?.reason === "question") return t("project.sub.question");
+  if (f.waiting?.reason === "interrupted") return t("project.sub.interrupted");
+  if (f.waiting?.reason === "paused") return t("project.sub.paused");
+  if (f.waiting?.reason === "stopped") return t("project.sub.stopped");
+  return readableStep(f.step) ?? t(f.running ? "project.sub.running" : "project.sub.waiting");
 }
 
 export function since(date: string | null): string {
   if (!date) return "";
   const s = Math.max(0, (Date.now() - Date.parse(date)) / 1000);
-  if (s < 60) return "à l'instant";
-  if (s < 3600) return `il y a ${Math.round(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.round(s / 3600)} h`;
-  return `le ${new Date(date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`;
+  if (s < 60) return t("project.since.now");
+  if (s < 3600) return t("project.since.min", { n: Math.round(s / 60) });
+  if (s < 86400) return t("project.since.hours", { n: Math.round(s / 3600) });
+  return t("project.since.on", { date: new Date(date).toLocaleDateString(getLang() === "fr" ? "fr-FR" : "en-US", { day: "numeric", month: "short" }) });
 }
 
 export function Project({ api, events, project, active, signal, dialog, closeDialog, onError }: Props) {
@@ -125,7 +136,7 @@ export function Project({ api, events, project, active, signal, dialog, closeDia
     async (story?: string) => {
       try {
         await api.call("POST", `${base}/launch`, story ? { story } : {});
-        setInfo(story ? "Version de la story lancée." : "Projet lancé (develop).");
+        setInfo(story ? t("project.info.storyLaunched") : t("project.info.projectLaunched"));
       } catch (e) {
         onError((e as Error).message);
       }
@@ -180,9 +191,7 @@ export function Project({ api, events, project, active, signal, dialog, closeDia
 
   if (!available) {
     return (
-      <main className="empty">
-        Le module Stories est éteint : le rallumer dans Affichage.
-      </main>
+      <main className="empty">{t("project.off")}</main>
     );
   }
 
@@ -200,7 +209,7 @@ export function Project({ api, events, project, active, signal, dialog, closeDia
           if (list.length === 0) return null;
           return (
             <section key={id}>
-              <h3>{title}</h3>
+              <h3>{title()}</h3>
               {list.map((f) => (
                 <Item key={f.story} f={f} dot={dot} />
               ))}
@@ -210,7 +219,7 @@ export function Project({ api, events, project, active, signal, dialog, closeDia
         {history.length > 0 && (
           <section>
             <h3 className="clickable" onClick={() => setView({ screen: "history" })}>
-              Livrées et abandonnées <span>›</span>
+              {t("project.group.history")} <span>›</span>
             </h3>
             {history.slice(0, 3).map((f) => (
               <Item key={f.story} f={f} dot="grey" />
@@ -229,8 +238,8 @@ export function Project({ api, events, project, active, signal, dialog, closeDia
               {info}
             </span>
           )}
-          <button className="btn" onClick={() => void launch()} title="Lancer develop (F5)">
-            ▶ Lancer le projet
+          <button className="btn" onClick={() => void launch()} title={t("project.launch.title")}>
+            {t("project.launch.button")}
           </button>
         </header>
         <form
@@ -251,10 +260,10 @@ export function Project({ api, events, project, active, signal, dialog, closeDia
                 void send();
               }
             }}
-            placeholder="Nouvelle feature : que veux-tu dans ce projet ?  (Entrée pour envoyer · Maj+Entrée pour aller à la ligne)"
+            placeholder={t("project.request.placeholder")}
           />
           <button type="submit" className="btn primary" disabled={!request.trim() || act.pending !== null}>
-            {label(act, "request", "Envoyer", "Création…")}
+            {label(act, "request", t("project.request.send"), t("project.request.sending"))}
           </button>
           <Refusal action={act} k="request" />
         </form>
@@ -296,6 +305,18 @@ export function Project({ api, events, project, active, signal, dialog, closeDia
   );
 }
 
+// Le titre en gras à la place du marqueur \u0000 du message : l'ordre des mots dépend de la langue.
+function Bold({ text, title }: { text: string; title: string }) {
+  const [before, after = ""] = text.split("\u0000");
+  return (
+    <>
+      {before}
+      <strong>{title}</strong>
+      {after}
+    </>
+  );
+}
+
 function Board({
   stories,
   byGroup,
@@ -322,26 +343,26 @@ function Board({
       {blocked.map((f) => (
         <div key={f.story} className="banner orange">
           <span>
-            <strong>{f.title}</strong> est bloquée : ta décision{f.waiting?.reason === "interrupted" ? " (coupée par un arrêt)" : ""}.
+            <Bold text={t("project.board.blocked", { title: "\u0000", interrupted: f.waiting?.reason === "interrupted" ? t("project.board.interrupted") : "" })} title={f.title} />
           </span>
           <button className="btn small" onClick={() => onPick(f.story)}>
-            Décider
+            {t("project.board.decide")}
           </button>
         </div>
       ))}
       {acceptance.map((f) => (
         <div key={f.story} className="banner blue">
           <span>
-            <strong>{f.title}</strong> est en recette.
+            <Bold text={t("project.board.acceptance", { title: "\u0000" })} title={f.title} />
           </span>
           <button className="btn small" onClick={() => onPick(f.story)}>
-            Recetter
+            {t("project.board.review")}
           </button>
         </div>
       ))}
       {running.length > 0 && (
         <section className="card">
-          <h2>En cours</h2>
+          <h2>{t("project.board.active")}</h2>
           {running.map((f) => (
             <button key={f.story} className="item" onClick={() => onPick(f.story)}>
               <span className={`dot green ${f.running ? "pulsing" : ""}`} />
@@ -357,22 +378,22 @@ function Board({
       )}
       {stories.length === 0 && (
         <section className="card prompt" onClick={onRequest}>
-          <h2>Que veux-tu dans ce projet ?</h2>
-          <p>Écris-le en une phrase dans le champ du haut, comme tu le dirais à quelqu'un : « un endpoint /health qui renvoie ok » ou « un score par joueur au-dessus de la grille ». L'agent cadre d'abord ta feature et te fait valider le cadrage, puis il travaille seul jusqu'à la recette.</p>
+          <h2>{t("project.board.promptTitle")}</h2>
+          <p>{t("project.board.promptBody")}</p>
         </section>
       )}
-      {stories.length > 0 && blocked.length + acceptance.length + running.length === 0 && <p className="muted">Rien en cours. Dis ce que tu veux dans le champ du haut.</p>}
+      {stories.length > 0 && blocked.length + acceptance.length + running.length === 0 && <p className="muted">{t("project.board.idle")}</p>}
       <details className="card">
-        <summary>Avancé pour la prochaine feature</summary>
+        <summary>{t("project.board.advanced")}</summary>
         <label className="field">
-          <span>Agent</span>
+          <span>{t("project.board.agent")}</span>
           <select value={oneOffAgent} onChange={(e) => onAgent(e.target.value as AgentName | "")}>
-            <option value="">{settings ? `${AGENT_NAMES[settings.agent]} (réglage du projet)` : "réglage du projet"}</option>
+            <option value="">{settings ? `${AGENT_NAMES[settings.agent]} ${t("project.board.projectSetting")}` : t("project.board.projectSettingOnly")}</option>
             {(Object.keys(AGENT_NAMES) as AgentName[])
               .filter((a) => a !== settings?.agent)
               .map((a) => (
                 <option key={a} value={a}>
-                  {AGENT_NAMES[a]}, pour cette feature seulement
+                  {t("project.board.forThisFeature", { agent: AGENT_NAMES[a] })}
                 </option>
               ))}
           </select>
@@ -389,18 +410,18 @@ function History({ stories, onPick }: { stories: StoryView[]; onPick: (story: st
   return (
     <div className="scroll">
       <section className="card">
-        <h2>Livrées et abandonnées</h2>
-        <input className="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Chercher dans les titres et les demandes…" autoFocus />
+        <h2>{t("project.history.title")}</h2>
+        <input className="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t("project.history.search")} autoFocus />
         {list.length === 0 ? (
-          <p className="muted">{stories.length === 0 ? "Aucune story livrée ni abandonnée pour l'instant." : "Rien ne correspond."}</p>
+          <p className="muted">{stories.length === 0 ? t("project.history.none") : t("project.history.noMatch")}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Story</th>
-                <th>Feature demandée</th>
-                <th>Fin</th>
-                <th>Résultat</th>
+                <th>{t("project.history.colStory")}</th>
+                <th>{t("project.history.colRequest")}</th>
+                <th>{t("project.history.colEnd")}</th>
+                <th>{t("project.history.colResult")}</th>
               </tr>
             </thead>
             <tbody>
@@ -409,7 +430,7 @@ function History({ stories, onPick }: { stories: StoryView[]; onPick: (story: st
                   <td>{x.title}</td>
                   <td className="muted">{x.request ? `« ${x.request.length > 70 ? `${x.request.slice(0, 70)}…` : x.request} »` : "—"}</td>
                   <td>{since(x.updated)}</td>
-                  <td className={x.result === "accepted" ? "ok" : "muted"}>{x.result === "accepted" ? "livrée" : x.result === "abandoned" ? "abandonnée" : "fermée"}</td>
+                  <td className={x.result === "accepted" ? "ok" : "muted"}>{t(x.result === "accepted" ? "project.history.delivered" : x.result === "abandoned" ? "project.history.abandoned" : "project.history.closed")}</td>
                 </tr>
               ))}
             </tbody>
@@ -423,15 +444,15 @@ function History({ stories, onPick }: { stories: StoryView[]; onPick: (story: st
 function GoTo({ stories, onClose, onPick }: { stories: StoryView[]; onClose: () => void; onPick: (story: string) => void }) {
   const [text, setText] = useState("");
   const [rank, setRank] = useState(0);
-  const t = text.trim().toLowerCase();
-  const list = stories.filter((f) => !t || `${f.title} ${f.request ?? ""} ${f.story}`.toLowerCase().includes(t)).slice(0, 12);
+  const q = text.trim().toLowerCase();
+  const list = stories.filter((f) => !q || `${f.title} ${f.request ?? ""} ${f.story}`.toLowerCase().includes(q)).slice(0, 12);
   return (
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="palette">
         <input
           autoFocus
           value={text}
-          placeholder="Aller à une story…"
+          placeholder={t("project.goto.placeholder")}
           onChange={(e) => {
             setText(e.target.value);
             setRank(0);
@@ -444,7 +465,7 @@ function GoTo({ stories, onClose, onPick }: { stories: StoryView[]; onClose: () 
             e.preventDefault();
           }}
         />
-        {list.length === 0 && <div className="muted">Aucune story.</div>}
+        {list.length === 0 && <div className="muted">{t("project.goto.none")}</div>}
         {list.map((f, i) => (
           <div key={f.story} className={i === rank ? "selected" : ""} onMouseEnter={() => setRank(i)} onClick={() => onPick(f.story)}>
             <span>{f.title}</span>
@@ -463,9 +484,9 @@ function SettingsDialog({ settings, name, onClose, onSave }: { settings: Project
   const value = Number(context.replace(/[s_]/g, ""));
   const valid = Number.isInteger(value) && value >= 8000 && value <= 1_000_000 && /^(lmstudio|ollama)\/\S+$/.test(model.trim());
   return (
-    <Dialog title={`Réglages du projet · ${name}`} onClose={onClose}>
+    <Dialog title={t("project.settings.title", { name })} onClose={onClose}>
       <label className="field">
-        <span>Agent par défaut des nouvelles stories</span>
+        <span>{t("project.settings.agent")}</span>
         <select value={agent} onChange={(e) => setAgent(e.target.value as AgentName)}>
           {(Object.keys(AGENT_NAMES) as AgentName[]).map((a) => (
             <option key={a} value={a}>
@@ -474,27 +495,23 @@ function SettingsDialog({ settings, name, onClose, onSave }: { settings: Project
           ))}
         </select>
       </label>
-      <p className="muted small-text">Une story déjà commencée garde son agent.</p>
+      <p className="muted small-text">{t("project.settings.agentNote")}</p>
       <label className="field">
-        <span>Modèle local (OpenCode)</span>
+        <span>{t("project.settings.model")}</span>
         <input value={model} onChange={(e) => setModel(e.target.value)} spellCheck={false} />
       </label>
-      <p className="muted small-text">
-        Nommé comme dans OpenCode : « lmstudio/qwen/qwen3.5-9b » pour LM Studio, « ollama/qwen3:8b » pour Ollama.
-      </p>
+      <p className="muted small-text">{t("project.settings.modelNote")}</p>
       <label className="field">
-        <span>Contexte du modèle local (tokens)</span>
+        <span>{t("project.settings.context")}</span>
         <input value={context} onChange={(e) => setContext(e.target.value)} inputMode="numeric" />
       </label>
-      <p className="muted small-text">
-        LM Studio : contexte avec lequel l'app charge le modèle, à régler selon la mémoire de ta carte graphique (par exemple 100 000 à 130 000 pour Qwen 9B). Un modèle déjà chargé garde son contexte ; la jauge montre celui qui est réellement chargé. Ollama : il fixe lui-même le contexte (ses réglages, ou OLLAMA_CONTEXT_LENGTH) ; l'app refuse de lancer l'agent s'il est plus petit que cette valeur.
-      </p>
+      <p className="muted small-text">{t("project.settings.contextNote")}</p>
       <div className="actions end">
         <button className="btn" onClick={onClose}>
-          Annuler
+          {t("project.settings.cancel")}
         </button>
         <button className="btn primary" disabled={!valid} onClick={() => onSave({ agent, localModel: model.trim(), localContext: value })}>
-          Enregistrer
+          {t("project.settings.save")}
         </button>
       </div>
     </Dialog>

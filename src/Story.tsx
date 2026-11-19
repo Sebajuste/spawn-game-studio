@@ -7,6 +7,7 @@ import { label, Refusal, useAction, type Action } from "./action.ts";
 import { Conversation } from "./Conversation.tsx";
 import { Files } from "./Files.tsx";
 import { since, AGENT_NAMES, subtitle } from "./Project.tsx";
+import { t } from "./i18n.ts";
 
 interface Props {
   api: Api;
@@ -33,8 +34,8 @@ export function Story({ api, events, project, story, active, onLaunch, onError, 
   const operationSince = detail?.operation?.since ?? null;
   useEffect(() => {
     if (!operationSince) return;
-    const t = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(timer);
   }, [operationSince]);
   const base = `/api/projects/${project}/backlog/${story}`;
   const conversationPath = `/api/projects/${project}/stories/${story}/conversation`;
@@ -108,11 +109,11 @@ export function Story({ api, events, project, story, active, onLaunch, onError, 
   const closed = detail.group === "history";
   const op = detail.operation;
   const tabs: [Tab, string, boolean][] = [
-    ["progress", "Avancement", true],
-    ["conversation", "Conversation", active.has("conversation")],
-    ["files", "Fichiers", active.has("files")],
-    ["log", "Journal", true],
-    ["technical", "Technique", true],
+    ["progress", t("story.tab.progress"), true],
+    ["conversation", t("story.tab.conversation"), active.has("conversation")],
+    ["files", t("story.tab.files"), active.has("files")],
+    ["log", t("story.tab.log"), true],
+    ["technical", t("story.tab.technical"), true],
   ];
 
   return (
@@ -132,41 +133,41 @@ export function Story({ api, events, project, story, active, onLaunch, onError, 
               }}
             >
               <input className="rename" autoFocus value={rename} disabled={act.pending !== null} onChange={(e) => setRename(e.target.value)} onBlur={() => act.pending === null && setRename(null)} onKeyDown={(e) => e.key === "Escape" && act.pending === null && setRename(null)} />
-              {act.pending === "rename" && <span className="muted small-text"> Renommage…</span>}
+              {act.pending === "rename" && <span className="muted small-text">{t("story.renaming")}</span>}
               <Refusal action={act} k="rename" />
             </form>
           ) : (
-            <h1 onDoubleClick={() => setRename(detail.title)} title="Double-clic ou F2 pour renommer">
+            <h1 onDoubleClick={() => setRename(detail.title)} title={t("story.renameHint")}>
               {detail.title}
             </h1>
           )}
           <span className="muted">
             {subtitle(detail)}
-            {detail.start && ` · commencée ${since(detail.start)}`}
+            {detail.start && t("story.startedSince", { since: since(detail.start) })}
             {detail.agent && ` · ${AGENT_NAMES[detail.agent]}`}
           </span>
           <span className="spacer" />
           {!closed && op?.kind === "turn" && (
             <button className="btn small" disabled={act.pending !== null} onClick={() => void conversationAction("pause", "stop")}>
-              {label(act, "pause", "Pause", "Pause…")}
+              {label(act, "pause", t("story.pause"), t("story.pausing"))}
             </button>
           )}
           <Refusal action={act} k="pause" />
           {!closed &&
             (confirm ? (
               <>
-                <span className="muted small-text">Jeter la branche et le travail de cette story ?</span>
+                <span className="muted small-text">{t("story.abandonConfirm")}</span>
                 <button className="btn small danger" disabled={act.pending !== null} onClick={() => void action("abandon", "abandon").then((ok) => ok && onClosed())}>
-                  {label(act, "abandon", "Abandonner", "Abandon…")}
+                  {label(act, "abandon", t("story.abandon"), t("story.abandoning"))}
                 </button>
                 <button className="btn small" disabled={act.pending !== null} onClick={() => setConfirm(false)}>
-                  Non
+                  {t("story.no")}
                 </button>
                 <Refusal action={act} k="abandon" />
               </>
             ) : (
               <button className="btn small" disabled={act.pending !== null} onClick={() => setConfirm(true)}>
-                Abandonner
+                {t("story.abandon")}
               </button>
             ))}
         </div>
@@ -189,7 +190,7 @@ export function Story({ api, events, project, story, active, onLaunch, onError, 
             <div className="now" data-tick={tick}>
               <span className="live-dot" />
               <span>
-                {op.kind === "merge" ? "Fusion en cours : intégration à develop, suite complète des tests" : "L'agent travaille…"} — {elapsed(op.since)}
+                {op.kind === "merge" ? t("story.now.merge") : t("story.now.agent")} — {elapsed(op.since)}
                 {op.kind === "turn" && now && <span className="muted"> · {now}</span>}
               </span>
             </div>
@@ -204,12 +205,12 @@ export function Story({ api, events, project, story, active, onLaunch, onError, 
               )}
             </>
           )}
-          {detail.result === "abandoned" && <div className="banner grey">Story abandonnée {since(detail.updated)}.</div>}
+          {detail.result === "abandoned" && <div className="banner grey">{t("story.abandonedBanner", { since: since(detail.updated) })}</div>}
           {detail.result === "accepted" && (
             <div className="banner green">
-              Validée et livrée dans develop {since(detail.updated)}.{" "}
+              {t("story.acceptedBanner", { since: since(detail.updated) })}{" "}
               <button className="btn small" onClick={() => setTab("files")}>
-                Voir ce qui a changé
+                {t("story.seeChanges")}
               </button>
             </div>
           )}
@@ -236,7 +237,7 @@ export function Story({ api, events, project, story, active, onLaunch, onError, 
 
 function nowLine(ev: AgentEvent): string | null {
   if (ev.type === "subagent") return `${ev.agent} : ${ev.description}`;
-  if (ev.type === "tool" && !["Agent", "Task", "subagent"].includes(ev.name)) return `${ev.subagent ? "sous-agent · " : ""}${ev.name} ${ev.summary}`;
+  if (ev.type === "tool" && !["Agent", "Task", "subagent"].includes(ev.name)) return `${ev.subagent ? t("story.subagentPrefix") : ""}${ev.name} ${ev.summary}`;
   if (ev.type === "text" && !ev.subagent) return ev.text.split("\n")[0]?.slice(0, 160) ?? null;
   return null;
 }
@@ -255,7 +256,7 @@ function Steps({ steps, unknown }: { steps: ProgressStep[]; unknown: string | nu
         e === "unknown" ? (
           <li key="unknown" className="current">
             <span className="icon current">…</span>
-            <strong>Étape non reconnue : {unknown}</strong>
+            <strong>{t("story.unknownStep", { step: unknown ?? "" })}</strong>
             <span />
           </li>
         ) : (
@@ -266,11 +267,11 @@ function Steps({ steps, unknown }: { steps: ProgressStep[]; unknown: string | nu
             {e.detail && <span className="muted"> · {e.detail}</span>}
             {e.tasks && e.tasks.length > 0 && (
               <ul className="tasks">
-                {e.tasks.map((t) => (
-                  <li key={t.number} className={t.state}>
-                    {t.state === "done" ? "✓" : t.state === "parked" ? "⏸" : t.state === "current" ? "●" : "○"} {t.title}
-                    {t.rounds > 0 && <span className="muted"> · {t.rounds} correction{t.rounds > 1 ? "s" : ""}</span>}
-                    {t.state === "parked" && <span className="muted"> · mise de côté</span>}
+                {e.tasks.map((task) => (
+                  <li key={task.number} className={task.state}>
+                    {task.state === "done" ? "✓" : task.state === "parked" ? "⏸" : task.state === "current" ? "●" : "○"} {task.title}
+                    {task.rounds > 0 && <span className="muted">{t(task.rounds > 1 ? "story.corrections.other" : "story.corrections.one", { count: task.rounds })}</span>}
+                    {task.state === "parked" && <span className="muted">{t("story.parked")}</span>}
                   </li>
                 ))}
               </ul>
@@ -295,7 +296,7 @@ function elapsed(from: string): string {
 // Dernière phrase du dernier message de l'agent : ce qu'il a dit avant de s'arrêter.
 function lastSentence(text: string | null): string {
   const parts = (text ?? "").trim().split(/(?<=[.!?…])\s+|\n+/).filter(Boolean);
-  return parts.at(-1)?.slice(0, 200) ?? "l'agent n'a rien dit";
+  return parts.at(-1)?.slice(0, 200) ?? t("story.noSaid");
 }
 
 // Issue de la dernière fusion. Une fusion refusée n'est plus d'actualité une fois la story revenue en recette (l'agent
@@ -303,9 +304,9 @@ function lastSentence(text: string | null): string {
 function Outcome({ detail }: { detail: StoryDetail }) {
   const m = detail.lastMerge;
   if (!m) return null;
-  if (m.verdict === "merged") return detail.group === "history" ? <div className="banner green">Livrée dans develop{m.commit ? ` (${m.commit.slice(0, 7)})` : ""}</div> : null;
-  if (m.verdict === "refused") return detail.group === "acceptance" || detail.group === "history" ? null : <div className="banner orange">Fusion refusée : {m.cause ?? "cause inconnue"}. L'agent corrige, puis réinscrit ; rien à faire pour toi.</div>;
-  return detail.group === "history" ? null : <div className="banner orange">Fusion en erreur : {m.cause ?? "cause inconnue"}</div>;
+  if (m.verdict === "merged") return detail.group === "history" ? <div className="banner green">{t("story.delivered")}{m.commit ? ` (${m.commit.slice(0, 7)})` : ""}</div> : null;
+  if (m.verdict === "refused") return detail.group === "acceptance" || detail.group === "history" ? null : <div className="banner orange">{t("story.mergeRefused", { cause: m.cause ?? t("story.unknownCause") })}</div>;
+  return detail.group === "history" ? null : <div className="banner orange">{t("story.mergeError", { cause: m.cause ?? t("story.unknownCause") })}</div>;
 }
 
 // Sans tour en cours, jamais de libellé d'activité : ce qui attend l'utilisateur, ou l'état de repos.
@@ -315,16 +316,16 @@ function Idle({ detail, act, onResume }: { detail: StoryDetail; act: Action; onR
   if (w.reason === "paused" || w.reason === "stopped") {
     return (
       <div className="banner grey">
-        <span>{w.reason === "paused" ? "en pause" : `arrêtée : ${lastSentence(w.text)}`}</span>
+        <span>{w.reason === "paused" ? t("story.idle.paused") : t("story.idle.stopped", { text: lastSentence(w.text) })}</span>
         <button className="btn small primary" disabled={act.pending !== null} onClick={onResume}>
-          {label(act, "resume", "Reprendre", "Reprise…")}
+          {label(act, "resume", t("story.resume"), t("story.resuming"))}
         </button>
         <Refusal action={act} k="resume" />
       </div>
     );
   }
-  const what = w.reason === "spec-approval" ? "valider le cadrage" : w.reason === "interrupted" ? "reprendre après la coupure" : (w.text ?? "ta décision").split("\n")[0]?.slice(0, 160);
-  return <div className="banner blue">à toi : {what}</div>;
+  const what = w.reason === "spec-approval" ? t("story.idle.specApproval") : w.reason === "interrupted" ? t("story.idle.interrupted") : (w.text ?? t("story.idle.decision")).split("\n")[0]?.slice(0, 160) ?? "";
+  return <div className="banner blue">{t("story.idle.yourTurn", { what })}</div>;
 }
 
 function duration(start: string | null, end: string | null): string {
@@ -345,16 +346,16 @@ function ApproveSpec({ api, project, detail, act, onApprove, onAnswer }: { api: 
     api
       .text(project, path)
       .then(setSpec)
-      .catch((e: Error) => setSpec(`(cadrage illisible : ${e.message})`));
+      .catch((e: Error) => setSpec(t("story.spec.unreadable", { message: e.message })));
   }, [api, project, path]);
   return (
     <section className="card waiting">
-      <h2>Valide le cadrage</h2>
-      <p className="muted small-text">C'est la seule question de la story : ensuite, l'agent travaille seul jusqu'à la recette.</p>
+      <h2>{t("story.spec.title")}</h2>
+      <p className="muted small-text">{t("story.spec.only")}</p>
       <div className="agent-text">{spec ?? "…"}</div>
       <div className="actions">
         <button className="btn green" disabled={act.pending !== null} onClick={() => void onApprove()}>
-          {act.pending === "approve" ? "Validation…" : "✓ Valider le cadrage"}
+          {act.pending === "approve" ? t("story.approving") : t("story.spec.approve")}
         </button>
         <Refusal action={act} k="approve" />
       </div>
@@ -365,9 +366,9 @@ function ApproveSpec({ api, project, detail, act, onApprove, onAnswer }: { api: 
           if (text.trim()) void onAnswer(text.trim()).then((ok) => ok && setText(""));
         }}
       >
-        <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="Ou ce qu'il faut changer…" />
+        <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("story.spec.placeholder")} />
         <button type="submit" className="btn" disabled={!text.trim() || act.pending !== null}>
-          {label(act, "changes", "Demander des changements", "Envoi…")}
+          {label(act, "changes", t("story.requestChanges"), t("story.sending"))}
         </button>
         <Refusal action={act} k="changes" />
       </form>
@@ -381,10 +382,10 @@ function Answer({ detail, act, onAnswer, onResume }: { detail: StoryDetail; act:
   if (w?.reason === "interrupted") {
     return (
       <section className="card waiting">
-        <h2>Coupée par un arrêt du PC ou de l'app</h2>
-        <p>Le travail déjà fait est intact. La reprise automatique n'a pas abouti.</p>
+        <h2>{t("story.interrupted.title")}</h2>
+        <p>{t("story.interrupted.body")}</p>
         <button className="btn primary" disabled={act.pending !== null} onClick={onResume}>
-          {label(act, "resume", "Reprendre", "Reprise…")}
+          {label(act, "resume", t("story.resume"), t("story.resuming"))}
         </button>
         <Refusal action={act} k="resume" />
       </section>
@@ -392,8 +393,8 @@ function Answer({ detail, act, onAnswer, onResume }: { detail: StoryDetail; act:
   }
   return (
     <section className="card waiting">
-      <h2>{w?.reason === "question" ? "Bloquée : ta décision" : "L'agent s'est arrêté"}</h2>
-      {w?.text ? <div className="agent-text">{w.text}</div> : <p className="muted">Il n'a rien dit de plus : regarde l'onglet Conversation, ou dis-lui de continuer.</p>}
+      <h2>{w?.reason === "question" ? t("story.blocked.question") : t("story.blocked.stopped")}</h2>
+      {w?.text ? <div className="agent-text">{w.text}</div> : <p className="muted">{t("story.blocked.nothing")}</p>}
       <form
         className="reply"
         onSubmit={(e) => {
@@ -401,9 +402,9 @@ function Answer({ detail, act, onAnswer, onResume }: { detail: StoryDetail; act:
           if (text.trim()) void onAnswer(text.trim()).then((ok) => ok && setText(""));
         }}
       >
-        <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={w?.reason === "question" ? "Ta réponse…" : "Ce qu'il doit faire, ou « continue »…"} autoFocus />
+        <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={w?.reason === "question" ? t("story.answer.question") : t("story.answer.other")} autoFocus />
         <button type="submit" className="btn primary" disabled={!text.trim() || act.pending !== null}>
-          {label(act, "answer", "Répondre", "Envoi…")}
+          {label(act, "answer", t("story.answer"), t("story.sending"))}
         </button>
         <Refusal action={act} k="answer" />
       </form>
@@ -450,17 +451,17 @@ function Acceptance({
   // Definition of Done : chaque point avec sa source. Seul ce que l'outil a fait est « vérifié » (§0) ; la relecture
   // est le verdict d'un agent relecteur exigé par l'outil ; les captures ne sont regardées par personne avant toi.
   const points: { name: string; state: "verified" | "agent" | "none"; detail: string }[] = [
-    { name: "Compilation et scènes", state: p ? "verified" : "none", detail: p ? p.compilation : "non vérifié" },
-    { name: "Tests", state: p ? "verified" : "none", detail: p ? `${p.tests} réussis` : "non vérifié" },
-    { name: "Smoke test (l'application se lance)", state: p ? "verified" : "none", detail: p ? p.launch : "non vérifié" },
-    { name: "Test de bout en bout", state: p ? "verified" : "none", detail: p ? `${p.end_to_end} test(s) chargent la scène principale` : "non vérifié" },
-    { name: "Relecture", state: detail.reviewed ? "agent" : "none", detail: detail.reviewed ? "approuvée par l'agent relecteur" : "pas de relecture approuvée" },
-    { name: "Captures", state: "none", detail: media.length > 0 ? "non vérifiées : regarde-les toi-même" : "aucune capture" },
+    { name: t("story.dod.compilation"), state: p ? "verified" : "none", detail: p ? p.compilation : t("story.dod.unverified") },
+    { name: t("story.dod.tests"), state: p ? "verified" : "none", detail: p ? t("story.dod.passed", { tests: p.tests }) : t("story.dod.unverified") },
+    { name: t("story.dod.smoke"), state: p ? "verified" : "none", detail: p ? p.launch : t("story.dod.unverified") },
+    { name: t("story.dod.e2e"), state: p ? "verified" : "none", detail: p ? t("story.dod.e2eDetail", { count: p.end_to_end }) : t("story.dod.unverified") },
+    { name: t("story.dod.review"), state: detail.reviewed ? "agent" : "none", detail: detail.reviewed ? t("story.dod.reviewApproved") : t("story.dod.reviewNone") },
+    { name: t("story.dod.captures"), state: "none", detail: media.length > 0 ? t("story.dod.capturesUnverified") : t("story.dod.capturesNone") },
   ];
   return (
     <section className="card acceptance">
-      {!p && <div className="banner orange">La vérification n'a pas été faite par l'outil : rien de ce qui suit n'est prouvé.</div>}
-      <h2>Definition of Done</h2>
+      {!p && <div className="banner orange">{t("story.dod.notDone")}</div>}
+      <h2>{t("story.dod.title")}</h2>
       <table className="table proof">
         <tbody>
           {points.map((x) => (
@@ -469,23 +470,23 @@ function Acceptance({
               <td>{x.name}</td>
               <td className="muted">
                 {x.detail}
-                {x.state === "verified" && p && <> · vérifié par l'outil {since(p.date)}</>}
-                {x.state === "agent" && " · par un agent, pas par l'outil"}
+                {x.state === "verified" && p && t("story.dod.verifiedBy", { since: since(p.date) })}
+                {x.state === "agent" && t("story.dod.byAgent")}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <h2>Compte rendu de l'agent</h2>
-      <p className="muted small-text">Ce que l'agent dit avoir fait : une déclaration, pas une preuve.</p>
-      <p>{report?.summary ?? "L'agent n'a pas laissé de compte rendu."}</p>
+      <h2>{t("story.report.title")}</h2>
+      <p className="muted small-text">{t("story.report.note")}</p>
+      <p>{report?.summary ?? t("story.report.none")}</p>
       {report?.how_to_check && (
         <>
-          <h2>Comment le vérifier toi-même</h2>
+          <h2>{t("story.howToCheck")}</h2>
           <p>{report.how_to_check}</p>
         </>
       )}
-      {media.length > 0 && <h2>Captures (non vérifiées)</h2>}
+      {media.length > 0 && <h2>{t("story.capturesTitle")}</h2>}
       {media.length > 0 && (
         <div className="media-grid">
           {media.map((m) => (
@@ -502,20 +503,20 @@ function Acceptance({
       )}
       {files && (
         <p className="muted small-text">
-          {files.files.length} fichier{files.files.length > 1 ? "s" : ""} touché{files.files.length > 1 ? "s" : ""} ·{" "}
+          {t(files.files.length > 1 ? "story.files.other" : "story.files.one", { count: files.files.length })}
           <button className="link" onClick={onShowFiles}>
-            voir
+            {t("story.view")}
           </button>
         </p>
       )}
       <div className="actions">
         <button className="btn" disabled={act.pending !== null} onClick={onLaunch}>
-          ▶ Lancer cette version
+          {t("story.launch")}
         </button>
         <span className="spacer" />
         <Refusal action={act} k="accept" />
         <button className="btn green" disabled={act.pending !== null} onClick={() => void onAccept()}>
-          {act.pending === "accept" ? "Validation…" : "✓ Valider"}
+          {act.pending === "accept" ? t("story.accepting") : t("story.accept")}
         </button>
       </div>
       <form
@@ -525,9 +526,9 @@ function Acceptance({
           if (message.trim()) void onRequestChanges(message.trim()).then((ok) => ok && setMessage(""));
         }}
       >
-        <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Ce qui ne va pas…" />
+        <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("story.changes.placeholder")} />
         <button type="submit" className="btn" disabled={!message.trim() || act.pending !== null}>
-          {label(act, "changes", "Demander des changements", "Envoi…")}
+          {label(act, "changes", t("story.requestChanges"), t("story.sending"))}
         </button>
         <Refusal action={act} k="changes" />
       </form>
@@ -548,7 +549,7 @@ function Log({ api, project, story }: { api: Api; project: string; story: string
     <div className="scroll">
       {detail.refusals.length > 0 && (
         <section className="card">
-          <h2>Refus du périmètre ({detail.refusals.length})</h2>
+          <h2>{t("story.refusals", { count: detail.refusals.length })}</h2>
           {detail.refusals.map((r, i) => (
             <p key={i} className="small-text">
               <code>{r.target}</code> : {r.reason}
@@ -557,8 +558,8 @@ function Log({ api, project, story }: { api: Api; project: string; story: string
         </section>
       )}
       <section className="card">
-        <h2>Journal ({detail.ledger.length})</h2>
-        {detail.ledger.length === 0 ? <p className="muted">Aucun événement.</p> : <ol className="ledger">{detail.ledger.map((l, i) => <li key={i}>{l}</li>)}</ol>}
+        <h2>{t("story.log", { count: detail.ledger.length })}</h2>
+        {detail.ledger.length === 0 ? <p className="muted">{t("story.noEvents")}</p> : <ol className="ledger">{detail.ledger.map((l, i) => <li key={i}>{l}</li>)}</ol>}
       </section>
     </div>
   );
@@ -578,21 +579,19 @@ function Technical({ api, project, story, detail }: { api: Api; project: string;
         <table className="table">
           <tbody>
             <tr>
-              <th>Fil</th>
-              <td>
-                {detail.story} · statut {detail.status}
-              </td>
+              <th>{t("story.tech.thread")}</th>
+              <td>{t("story.tech.status", { story: detail.story, status: detail.status })}</td>
             </tr>
             <tr>
-              <th>Branche</th>
+              <th>{t("story.tech.branch")}</th>
               <td>{detail.branch}</td>
             </tr>
             <tr>
               <th>Worktree</th>
-              <td>{detail.worktree ?? "supprimé"}</td>
+              <td>{detail.worktree ?? t("story.tech.deleted")}</td>
             </tr>
             <tr>
-              <th>Agent</th>
+              <th>{t("story.tech.agent")}</th>
               <td>{detail.agent ? AGENT_NAMES[detail.agent] : "—"}</td>
             </tr>
             {next && (
