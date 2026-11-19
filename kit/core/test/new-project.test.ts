@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { git, gitOk } from "../src/git.ts";
-import { newGame, slug } from "../src/new-game.ts";
+import { newProject, slug } from "../src/new-project.ts";
 import type { Runner } from "../src/prerequisites.ts";
 import { DEFAULT_LIMITS, readConfig, findProject } from "../src/project.ts";
 import { tempDir, cleanDirs } from "./git-helper.ts";
@@ -37,10 +37,10 @@ const request = (parent: string, commands: string[] = []) => ({
   log: () => {},
 });
 
-test("new game: template, engine, git (main, develop), local remote with origin/HEAD on develop, first test green", async () => {
+test("new project: template, engine, git (main, develop), local remote with origin/HEAD on develop, first test green", async () => {
   const parent = tempDir("jeux");
   const commands: string[] = [];
-  const game = await newGame(request(parent, commands));
+  const game = await newProject(request(parent, commands));
   const r = game.root;
 
   assert.equal(r, join(parent, "morpion"));
@@ -70,14 +70,14 @@ test("new game: template, engine, git (main, develop), local remote with origin/
 
 test("refusals: non-empty dir, invalid prefix or version; a failure before the commit leaves nothing", async () => {
   const parent = tempDir("jeux");
-  await newGame(request(parent));
-  await assert.rejects(newGame(request(parent)), /existe déjà et n'est pas vide/);
-  await assert.rejects(newGame({ ...request(parent), name: "Autre", tag: "mrp" }), /préfixe d'exigences invalide/);
-  await assert.rejects(newGame({ ...request(parent), name: "Autre", version: "dernière" }), /version du moteur invalide/);
+  await newProject(request(parent));
+  await assert.rejects(newProject(request(parent)), /existe déjà et n'est pas vide/);
+  await assert.rejects(newProject({ ...request(parent), name: "Autre", tag: "mrp" }), /préfixe d'exigences invalide/);
+  await assert.rejects(newProject({ ...request(parent), name: "Autre", version: "dernière" }), /version du moteur invalide/);
 
   const failing: Runner = (program, args, cwd) =>
     args[1] === "install" ? { code: 1, stdout: "", stderr: "marketplace injoignable" } : fake([])(program, args, cwd);
-  await assert.rejects(newGame({ ...request(parent), name: "Echec", run: failing }), /installation du plugin/);
+  await assert.rejects(newProject({ ...request(parent), name: "Echec", run: failing }), /installation du plugin/);
   assert.ok(!existsSync(join(parent, "echec")), "rien ne reste après un échec avant le commit");
 });
 

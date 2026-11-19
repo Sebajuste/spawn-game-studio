@@ -12,7 +12,7 @@ import { write, LedgerError, shapes, readLedger, render, RESERVED, fromOptions, 
 import { planDefects, planProofDefects, readPlan, specDefects } from "./plan.ts";
 import { measure } from "./metrics.ts";
 import { engineSettingsPath, setEngine, readEngineSettings } from "./engines.ts";
-import { newGame, slug } from "./new-game.ts";
+import { newProject, slug } from "./new-project.ts";
 import { opencodeConfigDir, generateOpencode } from "./opencode.ts";
 import { claudeAdapter } from "./agent/claude.ts";
 import { copilotAdapter } from "./agent/copilot.ts";
@@ -50,7 +50,7 @@ const HELP = `spawn <commande>
   pilot <claude|opencode> --story F --intent "…" [--load]   essai sans surveillance (interventions mesurées)
   engines [set <moteur> <version> "<exécutable>"]   réglage machine des moteurs (~/.spawn/engines.json)
   limits                               limites du projet (spawn.json) et sous-agents en cours
-  new-game --name N --dir D --version V [--engine godot] [--tag ABC] [--remote local|none|<url>]
+  new-project --name N --dir D --version V [--engine godot] [--tag ABC] [--remote local|none|<url>]   (alias : new-game)
   runtime status                       version active du runtime (~/.spawn/runtime) et ce qu'exécute chaque composant
   runtime install [--dry-run]          depuis le dépôt : vérifie, copie le commit, construit l'app, active la version
   runtime use <version> [--dry-run]    rend active une version installée (retour en arrière)`;
@@ -586,15 +586,17 @@ ${renderOutcome(outcome, renderAction)}`);
       console.log(`${engineSettingsPath()}\n${JSON.stringify(readEngineSettings(), null, 2)}`);
       return 0;
     }
-    case "new-game": {
+    // `new-game` reste un alias : des scripts et la doc d'avant le renommage l'appellent encore.
+    case "new-game":
+    case "new-project": {
       const name = opt("name");
       const parent = opt("dir");
       const version = opt("version");
-      if (!name || !parent || !version) throw new Usage("new-game : --name, --dir et --version sont requis");
-      const tag = opt("tag") ?? (slug(name).replace(/-/g, "").slice(0, 3).toUpperCase() || "JEU");
-      const game = await newGame({ name, parent: resolve(parent), engine: opt("engine") ?? "godot", version, tag, remote: opt("remote") ?? "local" });
-      console.log(`\njeu créé : ${game.root}${game.remote ? `\ndistant : ${game.remote}` : ""}\npréfixe d'exigences : ${tag}`);
-      console.log(`ouvrir une session : cd "${game.root}" && claude --permission-mode bypassPermissions`);
+      if (!name || !parent || !version) throw new Usage("new-project : --name, --dir et --version sont requis");
+      const tag = opt("tag") ?? (slug(name).replace(/-/g, "").slice(0, 3).toUpperCase() || "APP");
+      const project = await newProject({ name, parent: resolve(parent), engine: opt("engine") ?? "godot", version, tag, remote: opt("remote") ?? "local" });
+      console.log(`\nprojet créé : ${project.root}${project.remote ? `\ndistant : ${project.remote}` : ""}\npréfixe d'exigences : ${tag}`);
+      console.log(`ouvrir une session : cd "${project.root}" && claude --permission-mode bypassPermissions`);
       return 0;
     }
     case "runtime":

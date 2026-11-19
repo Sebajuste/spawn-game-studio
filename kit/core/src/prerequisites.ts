@@ -111,7 +111,7 @@ export async function checkPrerequisites(cwd: string, ex: Runner = run): Promise
       name: "réglages versionnés",
       ok: tracked,
       detail: tracked ? ".claude/settings.json suivi par git" : ".claude/settings.json non versionné : les worktrees des fils n'auront ni plugin ni hook de périmètre",
-      ...(tracked ? {} : { correction: "commiter .claude/settings.json (commit initial de spawn new-game, ou par une fusion)" }),
+      ...(tracked ? {} : { correction: "commiter .claude/settings.json (commit initial de spawn new-project, ou par une fusion)" }),
     });
     const env = (readEngineSettings(projectSettingsPath(session)).env ?? {}) as Record<string, unknown>;
     const window = env.CLAUDE_CODE_AUTO_COMPACT_WINDOW === COMPACTION_WINDOW;

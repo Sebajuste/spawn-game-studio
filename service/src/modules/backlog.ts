@@ -11,7 +11,7 @@ import { createWorktree } from "../../../kit/core/src/hooks/worktree.ts";
 import { abandon, accept, acceptanceReport, AcceptanceError, requestChanges, proposedSpec, approveSpec } from "../../../kit/core/src/acceptance.ts";
 import { readDecisions } from "../../../kit/core/src/merge.ts";
 import { readLedger } from "../../../kit/core/src/ledger.ts";
-import { slug } from "../../../kit/core/src/new-game.ts";
+import { slug } from "../../../kit/core/src/new-project.ts";
 import { LOCAL_MODEL, MAX_LOCAL_CONTEXT, MIN_LOCAL_CONTEXT, writeProjectSettings, readProjectSettings } from "../../../kit/core/src/settings.ts";
 import { projectAdapter, findProject, type Project } from "../../../kit/core/src/project.ts";
 import { SPAWN, nextAction } from "../../../kit/core/src/next.ts";

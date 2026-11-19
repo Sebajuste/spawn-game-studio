@@ -1,4 +1,4 @@
-// Création d'un jeu (docs/kit-perimetre.md §4.1), sans LLM : le plugin ne s'active que dans un projet Spawn,
+// Création d'un projet (docs/kit-perimetre.md §4.1), sans LLM : le plugin ne s'active que dans un projet Spawn,
 // une skill ne pourrait donc pas créer le premier.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -13,7 +13,7 @@ import { ENGINES_DIR, DEFAULT_LIMITS } from "./project.ts";
 const TEMPLATE = fileURLToPath(new URL("../template/", import.meta.url));
 const GIT_HOOKS = fileURLToPath(new URL("../git-hooks/", import.meta.url));
 
-export interface NewGameRequest {
+export interface NewProjectRequest {
   name: string;
   parent: string;
   engine: string;
@@ -26,7 +26,7 @@ export interface NewGameRequest {
   log?: (line: string) => void;
 }
 
-export interface CreatedGame {
+export interface CreatedProject {
   root: string;
   remote: string | null;
   tests: number;
@@ -71,7 +71,7 @@ async function requireOk(adapter: Adapter, sub: string, options: Record<string, 
   return r.result;
 }
 
-export async function newGame(d: NewGameRequest): Promise<CreatedGame> {
+export async function newProject(d: NewProjectRequest): Promise<CreatedProject> {
   const log = d.log ?? ((l: string) => console.log(l));
   const ex = d.run ?? run;
   if (!/^[A-Z][A-Z0-9]{1,5}$/.test(d.tag)) throw new Error(`préfixe d'exigences invalide : « ${d.tag} » (2 à 6 majuscules, ex. MRP)`);

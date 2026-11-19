@@ -1,4 +1,4 @@
-// Le jeu ouvert (docs/ux-parcours.md §3 à §7) : en-tête avec « Lancer le jeu », « Que veux-tu ? » toujours en haut,
+﻿// Le jeu ouvert (docs/ux-parcours.md §3 à §7) : en-tête avec « Lancer le jeu », « Que veux-tu ? » toujours en haut,
 // barre latérale triée par ce qui concerne l'utilisateur (décision attendue, en recette, en cours, historique), et au
 // centre le tableau du jeu, une story ou l'historique. Tout se recharge sur les événements du service.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -76,7 +76,7 @@ export function since(date: string | null): string {
   return `le ${new Date(date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`;
 }
 
-export function Game({ api, events, project, active, signal, dialog, closeDialog, onError }: Props) {
+export function Project({ api, events, project, active, signal, dialog, closeDialog, onError }: Props) {
   const [stories, setStories] = useState<StoryView[] | null>(null);
   const [view, setView] = useState<Screen>({ screen: "board" });
   const [request, setRequest] = useState("");
