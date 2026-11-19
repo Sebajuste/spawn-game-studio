@@ -125,7 +125,7 @@ export function Game({ api, events, project, active, signal, dialog, closeDialog
     async (story?: string) => {
       try {
         await api.call("POST", `${base}/launch`, story ? { story } : {});
-        setInfo(story ? "Version de la story lancée." : "Jeu lancé (develop).");
+        setInfo(story ? "Version de la story lancée." : "Projet lancé (develop).");
       } catch (e) {
         onError((e as Error).message);
       }
@@ -230,7 +230,7 @@ export function Game({ api, events, project, active, signal, dialog, closeDialog
             </span>
           )}
           <button className="btn" onClick={() => void launch()} title="Lancer develop (F5)">
-            ▶ Lancer le jeu
+            ▶ Lancer le projet
           </button>
         </header>
         <form
@@ -251,7 +251,7 @@ export function Game({ api, events, project, active, signal, dialog, closeDialog
                 void send();
               }
             }}
-            placeholder="Nouvelle feature : que veux-tu dans ce jeu ?  (Entrée pour envoyer · Maj+Entrée pour aller à la ligne)"
+            placeholder="Nouvelle feature : que veux-tu dans ce projet ?  (Entrée pour envoyer · Maj+Entrée pour aller à la ligne)"
           />
           <button type="submit" className="btn primary" disabled={!request.trim() || act.pending !== null}>
             {label(act, "request", "Envoyer", "Création…")}
@@ -357,8 +357,8 @@ function Board({
       )}
       {stories.length === 0 && (
         <section className="card prompt" onClick={onRequest}>
-          <h2>Que veux-tu dans ce jeu ?</h2>
-          <p>Écris-le en une phrase dans le champ du haut, comme tu le dirais à quelqu'un : « un score par joueur au-dessus de la grille ». L'agent cadre d'abord ta feature et te fait valider le cadrage, puis il travaille seul jusqu'à la recette.</p>
+          <h2>Que veux-tu dans ce projet ?</h2>
+          <p>Écris-le en une phrase dans le champ du haut, comme tu le dirais à quelqu'un : « un endpoint /health qui renvoie ok » ou « un score par joueur au-dessus de la grille ». L'agent cadre d'abord ta feature et te fait valider le cadrage, puis il travaille seul jusqu'à la recette.</p>
         </section>
       )}
       {stories.length > 0 && blocked.length + acceptance.length + running.length === 0 && <p className="muted">Rien en cours. Dis ce que tu veux dans le champ du haut.</p>}

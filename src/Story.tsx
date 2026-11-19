@@ -452,7 +452,7 @@ function Acceptance({
   const points: { name: string; state: "verified" | "agent" | "none"; detail: string }[] = [
     { name: "Compilation et scènes", state: p ? "verified" : "none", detail: p ? p.compilation : "non vérifié" },
     { name: "Tests", state: p ? "verified" : "none", detail: p ? `${p.tests} réussis` : "non vérifié" },
-    { name: "Smoke test (le jeu se lance)", state: p ? "verified" : "none", detail: p ? p.launch : "non vérifié" },
+    { name: "Smoke test (l'application se lance)", state: p ? "verified" : "none", detail: p ? p.launch : "non vérifié" },
     { name: "Test de bout en bout", state: p ? "verified" : "none", detail: p ? `${p.end_to_end} test(s) chargent la scène principale` : "non vérifié" },
     { name: "Relecture", state: detail.reviewed ? "agent" : "none", detail: detail.reviewed ? "approuvée par l'agent relecteur" : "pas de relecture approuvée" },
     { name: "Captures", state: "none", detail: media.length > 0 ? "non vérifiées : regarde-les toi-même" : "aucune capture" },

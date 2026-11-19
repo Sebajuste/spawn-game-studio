@@ -114,21 +114,21 @@ export default function App() {
     {
       title: "Fichier",
       entries: [
-        { title: "Nouveau jeu…", shortcut: "Ctrl+N", action: () => setDialog("new") },
-        { title: "Ouvrir un jeu…", shortcut: "Ctrl+O", action: () => setDialog("open") },
+        { title: "Nouveau projet…", shortcut: "Ctrl+N", action: () => setDialog("new") },
+        { title: "Ouvrir un projet…", shortcut: "Ctrl+O", action: () => setDialog("open") },
         {
-          title: "Jeux récents",
+          title: "Projets récents",
           sub: (projects ?? []).map((p) => ({ title: p.name, detail: p.root, action: () => openGame(p.id), checked: p.id === game })),
         },
         "-",
-        { title: "Fermer le jeu", shortcut: "Ctrl+W", action: () => openGame(null), disabled: !hasGame },
+        { title: "Fermer le projet", shortcut: "Ctrl+W", action: () => openGame(null), disabled: !hasGame },
       ],
     },
     {
       title: "Projet",
       entries: [
         { title: "Nouvelle feature", shortcut: "Ctrl+Maj+N", action: () => request("request"), disabled: !hasGame },
-        { title: "Lancer le jeu", shortcut: "F5", action: () => request("launch"), disabled: !hasGame },
+        { title: "Lancer le projet", shortcut: "F5", action: () => request("launch"), disabled: !hasGame },
         { title: "Livrées et abandonnées", action: () => request("history"), disabled: !hasGame },
         "-",
         { title: "Ouvrir le dossier", action: () => request("folder"), disabled: !hasGame },

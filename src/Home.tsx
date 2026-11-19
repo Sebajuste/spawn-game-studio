@@ -11,11 +11,11 @@ export function Home({ projects, onNew, onOpen, onPick }: { projects: ProjectVie
       <p className="muted">Tu dis ce que tu veux, tu juges ce que tu vois.</p>
       <div className="big-buttons">
         <button onClick={onNew}>
-          <strong>Nouveau jeu</strong>
+          <strong>Nouveau projet</strong>
           <span className="muted">Ctrl+N</span>
         </button>
         <button onClick={onOpen}>
-          <strong>Ouvrir un jeu…</strong>
+          <strong>Ouvrir un projet…</strong>
           <span className="muted">Ctrl+O · choisir son dossier</span>
         </button>
       </div>
@@ -66,11 +66,11 @@ export function OpenDialog({ onClose, onOpen }: { onClose: () => void; onOpen: (
   // Sous Tauri, le sélecteur de Windows s'ouvre tout de suite : c'est ce qu'on attend de Ctrl+O.
   useEffect(() => {
     if (!inTauri()) return;
-    void pickFolder("Ouvrir un jeu").then((d) => (d ? onOpen(d) : onClose()));
+    void pickFolder("Ouvrir un projet").then((d) => (d ? onOpen(d) : onClose()));
   }, [onOpen, onClose]);
   if (inTauri()) return null;
   return (
-    <Dialog title="Ouvrir un jeu" onClose={onClose}>
+    <Dialog title="Ouvrir un projet" onClose={onClose}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -78,8 +78,8 @@ export function OpenDialog({ onClose, onOpen }: { onClose: () => void; onOpen: (
         }}
       >
         <label className="field">
-          <span>Dossier du jeu (celui qui contient spawn.json)</span>
-          <FolderField value={dir} onChange={setDir} title="Ouvrir un jeu" />
+          <span>Dossier du projet (celui qui contient spawn.json)</span>
+          <FolderField value={dir} onChange={setDir} title="Ouvrir un projet" />
         </label>
         <div className="actions end">
           <button type="button" className="btn" onClick={onClose}>
@@ -176,7 +176,7 @@ export function NewGameDialog({ api, events, onClose, onCreated }: { api: Api; e
   }
 
   return (
-    <Dialog title="Nouveau jeu" onClose={onClose}>
+    <Dialog title="Nouveau projet" onClose={onClose}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -189,7 +189,7 @@ export function NewGameDialog({ api, events, onClose, onCreated }: { api: Api; e
         </label>
         <label className="field">
           <span>Dans le dossier</span>
-          <FolderField value={parent} onChange={setParent} title="Dossier où créer le jeu" />
+          <FolderField value={parent} onChange={setParent} title="Dossier où créer le projet" />
         </label>
         <label className="field">
           <span>Moteur</span>
@@ -202,7 +202,7 @@ export function NewGameDialog({ api, events, onClose, onCreated }: { api: Api; e
               ))}
             </select>
           ) : (
-            <input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="version de Godot, ex. 4.5.1 (aucun moteur connu sur cette machine)" />
+            <input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="version du moteur, ex. 4.5.1 pour Godot, 24 pour Node (aucun moteur connu sur cette machine)" />
           )}
         </label>
         <details>
@@ -214,7 +214,7 @@ export function NewGameDialog({ api, events, onClose, onCreated }: { api: Api; e
           <label className="field">
             <span>Dépôt distant</span>
             <select value={remote} onChange={(e) => setRemote(e.target.value)}>
-              <option value="local">Local, à côté du jeu</option>
+              <option value="local">Local, à côté du projet</option>
               <option value="none">Aucun</option>
             </select>
           </label>
