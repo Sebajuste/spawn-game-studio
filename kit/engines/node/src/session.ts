@@ -2,7 +2,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Options } from "./arguments.ts";
-import { logDir, timestamp, workspaceDirs } from "./project.ts";
+import { dockerCommand, killContainer } from "./docker.ts";
+import { logDir, readPackageJson, readSpawnJson, timestamp, workspaceDirs, type RunnerConfig } from "./project.ts";
 import { parseErrors, Paths } from "./parse.ts";
 import { npmRun, run, startDetached, type Run, type Started } from "./process.ts";
 import { Failure, type Report } from "./result.ts";
@@ -25,8 +26,19 @@ export class Session {
   }
 
   async script(name: string, deadline = this.deadline): Promise<Run> {
+    const runner = readSpawnJson(this.project)?.node.runner;
+    if (runner !== undefined) return this.inContainer(runner, name, deadline);
     const r = await run({ command: npmRun(name), cwd: this.project, log: this.log, deadline });
     if (r.code === null && !r.timedOut) throw new Failure("launch-failed", `npm n'a pas pu être lancé pour le script « ${name} »`);
+    return r;
+  }
+
+  private async inContainer(runner: RunnerConfig, name: string, deadline: number): Promise<Run> {
+    const cmd = dockerCommand(this.project, runner, name, readPackageJson(this.project).dependencyCount);
+    const r = await run({ command: { program: cmd.program, args: cmd.args }, cwd: this.project, log: this.log, deadline });
+    // Le délai a tué le client docker : le conteneur, lui, tourne encore.
+    if (r.timedOut) killContainer(cmd.name);
+    if (r.code === null && !r.timedOut) throw new Failure("launch-failed", `docker n'a pas pu être lancé pour le script « ${name} » : voir « spawn engine prerequisites »`);
     return r;
   }
 

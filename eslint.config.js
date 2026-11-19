@@ -3,7 +3,8 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   // .claude/ : les worktrees des fils y vivent, chacun avec sa propre config (lus par leur propre lint).
-  { ignores: ["dist/", "src-tauri/", "node_modules/", ".spawn/", ".claude/"] },
+  // examples/ : projets de démonstration, lancés par leur propre spawn.json.
+  { ignores: ["dist/", "src-tauri/", "node_modules/", ".spawn/", ".claude/", "kit/engines/node/examples/"] },
   js.configs.recommended,
   ...tseslint.configs.strict,
   // Scripts du projet (spawn.json, section node) : JavaScript lancé par Node.

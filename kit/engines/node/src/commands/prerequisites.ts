@@ -13,6 +13,10 @@ export function versionCompatible(actual: string, expected: string): boolean {
   return actual === expected || actual.startsWith(`${expected}.`);
 }
 
+function hasRunner(project: string | undefined): boolean {
+  return project !== undefined && readSpawnJson(project)?.node.runner !== undefined;
+}
+
 // Node et npm sont ceux du PATH : ceux qu'utilisent les scripts du projet, pas forcément celui de l'adaptateur.
 export async function prerequisites(o: Options, r: Report): Promise<void> {
   const data: PrerequisitesData = { executable: null, version: null, expected_version: null, tools: [] };
@@ -39,7 +43,8 @@ export async function prerequisites(o: Options, r: Report): Promise<void> {
   const [executable, version] = JSON.parse(reported) as [string, string];
   data.executable = toSlash(executable);
   data.version = version;
-  if (data.expected_version !== null && !versionCompatible(version, data.expected_version)) {
+  // Avec un conteneur, la version de Node qui compte est celle de l'image, pas celle de l'hôte.
+  if (data.expected_version !== null && !versionCompatible(version, data.expected_version) && !hasRunner(project)) {
     r.error("version-mismatch", `Node ${version} trouvé, ${data.expected_version} attendu (spawn.json)`, "spawn.json");
   }
 
@@ -52,7 +57,21 @@ export async function prerequisites(o: Options, r: Report): Promise<void> {
   data.tools.push({ name: "edge", present: edge.path !== null, version: null, path: edge.path === null ? null : toSlash(edge.path) });
   if (edge.path === null) r.warn("edge-missing", `Edge introuvable (cherché : ${edge.searched.join(", ")}) : capture impossible`);
 
-  if (project !== undefined) {
+  const runner = project === undefined ? undefined : readSpawnJson(project)?.node.runner;
+  if (runner !== undefined) {
+    // Le serveur doit répondre : un client sans démon (Docker Desktop éteint) ne lancerait aucun test.
+    const dockerRun = await run({ command: 'docker version --format "{{.Server.Version}}"', cwd, log, deadline });
+    const serverVersion = lines(dockerRun.output).map((l) => l.trim()).find((l) => /^\d+\.\d+/.test(l)) ?? null;
+    data.tools.push({ name: "docker", present: dockerRun.code === 0 && serverVersion !== null, version: serverVersion, path: null });
+    if (dockerRun.code !== 0 || serverVersion === null) {
+      const client = await run({ command: "docker --version", cwd, log, deadline });
+      if (client.code === 0) r.error("docker-daemon-down", "docker est installé mais son démon ne répond pas : démarrer Docker Desktop (ou le service docker), puis relancer");
+      else r.error("docker-not-found", `docker introuvable dans le PATH : les tests de spawn.json (node.runner) tournent dans un conteneur. Installer Docker (https://docs.docker.com/get-docker/) ou Podman avec l'alias docker, ou retirer "runner" de spawn.json`);
+    }
+  }
+
+  // Dans un conteneur, `npm ci` installe les dépendances lui-même : celles de l'hôte ne servent pas.
+  if (project !== undefined && runner === undefined) {
     const pkg = readPackageJson(project);
     const modules = join(project, "node_modules");
     const installed = pkg.dependencyCount === 0 || existsSync(modules);
