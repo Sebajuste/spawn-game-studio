@@ -7,10 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hooks/pre-tool-use.ts"
-            ],
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/pre-tool-use.ts\"",
             "onFailure": "block"
           }
         ]
@@ -20,11 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hooks/agents.ts",
-              "reserve"
-            ],
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/agents.ts\" reserve",
             "onFailure": "block"
           }
         ]
@@ -35,10 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hooks/worktree-create.ts"
-            ]
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/worktree-create.ts\""
           }
         ]
       }
@@ -48,10 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hooks/worktree-remove.ts"
-            ]
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/worktree-remove.ts\""
           }
         ]
       }
@@ -61,10 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hooks/pre-compact.ts"
-            ]
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/pre-compact.ts\""
           }
         ]
       }
@@ -74,10 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hooks/session-start.ts"
-            ]
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/session-start.ts\""
           }
         ]
       }
@@ -87,11 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hooks/agents.ts",
-              "start"
-            ]
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/agents.ts\" start"
           }
         ]
       }
@@ -101,11 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hooks/agents.ts",
-              "stop"
-            ]
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/src/hooks/agents.ts\" stop"
           }
         ]
       }

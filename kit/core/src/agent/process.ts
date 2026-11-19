@@ -13,6 +13,16 @@ export function executable(program: string, env: NodeJS.ProcessEnv = process.env
   if (platform !== "win32" || isAbsolute(program) || /[\\/]/.test(program)) return program;
   const paths = (env.PATH ?? env.Path ?? "").split(delimiter).filter(Boolean);
   for (const d of paths) {
+    const cmd = join(d, `${program}.cmd`);
+    if (!existsSync(cmd)) continue;
+    // Copilot : le raccourci lance `npm-loader.js` via node, mais le paquet de la plateforme contient le vrai `.exe`.
+    // Un `copilot.exe` posé avant dans le PATH (le relais de VS Code) rappelle ce même `.cmd` et échoue en
+    // « UnsupportedWindowsCommandValue » : le `.exe` natif passe donc en premier.
+    const loader = /"%dp0%\\([^"]+)[\\/]npm-loader\.js"/i.exec(readFileSync(cmd, "utf8"))?.[1];
+    const native = loader && resolve(d, loader, "node_modules", "@github", `copilot-win32-${process.arch}`, "copilot.exe");
+    if (native && existsSync(native)) return native;
+  }
+  for (const d of paths) {
     const exe = join(d, `${program}.exe`);
     if (existsSync(exe)) return exe;
   }

@@ -6,6 +6,7 @@ import { excerpt, summarizeTool, type AgentEvent } from "./events.ts";
 import type { AgentAdapter } from "./type.ts";
 import { runProcess, firstField, type Launcher } from "./process.ts";
 import { run as runSync } from "../prerequisites.ts";
+import { KIT_CORE } from "../location.ts";
 
 interface ToolRequest {
   toolCallId?: string;
@@ -64,7 +65,9 @@ export function copilotAdapter(o: { model?: string; run?: Launcher } = {}): Agen
   return {
     name: "copilot",
     async turn({ dir, message, session, output, timeoutMs, signal, env: extra }) {
-      const args = ["-p", message, "--output-format", "json", "--allow-all-tools", "--no-ask-user", ...(session ? ["--resume", session] : []), ...(o.model ? ["--model", o.model] : [])];
+      // Le CLI du kit et `.spawn/` vivent hors du worktree : sans --allow-all-paths, Copilot refuse en non interactif
+      // toute commande ou lecture qui y touche, même avec --allow-all-tools (« permission denied » vu en essai réel).
+      const args = ["-p", message, "--output-format", "json", "--allow-all-tools", "--allow-all-paths", "--no-ask-user", "--plugin-dir", KIT_CORE, ...(session ? ["--resume", session] : []), ...(o.model ? ["--model", o.model] : [])];
       const env = { ...process.env, ...extra, SPAWN_AGENT: "copilot" };
       const code = await run("copilot", args, { cwd: dir, output, timeoutMs, env, ...(signal ? { signal } : {}) });
       return { code, session: firstField(output, "sessionId") ?? session };
