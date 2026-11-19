@@ -21,7 +21,7 @@ import { HttpError } from "../router.ts";
 import { ASK_USER, lastReply, type ConversationModule } from "./conversation.ts";
 import { projectById } from "./projects.ts";
 
-const AGENTS: readonly AgentName[] = ["claude-code", "opencode"];
+const AGENTS: readonly AgentName[] = ["claude-code", "opencode", "copilot"];
 
 // Fiche d'une story demandée depuis l'app : `.spawn/story-meta/<story>.json`.
 interface StoryMeta {

@@ -18,7 +18,7 @@ interface Props {
   act: Action;
 }
 
-const AGENT_NAMES: Record<AgentName, string> = { "claude-code": "Claude Code", opencode: "OpenCode (modèle local)" };
+const AGENT_NAMES: Record<AgentName, string> = { "claude-code": "Claude Code", opencode: "OpenCode (modèle local)", copilot: "GitHub Copilot" };
 
 export function Conversation({ api, events, project, story, active, branch, worktree, plannedAgent = null, act }: Props) {
   const [view, setView] = useState<ConversationView | null>(null);

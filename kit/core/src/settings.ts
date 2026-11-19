@@ -4,7 +4,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-export type AgentName = "claude-code" | "opencode";
+export type AgentName = "claude-code" | "opencode" | "copilot";
 
 export interface ProjectSettings {
   agent: AgentName;
@@ -32,7 +32,7 @@ export function readProjectSettings(root: string): ProjectSettings {
   }
   const context = Number(raw.localContext);
   return {
-    agent: raw.agent === "opencode" ? "opencode" : "claude-code",
+    agent: raw.agent === "opencode" || raw.agent === "copilot" ? raw.agent : "claude-code",
     localModel: typeof raw.localModel === "string" && LOCAL_MODEL.test(raw.localModel) ? raw.localModel : DEFAULT_LOCAL_MODEL,
     localContext: Number.isInteger(context) && context >= MIN_LOCAL_CONTEXT && context <= MAX_LOCAL_CONTEXT ? context : DEFAULT_LOCAL_CONTEXT,
   };

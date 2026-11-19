@@ -15,6 +15,7 @@ import { engineSettingsPath, setEngine, readEngineSettings } from "./engines.ts"
 import { newGame, slug } from "./new-game.ts";
 import { opencodeConfigDir, generateOpencode } from "./opencode.ts";
 import { claudeAdapter } from "./agent/claude.ts";
+import { copilotAdapter } from "./agent/copilot.ts";
 import { opencodeAdapter } from "./agent/opencode.ts";
 import { pilot } from "./pilot.ts";
 import { apply, installPlan, checkPrerequisites } from "./prerequisites.ts";
@@ -518,7 +519,12 @@ ${prep.result ? JSON.stringify(prep.result, null, 2) : prep.defects.join(" ; ")}
       const ctx = requireContext();
       requireStory(ctx);
       const name = opt("agent") ?? readProjectSettings(ctx.project.root).agent;
-      const agent = name === "opencode" ? opencodeAdapter({ model: opt("model") ?? readProjectSettings(ctx.project.root).localModel, context: readProjectSettings(ctx.project.root).localContext }) : claudeAdapter();
+      const agent =
+        name === "opencode"
+          ? opencodeAdapter({ model: opt("model") ?? readProjectSettings(ctx.project.root).localModel, context: readProjectSettings(ctx.project.root).localContext })
+          : name === "copilot"
+            ? copilotAdapter(opt("model") ? { model: opt("model") as string } : {})
+            : claudeAdapter();
       const stop = new AbortController();
       process.once("SIGINT", () => stop.abort());
       const outcome = await runTasks({ ctx, agent, signal: stop.signal, log: (l) => console.log(l), ...(opt("max-steps") ? { maxSteps: Number(opt("max-steps")) } : {}) });
@@ -528,8 +534,8 @@ ${renderOutcome(outcome, renderAction)}`);
     }
     case "pilot": {
       const agentName = positionals[0];
-      if (agentName !== "opencode" && agentName !== "claude") {
-        throw new Usage("pilot <claude|opencode> --story <nom> (--intent \"<texte>\" | --intent-file <f>) [--model M] [--restarts N] [--max-hours H] [--load]");
+      if (agentName !== "opencode" && agentName !== "claude" && agentName !== "copilot") {
+        throw new Usage("pilot <claude|opencode|copilot> --story <nom> (--intent \"<texte>\" | --intent-file <f>) [--model M] [--restarts N] [--max-hours H] [--load]");
       }
       const ctx = requireContext();
       const story = opt("story");
@@ -540,7 +546,9 @@ ${renderOutcome(outcome, renderAction)}`);
       const agent =
         agentName === "opencode"
           ? opencodeAdapter({ model: model ?? readProjectSettings(ctx.project.root).localModel, load: opts.has("load"), context: Number(opt("context")) || readProjectSettings(ctx.project.root).localContext })
-          : claudeAdapter(model ? { model } : {});
+          : agentName === "copilot"
+            ? copilotAdapter(model ? { model } : {})
+            : claudeAdapter(model ? { model } : {});
       console.log(`vérifications avant l'essai (${agent.name}, périmètre compris)…`);
       const problems = await agent.check(ctx.project.root);
       if (problems.length > 0) {

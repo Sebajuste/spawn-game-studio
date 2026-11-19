@@ -38,7 +38,7 @@ export function contextModule(factory: AgentFactory = defaultAgentFactory): Serv
         const project = findProject(projectById(params.id ?? "").root);
         if (project === null) throw new HttpError(409, `le projet ${params.id} n'est plus un projet Spawn`);
         const agent = params.agent as AgentName;
-        if (agent !== "claude-code" && agent !== "opencode") throw new HttpError(400, `agent inconnu : ${agent}`);
+        if (agent !== "claude-code" && agent !== "opencode" && agent !== "copilot") throw new HttpError(400, `agent inconnu : ${agent}`);
         return { max: await factory(agent, project).maxContext(project.root) };
       });
       return undefined;

@@ -21,7 +21,7 @@ interface Props {
 
 type Screen = { screen: "board" } | { screen: "story"; story: string } | { screen: "history" };
 
-export const AGENT_NAMES: Record<AgentName, string> = { "claude-code": "Claude Code", opencode: "OpenCode · modèle local" };
+export const AGENT_NAMES: Record<AgentName, string> = { "claude-code": "Claude Code", opencode: "OpenCode · modèle local", copilot: "GitHub Copilot" };
 
 const GROUPS: { id: StoryGroup; title: string; dot: string }[] = [
   { id: "blocked", title: "Bloquée : ta décision", dot: "orange" },

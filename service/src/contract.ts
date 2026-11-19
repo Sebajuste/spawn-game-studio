@@ -49,7 +49,7 @@ export interface StoryStateView extends Story {
   interrupted: boolean;
 }
 
-export type AgentName = "claude-code" | "opencode";
+export type AgentName = "claude-code" | "opencode" | "copilot";
 
 // Événements normalisés d'un tour d'agent (kit/core/src/agent/events.ts).
 export type AgentEvent =
