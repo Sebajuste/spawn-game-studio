@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:spawn:story:v1",
+  "title": "État d'un fil (.spawn/stories/<story>.json)",
+  "description": "Écrit par les skills et les hooks du kit, lu par l'app (docs/kit-perimetre.md §7).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["story", "status", "branch", "worktree", "base", "task", "first_step", "subagents", "mr", "updated"],
+  "properties": {
+    "story": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "status": {
+      "type": "string",
+      "pattern": "^(active|compacting|handoff-pending|blocked:[a-z0-9]+(-[a-z0-9]+)*|in-acceptance|done|cleaned)$"
+    },
+    "branch": { "type": "string", "minLength": 1 },
+    "worktree": { "type": ["string", "null"], "minLength": 1, "description": "Relatif à la racine du projet, séparateurs /" },
+    "base": { "type": "string", "pattern": "^[0-9a-f]{40}$", "description": "Commit de develop au départ" },
+    "task": { "type": ["string", "null"] },
+    "first_step": { "type": ["string", "null"] },
+    "subagents": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "mr": { "type": ["string", "null"] },
+    "updated": { "type": "string", "format": "date-time" }
+  }
+}

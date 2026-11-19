@@ -1,0 +1,9 @@
+{
+  "name": "spawnstudio",
+  "version": "0.1.0",
+  "author": {
+    "name": "Sebajuste"
+  },
+  "description": "Kit Spawn Game Studio : skills, agents et hooks indépendants du moteur. Activé par projet (spawn prerequisites --install), jamais partout.",
+  "defaultEnabled": false
+}

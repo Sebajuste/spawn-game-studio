@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette Spawn</title>
+<style>
+:root {
+  --fond: #f4f3ef; --barre: #ecebe6; --carte: #fff; --bord: #d8d5cc; --texte: #22231f; --discret: #77756d;
+  --accent: #2f6fd6; --vert: #2e9d5b; --orange: #d98a1c; --rouge: #c9473c; --violet: #6b5bd2;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.45 "Segoe UI", system-ui, sans-serif; color: var(--texte); background: #dcd9d0; display: grid; grid-template-columns: 250px 1fr; height: 100vh; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+/* Panneau de navigation de la maquette (hors app) */
+.nav { background: #2b2c30; color: #ddd; padding: 14px 10px; overflow-y: auto; }
+.nav h1 { font-size: 13px; margin: 0 6px 4px; color: #fff; }
+.nav p { font-size: 12px; color: #999; margin: 0 6px 12px; }
+.nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #888; margin: 14px 6px 4px; }
+.nav button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 5px 8px; border-radius: 5px; color: #ccc; font-size: 13px; }
+.nav button:hover { background: #3a3b40; }
+.nav button.actif { background: var(--accent); color: #fff; }
+.scene { padding: 18px; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+.note { background: #fffbe6; border: 1px solid #e6d98a; border-radius: 6px; padding: 8px 12px; font-size: 13px; max-width: 1180px; }
+/* Fenêtre de l'app */
+.fenetre { background: var(--fond); border: 1px solid #c9c6bd; border-radius: 8px; box-shadow: 0 8px 30px #0003; overflow: hidden; display: flex; flex-direction: column; height: 760px; max-width: 1180px; min-width: 980px; position: relative; }
+.titre-fenetre { height: 30px; background: #fff; border-bottom: 1px solid var(--bord); display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: var(--discret); justify-content: space-between; flex: none; }
+.menus { display: flex; background: #fff; border-bottom: 1px solid var(--bord); font-size: 13px; position: relative; z-index: 5; flex: none; }
+.menu { position: relative; }
+.menu > span { display: block; padding: 4px 10px; }
+.menu:hover > span { background: #eee; }
+.menu ul { display: none; position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid var(--bord); box-shadow: 0 4px 14px #0002; list-style: none; margin: 0; padding: 4px 0; min-width: 240px; }
+.menu:hover ul { display: block; }
+.menu li { padding: 4px 14px; display: flex; justify-content: space-between; gap: 20px; cursor: default; }
+.menu li:hover { background: var(--accent); color: #fff; }
+.menu li kbd { color: inherit; opacity: .6; font: inherit; }
+.menu li.sep { border-top: 1px solid var(--bord); margin: 4px 0; padding: 0; }
+.menu li.sep:hover { background: none; }
+.corps { flex: 1; display: grid; grid-template-columns: 220px 1fr; min-height: 0; }
+.corps.replie { grid-template-columns: 52px 1fr; }
+/* Barre de lieux */
+.lieux { background: var(--barre); border-right: 1px solid var(--bord); padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; position: relative; }
+.projet { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; padding: 6px 8px; border-radius: 6px; text-align: left; margin-bottom: 6px; }
+.projet:hover { background: #dedbd3; }
+.tete-projet { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--bord); }
+.tete-projet .projet { margin: 0; flex: 1; min-width: 0; }
+.jouer { width: 30px; height: 30px; border: 1px solid var(--bord); background: var(--carte); border-radius: 6px; flex: none; font-size: 12px; }
+.jouer:hover { border-color: var(--vert); color: var(--vert); }
+.replie .jouer { display: none; }
+.replie .tete-projet { border: 0; }
+.projet .logo { width: 24px; height: 24px; border-radius: 6px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
+.projet strong { display: block; font-size: 14px; }
+.projet small { display: block; color: var(--discret); font-size: 11px; }
+.creer { display: flex; gap: 6px; margin-bottom: 10px; }
+.creer button { flex: 1; border: 1px solid var(--bord); background: var(--carte); border-radius: 6px; padding: 5px 6px; font-size: 12px; white-space: nowrap; }
+.creer button.fort { background: var(--accent); border-color: var(--accent); color: #fff; }
+.lieu { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; padding: 7px 8px; border-radius: 6px; text-align: left; color: #44453f; }
+.lieu:hover { background: #dedbd3; }
+.lieu.choisi { background: var(--carte); box-shadow: 0 0 0 1px var(--bord); color: var(--texte); font-weight: 600; }
+.lieu svg { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.lieu .nb { margin-left: auto; font-size: 11px; font-weight: 600; background: var(--orange); color: #fff; border-radius: 9px; padding: 0 7px; }
+.lieu .nb.gris { background: #cfccc3; color: #55564f; }
+.lieu small { margin-left: auto; color: var(--discret); font-size: 11px; font-weight: 400; }
+.lieux .bas { margin-top: auto; }
+.replie .lieu span, .replie .lieu small, .replie .projet > span:not(.logo), .replie .creer, .replie .lieu .nb { display: none; }
+.replie .lieu { justify-content: center; position: relative; }
+.replie .lieu .pastille { display: block; position: absolute; top: 3px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+.pastille { display: none; }
+.replie .projet { justify-content: center; }
+/* Zone principale */
+.principal { display: flex; flex-direction: column; min-height: 0; }
+.entete { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--bord); background: var(--carte); flex: none; min-height: 50px; }
+.ariane { font-size: 13px; color: var(--discret); }
+.ariane a { color: var(--accent); cursor: pointer; text-decoration: none; }
+.ariane strong { color: var(--texte); font-size: 16px; }
+.espace { flex: 1; }
+.btn { border: 1px solid var(--bord); background: var(--carte); border-radius: 6px; padding: 5px 12px; }
+.btn:hover { border-color: var(--accent); }
+.btn.fort { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.vert { background: var(--vert); border-color: var(--vert); color: #fff; }
+.btn.petit { padding: 2px 8px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.outils { display: flex; gap: 8px; align-items: center; padding: 8px 18px; border-bottom: 1px solid var(--bord); background: #faf9f6; font-size: 13px; flex: none; }
+.outils label { color: var(--discret); display: flex; gap: 6px; align-items: center; }
+.outils select { padding: 3px 6px; border: 1px solid var(--bord); border-radius: 6px; background: #fff; }
+.seg { display: inline-flex; border: 1px solid var(--bord); border-radius: 6px; overflow: hidden; background: #fff; }
+.seg button { border: 0; background: none; padding: 3px 10px; font-size: 12px; }
+.seg button + button { border-left: 1px solid var(--bord); }
+.seg button.actif { background: var(--accent); color: #fff; }
+.defile { flex: 1; overflow-y: auto; padding: 16px 18px; }
+.carte { background: var(--carte); border: 1px solid var(--bord); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+.carte h2 { margin: 0 0 8px; font-size: 15px; }
+.discret { color: var(--discret); }
+.petit-txt { font-size: 12px; }
+.groupe { border: 1px solid var(--bord); border-radius: 8px; background: var(--carte); margin-bottom: 12px; }
+.groupe-entete { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--bord); }
+.groupe-entete h2 { margin: 0; font-size: 15px; }
+.ligne { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 14px; border-bottom: 1px dashed var(--bord); cursor: pointer; }
+.ligne:last-child { border-bottom: 0; }
+.ligne:hover { background: #faf9f6; }
+.ligne small { display: block; color: var(--discret); font-size: 12px; }
+.meta { font-size: 11px; color: var(--discret); white-space: nowrap; }
+.etat { font-size: 12px; padding: 2px 9px; border-radius: 10px; white-space: nowrap; }
+.e-livree { background: #e6f4ec; color: var(--vert); } .e-cours { background: #eaf1fd; color: var(--accent); }
+.e-recette { background: #efeafd; color: var(--violet); } .e-decision { background: #fdf1df; color: var(--orange); }
+.e-afaire { background: #efede6; color: var(--discret); }
+.e-brouillon { background: #fff; border: 1px dashed #c9c6bd; color: var(--discret); }
+.e-prete { background: #efede6; color: var(--discret); }
+.champ-story { margin-bottom: 12px; }
+.champ-story label { display: block; font-size: 12px; color: var(--discret); margin-bottom: 3px; }
+.champ-story input, .champ-story textarea, .champ-story select { width: 100%; padding: 6px 10px; border: 1px solid var(--bord); border-radius: 6px; background: #fff; }
+.champ-story textarea { min-height: 50px; }
+.critere { display: flex; gap: 6px; margin-bottom: 4px; align-items: center; }
+.critere span { font-size: 12px; color: var(--discret); width: 52px; flex: none; }
+.liste-stories .ligne { grid-template-columns: 1fr auto auto; }
+.type-bug { font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--rouge); border: 1px solid var(--rouge); border-radius: 4px; padding: 0 4px; margin-right: 5px; vertical-align: 1px; }
+.progres { flex: 1; max-width: 200px; height: 7px; background: #e5e2da; border-radius: 4px; overflow: hidden; display: flex; }
+.progres i { display: block; height: 100%; }
+.progres .l { background: var(--vert); } .progres .r { background: var(--violet); } .progres .c { background: var(--accent); }
+.lien { color: var(--accent); cursor: pointer; font-size: 12px; }
+/* À traiter */
+.tache-user { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; background: var(--carte); border: 1px solid var(--bord); border-left: 4px solid var(--orange); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; }
+.tache-user.recette { border-left-color: var(--violet); }
+.tache-user:hover { box-shadow: 0 2px 8px #0001; }
+.tache-user .ico { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #fdf1df; color: var(--orange); font-weight: 700; }
+.tache-user.recette .ico { background: #efeafd; color: var(--violet); }
+.tache-user small { display: block; color: var(--discret); font-size: 12px; }
+.vide { text-align: center; color: var(--discret); padding: 40px; }
+/* Story */
+.onglets { display: flex; gap: 2px; border-bottom: 1px solid var(--bord); padding: 0 18px; background: var(--carte); flex: none; }
+.onglets button { border: 0; background: none; padding: 8px 12px; border-bottom: 2px solid transparent; color: var(--discret); }
+.onglets button.actif { border-color: var(--accent); color: var(--texte); }
+.etapes { list-style: none; margin: 0; padding: 0; }
+.etapes > li { display: grid; grid-template-columns: 24px 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--bord); }
+.etapes > li:last-child { border: 0; }
+.ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: #fff; background: #ccc; }
+.ic.fait { background: var(--vert); } .ic.cours { background: var(--accent); }
+.maintenant { background: #eef3fc; border: 1px solid #c9d8f3; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; }
+.anim { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: p 1.2s infinite; flex: none; }
+@keyframes p { 50% { opacity: .2; } }
+.bandeau { padding: 9px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+.bandeau.bleu { background: #eaf1fd; border: 1px solid #bcd0f4; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--bord); }
+th { font-weight: 600; color: var(--discret); font-size: 12px; }
+.ok { color: var(--vert); }
+.choix { border: 1px solid var(--bord); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+.choix h3 { margin: 0 0 6px; font-size: 14px; }
+.option { display: flex; gap: 8px; align-items: flex-start; padding: 5px 6px; border-radius: 6px; }
+.option small { display: block; color: var(--discret); }
+.reco { font-size: 11px; color: var(--vert); border: 1px solid var(--vert); border-radius: 8px; padding: 0 6px; margin-left: 6px; }
+.actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.medias { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+.media { aspect-ratio: 16/9; background: repeating-linear-gradient(45deg, #e8e5dd, #e8e5dd 10px, #efede6 10px, #efede6 20px); border: 1px solid var(--bord); border-radius: 6px; display: grid; place-items: center; color: var(--discret); font-size: 12px; }
+.redemande { display: flex; gap: 8px; margin-top: 10px; }
+.redemande input { flex: 1; padding: 6px 10px; border: 1px solid var(--bord); border-radius: 6px; }
+/* Barre d'état */
+.etat-bas { display: flex; gap: 16px; align-items: center; padding: 4px 12px; font-size: 12px; color: var(--discret); border-top: 1px solid var(--bord); background: #fff; flex: none; }
+.etat-bas .agent { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.etat-bas .agent:hover { color: var(--accent); }
+.etat-bas .anim { width: 7px; height: 7px; background: var(--vert); }
+.jauge { display: inline-block; width: 60px; height: 6px; background: #e5e2da; border-radius: 3px; vertical-align: middle; overflow: hidden; }
+.jauge i { display: block; height: 100%; width: 30%; background: var(--vert); }
+/* Dialogues et menus flottants */
+.voile { position: absolute; inset: 0; background: #0004; display: grid; place-items: center; z-index: 10; }
+.dialogue { background: #fff; border-radius: 10px; width: 540px; padding: 18px 22px; box-shadow: 0 10px 40px #0004; }
+.dialogue h2 { margin: 0 0 12px; font-size: 17px; }
+.champ { display: block; margin-bottom: 10px; font-size: 13px; }
+.champ span { display: block; color: var(--discret); margin-bottom: 3px; }
+.champ input, .champ select, .champ textarea { width: 100%; padding: 6px 10px; border: 1px solid var(--bord); border-radius: 6px; background: #fff; }
+.champ textarea { min-height: 90px; }
+.flottant { position: absolute; left: 8px; top: 118px; width: 280px; background: #fff; border: 1px solid var(--bord); border-radius: 8px; box-shadow: 0 8px 24px #0003; z-index: 10; padding: 6px; }
+.flottant .entree { display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+.flottant .entree:hover { background: #eef3fc; }
+.flottant .entree.coche { font-weight: 600; }
+.flottant .sep { border-top: 1px solid var(--bord); margin: 4px 0; }
+.bulle { position: absolute; left: 58px; background: #2b2c30; color: #fff; font-size: 12px; padding: 3px 8px; border-radius: 5px; white-space: nowrap; z-index: 6; }
+.hors-vision { font-size: 10px; font-weight: 600; color: var(--orange); border: 1px solid var(--orange); border-radius: 4px; padding: 0 4px; margin-left: 6px; vertical-align: 1px; }
+.section { margin: 14px 0 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--discret); }
+.section:first-child { margin-top: 0; }
+.decoupe { width: 100%; border-collapse: collapse; }
+.decoupe td { vertical-align: top; padding: 6px; }
+.decoupe input, .decoupe select, .decoupe textarea { width: 100%; padding: 4px 8px; border: 1px solid var(--bord); border-radius: 5px; background: #fff; font-size: 13px; }
+.decoupe textarea { min-height: 44px; resize: vertical; }
+.poignee { color: #b5b2a8; cursor: grab; user-select: none; }
+.ouverte td { background: #faf9f6; }
+.impact { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: start; padding: 7px 0; border-bottom: 1px dashed var(--bord); font-size: 13px; }
+.impact:last-child { border: 0; }
+.impact small { display: block; color: var(--discret); }
+.pastille-ok { color: var(--vert); font-size: 12px; white-space: nowrap; }
+.pastille-ko { color: var(--rouge); font-size: 12px; white-space: nowrap; }
+.carte-archi { background: #fbfaf7; border: 1px solid var(--bord); border-radius: 6px; padding: 6px; }
+.regle { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--bord); font-size: 13px; align-items: start; }
+.regle:last-child { border: 0; }
+.regle small { display: block; color: var(--discret); }
+.ko { color: var(--rouge); }
+.deux-col { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; align-items: start; }
+.adr h3 { font-size: 13px; margin: 12px 0 4px; }
+.adr p { margin: 0 0 6px; }
+.vision-txt h3 { font-size: 13px; margin: 12px 0 2px; color: var(--discret); text-transform: uppercase; letter-spacing: .04em; }
+.vision-txt p { margin: 0 0 4px; }
+.menu-objet { position: absolute; right: 18px; top: 118px; width: 260px; background: #fff; border: 1px solid var(--bord); border-radius: 8px; box-shadow: 0 8px 24px #0003; z-index: 10; padding: 6px; }
+.menu-objet .entree { display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.menu-objet .entree:hover { background: #eef3fc; }
+.menu-objet .entree.off { color: #aaa; cursor: default; }
+.menu-objet .entree.off:hover { background: none; }
+.menu-objet .sep { border-top: 1px solid var(--bord); margin: 4px 0; }
+.menu-objet small { display: block; color: var(--discret); font-size: 11px; }
+.question { margin-bottom: 12px; }
+.question label { display: block; font-weight: 600; margin-bottom: 3px; font-size: 13px; }
+.question input, .question select { width: 100%; padding: 6px 10px; border: 1px solid var(--bord); border-radius: 6px; background: #fff; }
+.question .aide { font-size: 12px; color: var(--discret); margin-top: 2px; }
+.page-creation { max-width: 640px; margin: 24px auto; }
+.page-creation h1 { font-size: 20px; margin: 0 0 4px; }
+.etapes-creation { display: flex; gap: 6px; font-size: 12px; color: var(--discret); margin-bottom: 16px; }
+.etapes-creation b { color: var(--accent); }
+.a-decider { background: #fdf6ea; border-bottom: 1px solid #f0cf96; padding: 10px 18px; flex: none; }
+.a-decider-titre { font-weight: 600; margin-bottom: 4px; }
+.a-decider .option { padding: 3px 4px; }
+.objet-corps { flex: 1; display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
+.objet-corps > .defile { min-width: 0; }
+.conv-panel { border-left: 1px solid var(--bord); background: #fff; display: flex; flex-direction: column; min-height: 0; }
+.conv-titre { padding: 8px 12px; font-size: 12px; font-weight: 600; color: var(--discret); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--bord); }
+.conv-fil { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.msg-moi { align-self: flex-end; background: #eef3fc; padding: 6px 10px; border-radius: 8px; max-width: 88%; }
+.msg-agent { background: #f4f3ef; padding: 6px 10px; border-radius: 8px; max-width: 92%; }
+.msg-maj { font-size: 12px; color: var(--vert); border-left: 2px solid var(--vert); padding-left: 8px; }
+.msg-evt { font-size: 12px; color: var(--discret); border-left: 2px solid var(--bord); padding-left: 8px; }
+.conv-saisie { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--bord); }
+.conv-saisie input { flex: 1; padding: 5px 8px; border: 1px solid var(--bord); border-radius: 6px; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<main class="scene">
+  <div class="note" id="note"></div>
+  <div class="fenetre" id="fenetre"></div>
+</main>
+<script>
+// Maquette tirée de docs/parcours.md (P1 à P10) et du modèle docs/modele.md. Une seule liste de stories : toutes les vues en sont tirées.
+const ICONES = {
+  traiter: '<svg viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v6H3z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg>',
+  backlog: '<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>',
+  versions: '<svg viewBox="0 0 24 24"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  architecture: '<svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+  vision: '<svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  replier: '<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+  deplier: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+};
+
+const STORIES = [
+  { t: "Grille et tour par tour", v: "1.0.0", epic: "Morpion jouable", e: "livree" },
+  { t: "Victoire et match nul", v: "1.0.0", epic: "Morpion jouable", e: "livree" },
+  { t: "Bouton Rejouer", v: "1.0.0", epic: "Morpion jouable", e: "livree" },
+  { bug: true, t: "Rejouer reste actif pendant l'animation", v: "1.0.1", e: "cours", d: "vérification · report dans 1.1.0 à faire", go: "story-bug" },
+  { bug: true, t: "Victoire non détectée sur la diagonale ↗", v: "1.0.1", e: "decision", d: "reproduit · cadrage à valider", go: "cadrage-bug" },
+  { t: "Score des joueurs", v: "1.1.0", epic: "Morpion jouable", e: "recette", d: "en recette depuis 10 min", go: "recette" },
+  { t: "Écran de victoire", v: "1.1.0", epic: "Morpion jouable", e: "decision", d: "écart d'architecture à décider", go: "ecart" },
+  { t: "Animation des pions", v: "1.1.0", epic: "Morpion jouable", e: "cours", d: "développement 2/3 · Claude Code", go: "story" },
+  { bug: true, t: "Le score compte deux fois un match nul", v: "1.1.0", e: "afaire", d: "code pas encore livré : corrigé dans 1.1.0 seulement" },
+  { t: "Son de pose des pions", v: "1.1.0", e: "decision", d: "conception : 1 décision d'architecture", go: "decision-archi" },
+  { t: "Menu de mode", v: "1.2.0", epic: "Partie contre l'ordinateur", e: "brouillon", d: "cadrage à valider", go: "story-brouillon" },
+  { t: "Ordinateur Facile", v: "1.2.0", epic: "Partie contre l'ordinateur", e: "brouillon", d: "cadrage à valider", go: "story-brouillon" },
+  { t: "Ordinateur Difficile", v: "1.2.0", epic: "Partie contre l'ordinateur", e: "brouillon", d: "cadrage à valider", go: "story-brouillon" },
+  { t: "Choix de la difficulté", v: "1.2.0", epic: "Partie contre l'ordinateur", e: "brouillon", d: "cadrage à valider", go: "story-brouillon" },
+  { t: "Mode en ligne", v: "1.2.0", e: "afaire", d: "demandé avant la mise à jour de la vision", hv: "hors vision", go: "fermer" },
+];
+const ETATS = { decision: "ta décision", recette: "en recette", cours: "en cours", afaire: "prête", brouillon: "brouillon", livree: "livrée" };
+const VERSIONS = { "1.0.1": "correctifs de la 1.0.0", "1.1.0": "en développement · objectif : Morpion complet", "1.2.0": "prévue · objectif : Jouer seul" };
+
+const ligne = (s, { version = true } = {}) => `<div class="ligne" ${s.go ? `data-aller="${s.go}"` : ""}>
+  <span>${s.bug ? '<span class="type-bug">bug</span>' : ""}${s.t}${s.hv ? `<span class="hors-vision">${s.hv}</span>` : ""}${s.d ? `<small>${s.d}</small>` : ""}</span>
+  <span class="meta">${version ? s.v : ""}${version && s.epic ? " · " : ""}${s.epic ?? ""}</span>
+  <span class="etat e-${s.e}">${ETATS[s.e]}</span></div>`;
+
+const MENUS = `<div class="menus">
+  <div class="menu"><span>Fichier</span><ul><li data-aller="nouveau-projet">Nouveau projet… <kbd>Ctrl+N</kbd></li><li data-aller="projets">Ouvrir un projet… <kbd>Ctrl+O</kbd></li><li>Projets récents <kbd>›</kbd></li><li class="sep"></li><li>Fermer le projet <kbd>Ctrl+W</kbd></li></ul></div>
+  <div class="menu"><span>Projet</span><ul><li data-aller="nouvelle">Nouvelle feature… <kbd>Ctrl+Maj+N</kbd></li><li data-aller="signaler">Signaler un bug… <kbd>Ctrl+Maj+B</kbd></li><li>Lancer le jeu <kbd>F5</kbd></li><li class="sep"></li><li data-aller="planifier">Planifier une version…</li><li data-aller="livrer">Livrer une version…</li><li class="sep"></li><li>Réglages du projet…</li></ul></div>
+  <div class="menu"><span>Affichage</span><ul><li data-aller="traiter">À traiter <kbd>Ctrl+1</kbd></li><li data-aller="backlog-version">Backlog <kbd>Ctrl+2</kbd></li><li data-aller="versions">Versions <kbd>Ctrl+3</kbd></li><li data-aller="architecture">Architecture <kbd>Ctrl+4</kbd></li><li data-aller="vision">Vision <kbd>Ctrl+5</kbd></li><li class="sep"></li><li data-aller="replie">Replier la barre <kbd>Ctrl+B</kbd></li><li>Aller à… <kbd>Ctrl+K</kbd></li></ul></div>
+  <div class="menu"><span>Aide</span></div></div>`;
+
+function lieux(choisi, { replie = false, neuf = false } = {}) {
+  const lieu = (id, ico, nom, extra, aller) => `<button class="lieu ${choisi === id ? "choisi" : ""}" data-aller="${aller}" title="${nom}">${ICONES[ico]}<span>${nom}</span>${extra}</button>`;
+  return `<aside class="lieux">
+    <div class="tete-projet"><button class="projet" data-aller="projets"><span class="logo">${neuf ? "C" : "M"}</span><span><strong>${neuf ? "Casse-briques" : "Morpion"} ▾</strong><small>${neuf ? "Godot 4.7 · 0.1.0 en développement" : "Godot 4.7 · 1.0.0 livrée"}</small></span></button><button class="jouer" title="Lancer le jeu (F5)">▶</button></div>
+    ${lieu("traiter", "traiter", "À traiter", neuf ? "" : `<span class="nb">6</span><i class="pastille"></i>`, neuf ? "projet-neuf" : "traiter")}
+    ${lieu("backlog", "backlog", "Backlog", neuf ? "" : `<span class="nb gris">13</span>`, "backlog-version")}
+    ${lieu("versions", "versions", "Versions", `<small>${neuf ? "0.1.0" : "1.0.1 · 1.1.0"}</small>`, "versions")}
+    ${lieu("architecture", "architecture", "Architecture", neuf ? "" : `<small class="ko">1 règle</small>`, "architecture")}
+    ${lieu("vision", "vision", "Vision", "", "vision")}
+    <div class="bas">${lieu("", replie ? "deplier" : "replier", replie ? "Déplier" : "Replier la barre", "", replie ? "traiter" : "replie")}</div>
+  </aside>`;
+}
+
+const ETAT_BAS = (neuf) => neuf
+  ? `<div class="etat-bas"><span>Aucun agent au travail</span><span class="espace"></span><span>Contexte <span class="jauge"><i style="width:0"></i></span> 0k / 130k</span><span>● service</span></div>`
+  : `<div class="etat-bas">
+  <span class="agent" data-aller="story"><span class="anim"></span>Animation des pions · développement 2/3</span>
+  <span class="agent" data-aller="story-bug"><span class="anim"></span><span class="type-bug">bug</span>Rejouer pendant l'animation · vérification</span>
+  <span class="espace"></span><span>2 agents sur 2</span><span>Contexte <span class="jauge"><i></i></span> 38k / 130k</span><span>● service</span></div>`;
+
+// Une action vit au niveau de ce qu'elle concerne, une seule fois à l'écran : on crée dans le lieu qui liste,
+// on modifie ou ferme sur l'objet (⋯). Le projet a ▶ dans son bloc.
+const ACTIONS_LIEU = {
+  backlog: `<button class="btn fort" data-aller="nouvelle">+ Nouvelle feature</button>`,
+  versions: `<button class="btn" data-aller="planifier">Planifier une version</button><button class="btn" data-aller="signaler">Signaler un bug</button>`,
+  vision: `<button class="btn">Modifier la vision</button>`,
+};
+function fenetre(choisi, entete, contenu, opts = {}) {
+  const element = entete.includes("<a ");
+  const actions = opts.actions ?? (element ? `<button class="btn">▶ Lancer cette version</button><button class="btn" data-aller="story-menu" title="Actions sur la story">⋯</button>` : ACTIONS_LIEU[choisi] ?? "");
+  return `${MENUS}<div class="corps ${opts.replie ? "replie" : ""}">${lieux(choisi, opts)}<div class="principal">
+    <div class="entete">${entete}<span class="espace"></span>${actions}</div>
+    ${contenu}</div></div>${ETAT_BAS(opts.neuf)}${opts.flottant ?? ""}`;
+}
+const titre = (t, sous = "") => `<span class="ariane"><strong>${t}</strong>${sous ? ` · ${sous}` : ""}</span>`;
+const ariane = (...p) => `<span class="ariane">${p.slice(0, -1).map(([n, a]) => `<a data-aller="${a}">${n}</a> › `).join("")}<strong>${p[p.length - 1]}</strong></span>`;
+const voile = (contenu, large) => `<div class="voile"><div class="dialogue" ${large ? 'style="width:640px"' : ""}>${contenu}</div></div>`;
+
+function outilsBacklog(par) {
+  const b = (id, n) => `<button class="${par === id ? "actif" : ""}" data-aller="backlog-${id}">${n}</button>`;
+  return `<div class="outils"><label>Grouper par <span class="seg">${b("version", "Version")}${b("epic", "Epic")}${b("etat", "État")}</span></label>
+    <label>Type <select><option>Tous</option><option>Features</option><option>Bugs</option></select></label>
+    <label><input type="checkbox"> Livrées</label><label><input type="checkbox"> Fermées</label><span class="espace"></span>
+    <input placeholder="Chercher…" style="padding:4px 10px;border:1px solid var(--bord);border-radius:6px;width:170px"></div>`;
+}
+function backlog(par) {
+  const r = STORIES.filter((s) => s.e !== "livree");
+  let g;
+  if (par === "version") g = Object.keys(VERSIONS).map((v) => [v, VERSIONS[v], r.filter((s) => s.v === v), { version: false }]);
+  else if (par === "epic") g = ["Morpion jouable", "Partie contre l'ordinateur", undefined].map((e) => [e ?? "Hors epic", e === "Morpion jouable" ? "3 livrées en 1.0.0" : e ? "cadrage à valider" : "", r.filter((s) => s.epic === e), {}]);
+  else g = ["decision", "recette", "cours", "afaire", "brouillon"].map((e) => [ETATS[e][0].toUpperCase() + ETATS[e].slice(1), "", r.filter((s) => s.e === e), {}]);
+  return g.filter(([, , l]) => l.length).map(([t, sous, l, o]) => `<div class="groupe"><div class="groupe-entete"><h2>${t}</h2><span class="discret petit-txt">${sous}</span><span class="espace"></span><span class="meta">${l.length}</span></div>${l.map((s) => ligne(s, o)).join("")}</div>`).join("") +
+    `<p class="discret petit-txt">Glisser pour changer l'ordre (les agents prennent les stories dans cet ordre) · clic droit ou ⋯ sur une story : modifier, version, fermer.</p>`;
+}
+
+const ETAPES = (liste, actif) => { const i = liste.findIndex(([n]) => n === actif); return `<ol class="etapes">${liste.map(([n, d], k) => `<li><span class="ic ${k < i ? "fait" : k === i ? "cours" : ""}">${k < i ? "✓" : k === i ? "…" : ""}</span><span>${k <= i ? `<strong>${n}</strong>` : `<span class="discret">${n}</span>`}${d ? `<small class="discret" style="display:block">${d}</small>` : ""}</span></li>`).join("")}</ol>`; };
+const ETAPES_FEATURE = [["Cadrage", "validé par toi le 17 nov."], ["Conception", "plan en 3 tâches · 1 décision d'architecture, validée par toi (004)"], ["Développement", "tâche 2/3 : glissement du pion vers sa case"], ["Vérification", "compilation, tests, smoke test, règles d'architecture"], ["Recette"], ["Livraison dans 1.1.0"]];
+const ETAPES_BUG = [["Reproduction", "un test échoue sur la 1.0.0 (lancé par l'outil)"], ["Cadrage", "validé par toi : 1.0.1, puis report dans 1.1.0"], ["Conception", "aucun changement d'architecture"], ["Développement"], ["Vérification", "le test de reproduction passe, toute la suite aussi"], ["Recette"], ["Livraison dans 1.0.1"], ["Report dans 1.1.0", "fait par l'outil, preuve refaite sur la 1.1.0"]];
+const ONGLETS = `<div class="onglets"><button class="actif">Avancement</button><button>Conversation</button><button>Fichiers</button><button>Journal</button><button>Technique</button></div>`;
+
+// Carte d'architecture du morpion : composants par couche, dépendances ; en rouge, celle que la branche d'« Écran de victoire » ajoute.
+const CARTE = `<svg viewBox="0 0 560 300" width="100%" role="img" aria-label="Carte des composants">
+  <g font-size="11" fill="#77756d"><text x="6" y="34">games</text><text x="6" y="114">gui · actors</text><text x="6" y="194">systems</text><text x="6" y="270">libs</text></g>
+  <g stroke="#b9b5aa" stroke-width="1.4" fill="none" marker-end="url(#f)">
+    <path d="M300 42 L150 96"/><path d="M300 42 L270 96"/><path d="M300 42 L410 96"/>
+    <path d="M150 122 L360 176"/><path d="M410 122 L470 96"/><path d="M410 122 L240 176"/><path d="M270 122 L240 176"/><path d="M360 202 L240 190"/>
+  </g>
+  <path d="M310 110 L380 110" stroke="#c9473c" stroke-width="2" stroke-dasharray="5 3" fill="none" marker-end="url(#r)"/>
+  <defs><marker id="f" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#b9b5aa"/></marker>
+  <marker id="r" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#c9473c"/></marker></defs>
+  <g font-size="12" text-anchor="middle">
+    <rect x="250" y="20" width="100" height="24" rx="5" fill="#fff" stroke="#2f6fd6"/><text x="300" y="36">morpion</text>
+    <rect x="95" y="98" width="110" height="24" rx="5" fill="#fff" stroke="#d8d5cc"/><text x="150" y="114">hud_score</text>
+    <rect x="210" y="98" width="100" height="24" rx="5" fill="#fff" stroke="#c9473c"/><text x="260" y="114">victoire</text>
+    <rect x="380" y="98" width="60" height="24" rx="5" fill="#fff" stroke="#d8d5cc"/><text x="410" y="114">grille</text>
+    <rect x="450" y="74" width="50" height="22" rx="5" fill="#fff" stroke="#d8d5cc"/><text x="475" y="89">case</text>
+    <rect x="180" y="178" width="120" height="24" rx="5" fill="#fff" stroke="#d8d5cc"/><text x="240" y="194">regles_morpion</text>
+    <rect x="320" y="178" width="80" height="24" rx="5" fill="#fff" stroke="#d8d5cc"/><text x="360" y="194">score</text>
+    <text x="300" y="270" fill="#77756d">aucun composant</text>
+  </g>
+  <text x="315" y="140" font-size="10" fill="#c9473c">victoire → grille (branche « Écran de victoire »)</text>
+</svg>`;
+
+const REGLES = [
+  ["ok", "Chaque fichier à sa place (rangement par composant)", ""],
+  ["ok", "games assemble : peut dépendre de tout", ""],
+  ["ko", "gui et actors ne dépendent pas l'un de l'autre", "branche « Écran de victoire » : gui/victoire → actors/grille · bloque sa fusion"],
+  ["ok", "systems ne dépend que de libs (règles testables sans scène)", ""],
+  ["ok", "libs ne dépend de rien dans core", ""],
+  ["ok", "Aucun cycle entre composants", ""],
+];
+const DECISIONS = [
+  ["003", "Le score vit dans un système, pas dans l'interface", "Score des joueurs", "16 nov."],
+  ["002", "Les règles du morpion dans un système sans scène", "Grille et tour par tour", "15 nov."],
+  ["001", "Règles de dépendance par défaut de Godot", "création du projet", "15 nov."],
+];
+
+const ECRANS = {
+  // ---- Les lieux ----
+  traiter: {
+    nom: "À traiter", groupe: "Les lieux",
+    note: "Le lieu d'ouverture d'un projet : tout ce qui attend ta décision, et rien d'autre. Aucun bouton de création ici, on y répond. Ce qui tourne est dans la barre d'état.",
+    rendu: () => fenetre("traiter", titre("À traiter", "6 choses t'attendent"), `<div class="defile">
+      <div class="tache-user" data-aller="ecart"><span class="ico">⚠</span><span><strong>Écran de victoire : écart d'architecture</strong><small>Une dépendance non annoncée au cadrage casse une règle (gui → actors). Accepter l'exception ou demander la correction · 1.1.0</small></span><button class="btn petit">Décider</button></div>
+      <div class="tache-user" data-aller="decision-archi"><span class="ico">⚙</span><span><strong>Son de pose des pions : décision d'architecture</strong><small>Conception faite : un nouveau composant libs/audio est proposé · 1.1.0</small></span><button class="btn petit">Décider</button></div>
+      <div class="tache-user" data-aller="cadrage"><span class="ico">?</span><span><strong>Partie contre l'ordinateur</strong><small>Cadrage à valider : 1 choix, 4 stories en brouillon dans le Backlog · 1.2.0</small></span><button class="btn petit">Valider le cadrage</button></div>
+      <div class="tache-user" data-aller="cadrage-bug"><span class="ico">?</span><span><strong><span class="type-bug">bug</span>Victoire non détectée sur la diagonale ↗</strong><small>Reproduit par l'outil. Dans quelle version le corriger ?</small></span><button class="btn petit">Valider le cadrage</button></div>
+      <div class="tache-user recette" data-aller="recette"><span class="ico">✓</span><span><strong>Score des joueurs</strong><small>En recette depuis 10 min · Definition of Done vérifiée par l'outil · 1.1.0</small></span><button class="btn petit">Recetter</button></div>
+      <div class="tache-user" data-aller="story"><span class="ico">?</span><span><strong>Animation des pions : une question de l'agent</strong><small>« Le pion glisse depuis le bord de la grille ou apparaît en fondu ? »</small></span><button class="btn petit">Répondre</button></div>
+      <p class="discret petit-txt" style="margin-top:16px">Récemment : « Bouton Rejouer » livrée dans la 1.0.0 (17 nov.) · décision 003 enregistrée (16 nov.)</p>
+    </div>`),
+  },
+  "traiter-vide": {
+    nom: "À traiter, vide", groupe: "Les lieux",
+    note: "Quand rien ne t'attend : on le dit, avec ce qui tourne et la prochaine chose qui arrivera.",
+    rendu: () => fenetre("traiter", titre("À traiter"), `<div class="defile"><div class="vide"><div style="font-size:30px">✓</div><p><strong>Rien ne t'attend.</strong></p><p class="petit-txt">2 agents au travail. Prochaine recette probable : « Animation des pions », dans 40 min environ.</p></div></div>`),
+  },
+  "backlog-version": {
+    nom: "Backlog, par version", groupe: "Les lieux",
+    note: "Une seule liste : les stories non livrées. Le regroupement est un réglage (version, epic, état). Livrées et fermées masquées par défaut. « Mode en ligne » est signalée hors vision depuis que la vision a changé (P9).",
+    rendu: () => fenetre("backlog", titre("Backlog", "13 stories restantes"), outilsBacklog("version") + `<div class="defile">${backlog("version")}</div>`),
+  },
+  "backlog-epic": { nom: "Backlog, par epic", groupe: "Les lieux", note: "Le même backlog, regroupé par epic.", rendu: () => fenetre("backlog", titre("Backlog", "13 stories restantes"), outilsBacklog("epic") + `<div class="defile">${backlog("epic")}</div>`) },
+  "backlog-etat": { nom: "Backlog, par état", groupe: "Les lieux", note: "Le même backlog, regroupé par état.", rendu: () => fenetre("backlog", titre("Backlog", "13 stories restantes"), outilsBacklog("etat") + `<div class="defile">${backlog("etat")}</div>`) },
+  versions: {
+    nom: "Versions", groupe: "Les lieux",
+    note: "La feuille de route : chaque version a un objectif. Correctifs et développement côte à côte, puis les prévues, puis les livrées, qu'on relance d'un clic.",
+    rendu: () => fenetre("versions", titre("Versions"), `<div class="defile">
+      <div class="groupe"><div class="groupe-entete"><h2>1.0.1</h2><span class="discret petit-txt">correctifs de la 1.0.0</span><span class="espace"></span><button class="btn petit">▶ Lancer</button><button class="btn petit" disabled title="un correctif n'est pas fini">Livrer</button></div>
+        ${STORIES.filter((s) => s.v === "1.0.1").map((s) => ligne(s, { version: false })).join("")}</div>
+      <div class="groupe"><div class="groupe-entete"><h2>1.1.0</h2><span class="discret petit-txt">en développement · objectif : Morpion complet</span><span class="espace"></span><div class="progres"><i class="r" style="width:20%"></i><i class="c" style="width:20%"></i></div><button class="btn petit">▶ Lancer</button><button class="btn petit" data-aller="livrer">Livrer…</button></div>
+        ${STORIES.filter((s) => s.v === "1.1.0").map((s) => ligne(s, { version: false })).join("")}
+        <div class="ligne"><span class="discret">Correctifs reportés de la 1.0.1 : arrivent d'eux-mêmes</span><span></span><span class="meta">0 / 1</span></div></div>
+      <div class="groupe"><div class="groupe-entete"><h2>1.2.0</h2><span class="discret petit-txt">prévue · objectif : Jouer seul · planifiée par toi</span></div>
+        ${STORIES.filter((s) => s.v === "1.2.0").map((s) => ligne(s, { version: false })).join("")}</div>
+      <div class="carte"><h2>Livrées</h2><table><tr><th>Version</th><th>Objectif</th><th>Livrée</th><th></th></tr>
+        <tr><td><strong>1.0.0</strong></td><td>Morpion à deux joueurs</td><td>17 nov.</td><td><button class="btn petit">▶ Lancer</button> <span class="lien">notes</span> · <span class="lien" data-aller="signaler">signaler un bug</span></td></tr>
+        <tr><td>0.2.0</td><td>Victoire et match nul</td><td>16 nov.</td><td><button class="btn petit">▶ Lancer</button></td></tr>
+        <tr><td>0.1.0</td><td>Une grille jouable</td><td>15 nov.</td><td><button class="btn petit">▶ Lancer</button></td></tr></table></div>
+    </div>`),
+  },
+  architecture: {
+    nom: "Architecture", groupe: "Les lieux",
+    note: "Relevée par l'outil depuis le code, à chaque fusion : jamais déclarée par un agent. Une règle rouge bloque la fusion de sa branche. Les décisions sont les tiennes, enregistrées avec leur raison (format ADR).",
+    rendu: () => fenetre("architecture", titre("Architecture", "relevée sur develop (1.1.0) à 14 h 02"), `<div class="defile"><div class="deux-col">
+      <div class="carte"><div class="section">Carte des composants</div><div class="carte-archi">${CARTE}</div>
+        <p class="discret petit-txt" style="margin-bottom:0">7 composants · 9 dépendances · le pointillé rouge vient d'une branche pas encore fusionnée.</p></div>
+      <div><div class="carte"><div class="section">Règles</div>${REGLES.map(([e, t, d]) => `<div class="regle"><span class="${e}">${e === "ok" ? "✓" : "✗"}</span><span>${t}${d ? `<small>${d}</small>` : ""}</span><span></span></div>`).join("")}</div>
+      <div class="carte"><div class="section">Décisions</div>${DECISIONS.map(([n, t, s, d]) => `<div class="regle" data-aller="adr" style="cursor:pointer"><span class="discret">${n}</span><span>${t}<small>${s} · ${d}</small></span><span></span></div>`).join("")}</div></div>
+    </div></div>`),
+  },
+  vision: {
+    nom: "Vision", groupe: "Les lieux",
+    note: "Écrite par toi seul. Chaque cadrage s'y confronte ; une story pas commencée qui en sort est signalée dans le Backlog (« Mode en ligne », depuis que « pas de multijoueur » a été ajouté).",
+    rendu: () => fenetre("vision", titre("Vision", "modifiée le 17 nov."), `<div class="defile"><div class="carte vision-txt" style="max-width:720px">
+      <h3>Le jeu</h3><p>Un morpion soigné, rapide à prendre en main, pour des parties de deux minutes.</p>
+      <h3>Pour qui</h3><p>Deux joueurs sur le même écran, ou un joueur seul contre l'ordinateur.</p>
+      <h3>Plateforme et contrôles</h3><p>PC, souris.</p>
+      <h3>Style</h3><p>Plat, couleurs douces, animations courtes.</p>
+      <h3>Ce qu'il ne sera jamais</h3><p>Pas de multijoueur en ligne, pas de compte, pas d'achat.</p>
+      <p class="discret petit-txt" style="margin-top:14px">1 story pas commencée sort de la vision : <span class="lien" data-aller="backlog-version">Mode en ligne</span> (la garder élargit la vision ; sinon, la fermer).</p></div></div>`),
+  },
+
+  // ---- P1. Créer un projet ----
+  "nouveau-projet": {
+    nom: "P1.1 Nouveau projet", groupe: "P1. Créer un projet",
+    note: "Fichier > Nouveau projet. Trois champs ; le reste est dans « Avancé », fermé.",
+    rendu: () => fenetre("traiter", titre("À traiter", "6 choses t'attendent"), `<div class="defile"></div>`, { flottant: voile(`<h2>Nouveau projet</h2>
+      <label class="champ"><span>Nom</span><input value="Casse-briques"></label>
+      <label class="champ"><span>Dossier</span><input value="C:\\Dev\\casse-briques"></label>
+      <label class="champ"><span>Moteur</span><select><option>Godot 4.7.2 (trouvé sur cette machine)</option></select></label>
+      <details><summary class="discret petit-txt">Avancé : préfixe d'exigences, dépôt distant (GitLab), agent</summary></details>
+      <div class="actions"><span class="espace"></span><button class="btn">Annuler</button><button class="btn fort" data-aller="vision-creation">Créer</button></div>`) }),
+  },
+  "vision-creation": {
+    nom: "P1.2 La vision", groupe: "P1. Créer un projet",
+    note: "Cinq questions, une seule fois. « Plus tard » est possible : chaque cadrage le rappellera.",
+    rendu: () => fenetre("vision", titre("Vision"), `<div class="defile"><div class="page-creation">
+      <div class="etapes-creation"><b>1. Vision</b> › 2. Architecture › 3. Première feature</div>
+      <h1>La vision de Casse-briques</h1><p class="discret">Pour que chaque feature parte du même jeu. Tu pourras la modifier.</p>
+      <div class="question"><label>En une phrase, c'est quoi ce jeu ?</label><input value="Un casse-briques nerveux, des niveaux courts, des bonus qui changent la balle."></div>
+      <div class="question"><label>Pour qui ?</label><input value="Joueur occasionnel, parties de 5 minutes"></div>
+      <div class="question"><label>Plateforme et contrôles</label><input value="PC, souris ou clavier"></div>
+      <div class="question"><label>Style</label><input value="Pixel art, couleurs vives"></div>
+      <div class="question"><label>Ce qu'il ne sera jamais</label><input value="Pas de multijoueur, pas d'achats"><div class="aide">Ce qui sort de la vision devient une décision pour toi au cadrage.</div></div>
+      <div class="actions"><span class="espace"></span><button class="btn" data-aller="regles-creation">Plus tard</button><button class="btn fort" data-aller="regles-creation">Continuer</button></div></div></div>`, { neuf: true }),
+  },
+  "regles-creation": {
+    nom: "P1.3 Les règles d'architecture", groupe: "P1. Créer un projet",
+    note: "En lecture : les règles par défaut du moteur, enregistrées comme décision 001. Une exception se décidera au cadrage qui en a besoin.",
+    rendu: () => fenetre("architecture", titre("Architecture"), `<div class="defile"><div class="page-creation">
+      <div class="etapes-creation">1. Vision › <b>2. Architecture</b> › 3. Première feature</div>
+      <h1>Comment le code sera rangé</h1><p class="discret">Les règles de Godot par défaut. L'outil les vérifie à chaque fusion, comme des tests.</p>
+      <div class="carte">${REGLES.map(([, t]) => `<div class="regle"><span class="ok">✓</span><span>${t}</span><span></span></div>`).join("")}</div>
+      <p class="discret petit-txt">Un nouveau composant, une nouvelle dépendance ou une exception se proposent au cadrage d'une feature ; c'est toi qui décides.</p>
+      <div class="actions"><span class="espace"></span><button class="btn fort" data-aller="projet-neuf">Continuer</button></div></div></div>`, { neuf: true }),
+  },
+  "projet-neuf": {
+    nom: "P1.4 Le projet prêt", groupe: "P1. Créer un projet",
+    note: "Version 0.1.0 en développement. À traiter est vide : la première chose à faire est une feature, dans le Backlog.",
+    rendu: () => fenetre("traiter", titre("À traiter"), `<div class="defile"><div class="vide"><div style="font-size:30px">✓</div><p><strong>Casse-briques est prêt.</strong></p><p class="petit-txt">Version 0.1.0 en développement · vision écrite · règles d'architecture en place</p><p><button class="btn fort" data-aller="nouvelle">Écrire la première feature</button></p></div></div>`, { neuf: true }),
+  },
+
+  // ---- P2. Demander une feature ----
+  nouvelle: {
+    nom: "P2.1 Nouvelle feature", groupe: "P2. Demander une feature",
+    note: "Depuis le Backlog (ou Ctrl+Maj+N). Une phrase suffit ; « Je cadre moi-même » ouvre le cadrage vide, sans agent.",
+    rendu: () => fenetre("backlog", titre("Backlog", "13 stories restantes"), `<div class="defile"></div>`, { flottant: voile(`<h2>Nouvelle feature</h2>
+      <label class="champ"><span>Que veux-tu dans ce jeu ?</span><textarea>Je veux pouvoir jouer seul contre l'ordinateur, avec plusieurs niveaux de difficulté.</textarea></label>
+      <label class="petit-txt"><input type="checkbox"> Je cadre moi-même (sans agent)</label>
+      <p class="discret petit-txt">L'agent la cadre seul : ce qu'il a compris, la vision, les choix, et les stories, créées en brouillon dans le Backlog. Tu le retrouveras dans À traiter.</p>
+      <div class="actions"><span class="espace"></span><button class="btn">Annuler</button><button class="btn fort" data-aller="cadrage">Envoyer</button></div>`) }),
+  },
+  cadrage: {
+    nom: "P2.2 Valider le cadrage", groupe: "P2. Demander une feature",
+    note: "Un résumé, pas un formulaire : ce que l'agent a compris, la vision, le choix ouvert, et les stories qu'il a créées en brouillon dans le Backlog. Une story se corrige en l'ouvrant, comme partout. Ni version ni architecture ici : la version est un réglage du Backlog, l'architecture se décide à la conception.",
+    rendu: () => fenetre("traiter", ariane(["À traiter", "traiter"], "Cadrage : Partie contre l'ordinateur"), `<div class="defile"><div class="carte" style="border-color:var(--orange);max-width:820px">
+      <p class="discret petit-txt" style="margin-top:0">Ta demande : « Je veux pouvoir jouer seul contre l'ordinateur, avec plusieurs niveaux de difficulté. »</p>
+      <div class="section">Ce que l'agent a compris</div>
+      <p style="margin:0">Un mode « Contre l'ordinateur » choisi dans un menu, avec deux niveaux. L'ordinateur joue O et répond en moins d'une seconde ; le niveau Difficile ne perd jamais.</p>
+      <div class="section">Vision</div><p style="margin:0" class="ok">✓ Dans la vision : « un joueur seul contre l'ordinateur ».</p>
+      <div class="section">Choix</div>
+      <div class="choix" style="margin-top:0"><h3>Comment joue l'ordinateur en Facile ?</h3>
+        <label class="option"><input type="radio" name="c1" checked><span>Au hasard parmi les cases libres<span class="reco">recommandé</span></span></label>
+        <label class="option"><input type="radio" name="c1"><span>Bloque seulement les victoires immédiates</span></label>
+        <label class="option"><input type="radio" name="c1"><span><input placeholder="Autre…" style="padding:2px 6px;border:1px solid var(--bord);border-radius:4px"></span></label></div>
+      <div class="section">4 stories en brouillon · epic « Partie contre l'ordinateur »</div>
+      <div class="liste-stories groupe" style="margin:0">
+        <div class="ligne" data-aller="story-brouillon"><span>Menu de mode<small>Au lancement, un menu propose « Deux joueurs » ou « Contre l'ordinateur ».</small></span><span class="meta">2 critères</span><span class="etat e-brouillon">brouillon</span></div>
+        <div class="ligne" data-aller="story-brouillon"><span>Ordinateur Facile<small>L'ordinateur joue O au hasard parmi les cases libres, en moins d'une seconde.</small></span><span class="meta">3 critères</span><span class="etat e-brouillon">brouillon</span></div>
+        <div class="ligne" data-aller="story-brouillon"><span>Ordinateur Difficile<small>L'ordinateur ne perd jamais.</small></span><span class="meta">2 critères</span><span class="etat e-brouillon">brouillon</span></div>
+        <div class="ligne" data-aller="story-brouillon"><span>Choix de la difficulté<small>Le menu propose Facile ou Difficile.</small></span><span class="meta">2 critères</span><span class="etat e-brouillon">brouillon</span></div></div>
+      <p class="petit-txt"><span class="lien">+ Story</span> · Clique une story pour la corriger. Elles iront dans la 1.2.0 « Jouer seul » (que tu as planifiée) ; tu les déplaces dans le Backlog si tu veux.</p>
+      <div class="redemande"><input placeholder="Pour demander un autre cadrage : ce qui ne va pas…"><button class="btn">Demander un autre cadrage</button></div>
+      <div class="actions"><button class="btn" data-aller="fermer">Fermer…</button><span class="espace"></span><button class="btn vert" data-aller="traiter">✓ Valider le cadrage</button></div>
+    </div></div>`, { actions: "" }),
+  },
+  "story-brouillon": {
+    nom: "P2.3 Corriger une story", groupe: "P2. Demander une feature",
+    note: "La page d'une story pas commencée, en brouillon ou prête : la même partout, qu'on vienne du cadrage, du Backlog ou de Versions. Chaque champ se modifie sur place. L'outil refuse qu'une story démarre sans résultat attendu ni critère.",
+    rendu: () => fenetre("backlog", ariane(["Backlog", "backlog-version"], ["1.2.0", "backlog-version"], "Ordinateur Facile"), `<div class="defile"><div class="carte" style="max-width:820px">
+      <div class="bandeau bleu petit-txt" style="margin-bottom:12px">Brouillon : fait partie du cadrage « Partie contre l'ordinateur », à valider. <span class="lien" data-aller="cadrage">Retour au cadrage</span></div>
+      <div class="champ-story"><label>Titre</label><input value="Ordinateur Facile"></div>
+      <div class="champ-story"><label>Résultat attendu</label><textarea>En mode « Contre l'ordinateur », niveau Facile, l'ordinateur joue O au hasard parmi les cases libres, en moins d'une seconde.</textarea></div>
+      <div class="champ-story"><label>Critères d'acceptation</label>
+        <div class="critere"><span>MRP-32</span><input value="L'ordinateur ne joue que sur une case libre"></div>
+        <div class="critere"><span>MRP-33</span><input value="Il joue en moins d'une seconde"></div>
+        <div class="critere"><span>MRP-34</span><input value="Une partie va jusqu'à la victoire ou au match nul"></div>
+        <span class="lien">+ Critère</span></div>
+      <div class="champ-story"><label>Hors périmètre</label><input value="Niveau Moyen ; choix de qui commence"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="champ-story"><label>Version</label><select><option>1.2.0 · Jouer seul</option><option>1.1.0 · Morpion complet</option></select></div>
+        <div class="champ-story"><label>Epic</label><select><option>Partie contre l'ordinateur</option><option>Aucun</option></select></div></div>
+      <p class="discret petit-txt" style="margin:0">Dépend de : Menu de mode · Enregistré à chaque modification.</p>
+    </div></div>`, { actions: `<button class="btn" title="Fermer, déplacer, dupliquer">⋯</button>` }),
+  },
+  "decision-archi": {
+    nom: "P2.4 Décision d'architecture (conception)", groupe: "P2. Demander une feature",
+    note: "Seulement quand la conception d'une story change l'architecture (composant, dépendance, contrat, exception). Sinon, aucun arrêt. La décision validée est enregistrée (ADR 005) ; l'outil vérifiera après développement que le code la respecte.",
+    rendu: () => fenetre("traiter", ariane(["À traiter", "traiter"], "Son de pose des pions : décision d'architecture"), `<div class="defile"><div class="carte" style="border-color:var(--orange);max-width:820px">
+      <p class="discret petit-txt" style="margin-top:0">Conception faite : plan en 2 tâches. Une décision d'architecture est nécessaire.</p>
+      <div class="choix" style="margin-top:0"><h3>Où jouer les sons ?</h3>
+        <label class="option"><input type="radio" name="a" checked><span>Nouveau composant libs/audio, utilisé par actors/pion<span class="reco">recommandé</span><small>Réutilisable pour les prochains sons (victoire, menu) et entre projets. Règles d'architecture respectées ✓</small></span></label>
+        <label class="option"><input type="radio" name="a"><span>Le son directement dans actors/pion<small>Plus simple aujourd'hui ; à refaire au deuxième son.</small></span></label></div>
+      <p class="petit-txt"><strong>Coût si c'est faux :</strong> déplacer la lecture du son dans le pion, une petite story.</p>
+      <div class="redemande"><input placeholder="Pour demander une autre conception : ce qui ne va pas…"><button class="btn">Demander une autre conception</button></div>
+      <div class="actions"><span class="espace"></span><button class="btn vert" data-aller="traiter">✓ Valider</button></div>
+    </div></div>`, { actions: "" }),
+  },
+  story: {
+    nom: "P2.5 Une story en cours", groupe: "P2. Demander une feature",
+    note: "Développement sans toi. Une question de l'agent arrive dans À traiter et se répond ici. Le fil d'Ariane place la story dans sa version.",
+    rendu: () => fenetre("versions", ariane(["Versions", "versions"], ["1.1.0", "versions"], "Animation des pions"), ONGLETS + `<div class="defile">
+      <div class="bandeau bleu"><strong>Question de l'agent</strong> : « Le pion glisse depuis le bord de la grille ou apparaît en fondu ? »<div class="redemande"><input placeholder="Ta réponse…"><button class="btn fort">Répondre</button></div></div>
+      <div class="carte"><p style="margin-top:0"><strong>Résultat attendu.</strong> Un pion posé glisse jusqu'à sa case en 0,2 s ; aucun clic n'est perdu pendant l'animation.</p>
+      <p class="discret petit-txt" style="margin-bottom:0"><strong>Critères :</strong> MRP-24 glissement en 0,2 s · MRP-25 clics gardés · <strong>Décision :</strong> 004, composant actors/pion (validée à la conception)</p></div>
+      <div class="carte">${ETAPES(ETAPES_FEATURE, "Développement")}</div></div>`),
+  },
+
+  // ---- P3. Recetter ----
+  recette: {
+    nom: "P3 Recetter", groupe: "P3. Recetter",
+    note: "Chaque critère avec sa preuve et sa source. Valider livre la story dans la branche de sa version. Demander des changements reste dans les critères de la story ; un nouveau besoin passe par « Ajouter une suite » (⋯).",
+    rendu: () => fenetre("traiter", ariane(["À traiter", "traiter"], "Score des joueurs"), ONGLETS + `<div class="defile"><div class="carte" style="border-color:var(--violet)">
+      <p style="margin-top:0"><strong>Résultat attendu.</strong> Un compteur de victoires par joueur au-dessus de la grille, qui survit à « Rejouer ».</p>
+      <table><tr><th>Critère d'acceptation</th><th>Preuve</th></tr>
+        <tr><td>MRP-14 Le score s'affiche au-dessus de la grille</td><td class="ok">capture · test de bout en bout ✓</td></tr>
+        <tr><td>MRP-15 Il survit à « Rejouer »</td><td class="ok">test ✓</td></tr></table>
+      <p class="discret petit-txt">Definition of Done, vérifiée par l'outil : compilation ✓ · 35 tests ✓ · smoke test ✓ · bout en bout ✓ · relecture ✓ · règles d'architecture ✓</p>
+      <div class="medias"><div class="media">capture : score 2 – 1</div><div class="media">vidéo : partie complète</div></div>
+      <div class="actions"><span class="espace"></span><button class="btn">Abandonner…</button><button class="btn vert" data-aller="traiter">✓ Valider · livrer dans 1.1.0</button></div>
+      <div class="redemande"><input placeholder="Ce qui ne remplit pas les critères…"><button class="btn">Demander des changements</button></div></div></div>`),
+  },
+
+  // ---- P4. Changer d'avis ----
+  "story-menu": {
+    nom: "P4.1 Le menu ⋯ d'une story en cours", groupe: "P4. Changer d'avis",
+    note: "Le périmètre d'une story en cours ne change pas. Un nouveau besoin : une suite. Un besoin qui a changé : abandonner et recadrer. Rien ne se supprime.",
+    rendu: () => fenetre("versions", ariane(["Versions", "versions"], ["1.1.0", "versions"], "Animation des pions"), ONGLETS + `<div class="defile"><div class="carte">${ETAPES(ETAPES_FEATURE, "Développement")}</div></div>`, { flottant: `<div class="menu-objet">
+      <div class="entree"><span>Renommer</span><span class="discret petit-txt">F2</span></div>
+      <div class="entree off"><span>Modifier la demande<small>impossible une fois commencée</small></span></div>
+      <div class="sep"></div>
+      <div class="entree" data-aller="nouvelle"><span>Ajouter une suite…<small>nouvelle story liée, avec son cadrage</small></span></div>
+      <div class="entree" data-aller="recadrer"><span>Abandonner et recadrer…<small>la demande corrigée repart au cadrage</small></span></div>
+      <div class="sep"></div>
+      <div class="entree"><span>Abandonner…</span></div></div>` }),
+  },
+  recadrer: {
+    nom: "P4.2 Abandonner et recadrer", groupe: "P4. Changer d'avis",
+    note: "La story est fermée avec sa raison (l'historique reste) ; la demande corrigée repart en nouvelle feature.",
+    rendu: () => fenetre("versions", ariane(["Versions", "versions"], ["1.1.0", "versions"], "Animation des pions"), `<div class="defile"></div>`, { flottant: voile(`<h2>Abandonner et recadrer</h2>
+      <p class="petit-txt">« Animation des pions » sera fermée (motif : recadrée). Le travail fait reste consultable dans son historique.</p>
+      <label class="champ"><span>Ta demande, corrigée</span><textarea>Les pions apparaissent en fondu, et la ligne gagnante clignote à la victoire.</textarea></label>
+      <div class="actions"><span class="espace"></span><button class="btn">Annuler</button><button class="btn fort" data-aller="traiter">Abandonner et recadrer</button></div>`) }),
+  },
+  fermer: {
+    nom: "P4.3 Fermer une story pas commencée", groupe: "P4. Changer d'avis",
+    note: "Pas de suppression : on ferme avec un motif. Les fermées sont masquées, retrouvables par le filtre « Fermées » du Backlog.",
+    rendu: () => fenetre("backlog", titre("Backlog", "13 stories restantes"), `<div class="defile"></div>`, { flottant: voile(`<h2>Fermer « Mode en ligne »</h2>
+      <label class="option"><input type="radio" name="m" checked><span>Ne sera pas fait</span></label>
+      <label class="option"><input type="radio" name="m"><span>Doublon de… <select style="margin-left:6px"><option>choisir une story</option></select></span></label>
+      <label class="option"><input type="radio" name="m"><span>Créée par erreur</span></label>
+      <label class="champ" style="margin-top:8px"><span>Pourquoi (facultatif)</span><input placeholder="Hors vision : pas de multijoueur en ligne"></label>
+      <div class="actions"><span class="espace"></span><button class="btn">Annuler</button><button class="btn fort" data-aller="backlog-version">Fermer</button></div>`) }),
+  },
+
+  // ---- P5. Signaler un bug ----
+  signaler: {
+    nom: "P5.1 Signaler un bug", groupe: "P5. Signaler un bug",
+    note: "Depuis Versions (la version est préremplie) ou Ctrl+Maj+B.",
+    rendu: () => fenetre("versions", titre("Versions"), `<div class="defile"></div>`, { flottant: voile(`<h2>Signaler un bug</h2>
+      <label class="champ"><span>Dans quelle version ?</span><select><option>1.0.0 (livrée le 17 nov.)</option><option>1.1.0 (en développement)</option><option>Je ne sais pas</option></select></label>
+      <label class="champ"><span>Ce qui se passe</span><input value="Je gagne avec trois X sur la diagonale ↗ et la partie continue."></label>
+      <label class="champ"><span>Ce qui devrait se passer</span><input value="La victoire de X est annoncée."></label>
+      <label class="champ"><span>Comment le reproduire (facultatif)</span><input placeholder="X en bas à gauche, au centre, en haut à droite…"></label>
+      <div class="actions"><span class="espace"></span><button class="btn">Annuler</button><button class="btn fort" data-aller="cadrage-bug">Signaler</button></div>`) }),
+  },
+  "cadrage-bug": {
+    nom: "P5.2 Cadrage d'un bug", groupe: "P5. Signaler un bug",
+    note: "Reproduit par l'outil d'abord (sinon : « Bug non reproduit » dans À traiter). Puis le même cadrage qu'une feature : résultat attendu, impact sur l'architecture, et la version.",
+    rendu: () => fenetre("traiter", ariane(["À traiter", "traiter"], "Victoire non détectée sur la diagonale ↗"), `<div class="defile"><div class="carte" style="border-color:var(--orange)">
+      <p class="discret petit-txt" style="margin-top:0"><span class="type-bug">bug</span>Signalé dans la 1.0.0 · « Je gagne avec trois X sur la diagonale ↗ et la partie continue. »</p>
+      <div class="bandeau bleu"><strong>Reproduit par l'outil</strong> : le test « victoire sur l'anti-diagonale » échoue sur la 1.0.0 et sur la 1.1.0.</div>
+      <p><strong>Cause probable.</strong> regles_morpion ne vérifie qu'une des deux diagonales.</p>
+      <p><strong>Résultat attendu.</strong> Trois symboles alignés sur l'une ou l'autre diagonale donnent la victoire.</p>
+      <p class="petit-txt"><strong>Architecture :</strong> aucun changement (corrigé dans systems/regles_morpion).</p>
+      <div class="choix"><h3>Dans quelle version le corriger ?</h3>
+        <label class="option"><input type="radio" name="v" checked><span>Dans la 1.0.1, puis reporté dans la 1.1.0<span class="reco">recommandé</span><small>les joueurs de la 1.0.0 l'auront vite ; le report est fait par l'outil</small></span></label>
+        <label class="option"><input type="radio" name="v"><span>Seulement dans la 1.1.0</span></label></div>
+      <div class="actions"><button class="btn" data-aller="fermer">Fermer… (ce n'est pas un bug)</button><span class="espace"></span><button class="btn vert" data-aller="traiter">✓ Valider le cadrage</button></div></div></div>`, { actions: "" }),
+  },
+  "story-bug": {
+    nom: "P5.3 Un correctif en cours", groupe: "P5. Signaler un bug",
+    note: "Un correctif n'est terminé qu'une fois reporté dans la version en développement, preuve refaite par l'outil.",
+    rendu: () => fenetre("versions", ariane(["Versions", "versions"], ["1.0.1", "versions"], "Rejouer reste actif pendant l'animation"), ONGLETS + `<div class="defile">
+      <div class="maintenant"><span class="anim"></span><span>Vérification : suite complète sur la 1.0.1</span></div>
+      <div class="carte">${ETAPES(ETAPES_BUG, "Vérification")}</div></div>`),
+  },
+
+  // ---- P6, P7 ----
+  livrer: {
+    nom: "P6 Livrer une version", groupe: "P6–P7. Versions",
+    note: "Ton geste. L'outil refait la preuve sur toute la version, règles d'architecture comprises. Le numéro se change jusqu'ici. Les stories non livrées passent à la version suivante.",
+    rendu: () => fenetre("versions", titre("Versions"), `<div class="defile"></div>`, { flottant: voile(`<h2>Livrer la version</h2>
+      <label class="champ"><span>Numéro</span><input value="1.1.0" style="width:120px"></label>
+      <table style="margin-bottom:10px"><tr><td class="ok">✓</td><td>Compilation et scènes</td><td class="discret">par l'outil, à l'instant</td></tr><tr><td class="ok">✓</td><td>Tous les tests (41)</td><td></td></tr><tr><td class="ok">✓</td><td>Smoke test</td><td class="discret">le jeu se lance</td></tr><tr><td class="ok">✓</td><td>Règles d'architecture</td><td class="discret">6 / 6 sur develop</td></tr><tr><td class="ok">✓</td><td>Correctifs de la 1.0.1 reportés</td><td class="discret">1 / 1</td></tr></table>
+      <p class="petit-txt">Livrées dans cette version : 3 stories. <strong>Passent à la 1.2.0</strong> : Animation des pions, Écran de victoire, 2 autres.</p>
+      <label class="champ"><span>Notes de version (modifiables)</span><textarea>Morpion 1.1.0
+- Nouveau : le score de chaque joueur.
+- Corrigé : la victoire sur la diagonale ↗ est détectée.</textarea></label>
+      <div class="actions"><span class="espace"></span><button class="btn">Annuler</button><button class="btn vert" data-aller="versions">Livrer la 1.1.0</button></div>`) }),
+  },
+  planifier: {
+    nom: "P7 Planifier une version", groupe: "P6–P7. Versions",
+    note: "Un numéro, un objectif, et les stories pas commencées à y mettre. Un cadrage peut aussi proposer une version, que tu confirmes en le validant.",
+    rendu: () => fenetre("versions", titre("Versions"), `<div class="defile"></div>`, { flottant: voile(`<h2>Planifier une version</h2>
+      <label class="champ"><span>Numéro</span><input value="1.3.0" style="width:120px"></label>
+      <label class="champ"><span>Objectif</span><input value="Habillage : sons et thèmes"></label>
+      <div class="champ"><span>Stories pas commencées à y mettre</span>
+        <label class="option"><input type="checkbox" checked><span>Choix de la difficulté <small>1.2.0 · brouillon</small></span></label>
+        <label class="option"><input type="checkbox"><span>Mode en ligne <small>1.2.0 · hors vision</small></span></label></div>
+      <div class="actions"><span class="espace"></span><button class="btn">Annuler</button><button class="btn fort" data-aller="versions">Planifier</button></div>`) }),
+  },
+
+  // ---- P8. Architecture ----
+  ecart: {
+    nom: "P8.1 Écart d'architecture", groupe: "P8. Architecture",
+    note: "L'outil compare l'impact annoncé au cadrage à la carte relevée sur la branche. Ici une dépendance non annoncée casse une règle : la fusion est bloquée jusqu'à ta décision.",
+    rendu: () => fenetre("traiter", ariane(["À traiter", "traiter"], "Écran de victoire : écart d'architecture"), `<div class="defile"><div class="carte" style="border-color:var(--orange)">
+      <table><tr><th>Annoncé au cadrage</th><th>Relevé par l'outil sur la branche</th></tr>
+        <tr><td>Nouveau composant gui/victoire</td><td class="ok">✓ gui/victoire</td></tr>
+        <tr><td>gui/victoire → systems/regles_morpion</td><td class="ok">✓ présente</td></tr>
+        <tr><td class="discret">(non annoncée)</td><td class="ko">✗ gui/victoire → actors/grille : lit la ligne gagnante dans la grille</td></tr></table>
+      <p class="petit-txt"><strong>Règle cassée :</strong> gui et actors ne dépendent pas l'un de l'autre (décision 001).</p>
+      <div class="choix"><h3>Que faire ?</h3>
+        <label class="option"><input type="radio" name="e" checked><span>Demander la correction<span class="reco">recommandé</span><small>regles_morpion émet « victoire(ligne) » ; l'interface l'écoute. La story repart en développement.</small></span></label>
+        <label class="option"><input type="radio" name="e"><span>Accepter l'exception<small>enregistrée comme décision 004, avec ta raison :</small><input placeholder="Pourquoi cette exception…" style="margin-top:4px;width:100%;padding:4px 8px;border:1px solid var(--bord);border-radius:5px"></span></label></div>
+      <div class="actions"><span class="espace"></span><button class="btn vert" data-aller="traiter">Valider</button></div></div></div>`),
+  },
+  adr: {
+    nom: "P8.2 Une décision d'architecture", groupe: "P8. Architecture",
+    note: "Une décision par fichier dans le dépôt (docs/architecture/decisions/), format ADR : contexte, décision, raison, coût si elle est fausse. Écrite depuis le cadrage que tu as validé.",
+    rendu: () => fenetre("architecture", ariane(["Architecture", "architecture"], "003 Le score vit dans un système"), `<div class="defile"><div class="carte adr" style="max-width:760px">
+      <p class="discret petit-txt" style="margin-top:0">Validée par toi le 16 nov. · cadrage de « Score des joueurs » · docs/architecture/decisions/003-score-systeme.md</p>
+      <h3>Contexte</h3><p>Le score doit survivre à « Rejouer » et s'afficher dans l'interface.</p>
+      <h3>Décision</h3><p>Nouveau composant systems/score, qui écoute regles_morpion ; gui/hud_score l'affiche.</p>
+      <h3>Raison</h3><p>Le score est une règle : testable sans scène, indépendant de l'affichage.</p>
+      <h3>Coût si elle est fausse</h3><p>Déplacer le compteur dans l'interface : une story, sans toucher aux règles.</p></div></div>`, { actions: "" }),
+  },
+
+  // ---- La barre ----
+  projets: {
+    nom: "Changer de projet", groupe: "La barre",
+    note: "Le nom du projet, en haut de la barre, est la seule entrée globale.",
+    rendu: () => fenetre("traiter", titre("À traiter", "6 choses t'attendent"), `<div class="defile"></div>`, { flottant: `<div class="flottant">
+      <div class="entree coche"><span>✓ Morpion</span><span class="discret petit-txt">6 à traiter</span></div>
+      <div class="entree"><span>Morpion local</span><span class="discret petit-txt">1 en cours</span></div>
+      <div class="entree" data-aller="projet-neuf"><span>Casse-briques</span><span class="discret petit-txt">0.1.0</span></div>
+      <div class="sep"></div><div class="entree" data-aller="nouveau-projet"><span>Nouveau projet…</span><span class="discret petit-txt">Ctrl+N</span></div><div class="entree"><span>Ouvrir un projet…</span><span class="discret petit-txt">Ctrl+O</span></div></div>` }),
+  },
+  replie: {
+    nom: "Barre repliée", groupe: "La barre",
+    note: "Ctrl+B : les lieux deviennent des icônes, une pastille signale ce qui t'attend.",
+    rendu: () => fenetre("backlog", titre("Backlog", "13 stories restantes"), outilsBacklog("version") + `<div class="defile">${backlog("version")}</div>`, { replie: true }),
+  },
+};
+
+
+// ---- Une page par objet (story, epic) : la décision en attente en haut, au-dessus des onglets ; la conversation à droite ----
+const DECIDER = (d) => d ? `<div class="a-decider"><div class="a-decider-titre">${d.titre}</div>${d.corps ?? ""}<div class="actions" style="margin-top:8px">${d.actions}</div></div>` : "";
+const CONV = (titre, msgs, saisie = "Écrire à l'agent…") => `<aside class="conv-panel"><div class="conv-titre">${titre}</div><div class="conv-fil">${msgs.map(([qui, t]) =>
+  qui === "maj" ? `<div class="msg-maj">✎ ${t}</div>` : qui === "evt" ? `<div class="msg-evt">${t}</div>` : `<div class="msg-${qui}">${t}</div>`).join("")}</div>
+  <div class="conv-saisie"><input placeholder="${saisie}"><button class="btn fort petit">Envoyer</button></div></aside>`;
+function objet(choisi, chemins, o) {
+  const onglets = o.onglets ?? ["Avancement", "Fichiers", "Journal", "Technique"];
+  const corps = `${DECIDER(o.decision)}<div class="onglets">${onglets.map((n, i) => `<button class="${i === 0 ? "actif" : ""}">${n}</button>`).join("")}</div>
+    <div class="objet-corps"><div class="defile">${o.contenu}</div>${o.conv ?? ""}</div>`;
+  return fenetre(choisi, ariane(...chemins), corps, { actions: o.actions, flottant: o.flottant });
+}
+const ACT_STORY = `<button class="btn">▶ Lancer cette version</button><button class="btn" data-aller="story-menu" title="Actions sur la story">⋯</button>`;
+const etapes = (liste, actif) => `<div class="carte">${ETAPES(liste, actif)}</div>`;
+
+const CONV_CADRAGE = CONV("Conversation du cadrage", [
+  ["moi", "Je veux pouvoir jouer seul contre l'ordinateur, avec plusieurs niveaux de difficulté."],
+  ["agent", "J'ai relu la vision et regles_morpion. Je propose 4 stories, une question reste ouverte : en Facile, l'ordinateur joue au hasard ou bloque les victoires immédiates ?"],
+  ["moi", "Et un niveau Moyen ?"],
+  ["agent", "Possible, mais la vision parle de parties courtes : je le mets hors périmètre, tu pourras l'ajouter en suite. D'accord ?"],
+  ["moi", "Oui."],
+  ["maj", "Cadrage mis à jour : « niveau Moyen » ajouté au hors périmètre de 2 stories"],
+], "Discuter du cadrage…");
+
+Object.assign(ECRANS, {
+  nouvelle: {
+    nom: "P2.1 Nouvelle feature", groupe: "P2. Demander une feature",
+    note: "Deux départs : une phrase, et l'agent cadre seul (le cas courant) ; ou « Discuter d'abord », pour explorer une idée avec l'agent avant de cadrer.",
+    rendu: () => fenetre("backlog", titre("Backlog", "13 stories restantes"), `<div class="defile"></div>`, { flottant: voile(`<h2>Nouvelle feature</h2>
+      <label class="champ"><span>Que veux-tu dans ce jeu ?</span><textarea>Je veux pouvoir jouer seul contre l'ordinateur, avec plusieurs niveaux de difficulté.</textarea></label>
+      <label class="option"><input type="radio" name="d" checked><span>L'agent la cadre seul<small>ce qu'il a compris, la vision, les choix, les stories en brouillon ; tu le retrouves dans À traiter</small></span></label>
+      <label class="option"><input type="radio" name="d"><span>Discuter d'abord<small>une conversation pour explorer l'idée ; « Cadrer maintenant » quand elle est mûre</small></span></label>
+      <label class="option"><input type="radio" name="d"><span>Je cadre moi-même<small>sans agent : tu écris les stories</small></span></label>
+      <div class="actions"><span class="espace"></span><button class="btn">Annuler</button><button class="btn fort" data-aller="cadrage">Envoyer</button></div>`) }),
+  },
+  discuter: {
+    nom: "P2.1 bis Discuter d'abord", groupe: "P2. Demander une feature",
+    note: "La feature existe déjà (dans le Backlog, « en discussion »), mais rien n'est cadré. La conversation est le cœur de la page ; « Cadrer maintenant » lance le cadrage, qui reprend ce qui s'est dit.",
+    rendu: () => objet("backlog", [["Backlog", "backlog-version"], "Partie contre l'ordinateur"], {
+      actions: `<button class="btn" title="Fermer">⋯</button>`,
+      decision: { titre: "En discussion", corps: `<span class="petit-txt">Rien n'est cadré tant que tu ne le demandes pas.</span>`, actions: `<span class="espace"></span><button class="btn fort" data-aller="cadrage">Cadrer maintenant</button>` },
+      onglets: ["Avancement", "Journal"],
+      contenu: etapes([["Discussion", "avec toi"], ["Cadrage"], ["Conception"], ["Développement"], ["Vérification"], ["Recette"], ["Livraison"]], "Discussion"),
+      conv: CONV("Conversation", [
+        ["moi", "J'aimerais qu'on puisse jouer seul. Contre l'ordinateur, peut-être avec des niveaux ?"],
+        ["agent", "Deux pistes : des niveaux de difficulté (Facile, Difficile), ou un ordinateur qui s'adapte à toi. La première tient en 4 stories ; la seconde est plus floue à vérifier. Tu penches pour laquelle ?"],
+        ["moi", "Des niveaux, c'est plus simple."],
+      ], "Discuter de l'idée…"),
+    }),
+  },
+  cadrage: {
+    nom: "P2.2 Valider le cadrage", groupe: "P2. Demander une feature",
+    note: "La page de l'epic. En haut, la décision attendue ; dessous, le cadrage, document vivant ; à droite, la conversation qui le fait évoluer (chaque mise à jour du document y est signalée). Les choix sont des raccourcis : « Autre… » renvoie à la conversation.",
+    rendu: () => objet("traiter", [["À traiter", "traiter"], "Partie contre l'ordinateur"], {
+      actions: `<button class="btn" title="Fermer, renommer">⋯</button>`,
+      decision: { titre: "Valider le cadrage", corps: `<span class="petit-txt">4 stories en brouillon · 1 choix ouvert · dans la vision</span>`,
+        actions: `<button class="btn" data-aller="fermer">Fermer…</button><button class="btn">Demander un autre cadrage</button><span class="espace"></span><button class="btn vert" data-aller="traiter">✓ Valider le cadrage</button>` },
+      onglets: ["Cadrage", "Stories", "Journal"],
+      contenu: `<div class="carte">
+        <div class="section">Ce que l'agent a compris</div>
+        <p style="margin:0">Un mode « Contre l'ordinateur » choisi dans un menu, avec deux niveaux. L'ordinateur joue O et répond en moins d'une seconde ; le niveau Difficile ne perd jamais.</p>
+        <div class="section">Vision</div><p style="margin:0" class="ok">✓ Dans la vision : « un joueur seul contre l'ordinateur ».</p>
+        <div class="section">Choix</div>
+        <div class="choix" style="margin-top:0"><h3>En Facile, comment joue l'ordinateur ?</h3>
+          <label class="option"><input type="radio" name="c1" checked><span>Au hasard parmi les cases libres<span class="reco">recommandé</span></span></label>
+          <label class="option"><input type="radio" name="c1"><span>Bloque seulement les victoires immédiates</span></label>
+          <label class="option"><input type="radio" name="c1"><span>Autre… <small>à dire dans la conversation</small></span></label></div>
+        <div class="section">4 stories en brouillon</div>
+        <div class="liste-stories groupe" style="margin:0">
+          <div class="ligne" data-aller="story-brouillon"><span>Menu de mode<small>Un menu propose « Deux joueurs » ou « Contre l'ordinateur ».</small></span><span class="meta">2 critères</span><span class="etat e-brouillon">brouillon</span></div>
+          <div class="ligne" data-aller="story-brouillon"><span>Ordinateur Facile<small>L'ordinateur joue O au hasard, en moins d'une seconde.</small></span><span class="meta">3 critères</span><span class="etat e-brouillon">brouillon</span></div>
+          <div class="ligne" data-aller="story-brouillon"><span>Ordinateur Difficile<small>L'ordinateur ne perd jamais.</small></span><span class="meta">2 critères</span><span class="etat e-brouillon">brouillon</span></div>
+          <div class="ligne" data-aller="story-brouillon"><span>Choix de la difficulté<small>Le menu propose Facile ou Difficile.</small></span><span class="meta">2 critères</span><span class="etat e-brouillon">brouillon</span></div></div>
+        <p class="petit-txt" style="margin-bottom:0"><span class="lien">+ Story</span> · clique une story pour la corriger · version : 1.2.0 « Jouer seul »</p></div>`,
+      conv: CONV_CADRAGE,
+    }),
+  },
+  "story-brouillon": {
+    nom: "P2.3 Corriger une story", groupe: "P2. Demander une feature",
+    note: "La page d'une story pas commencée : la même partout. Les champs se modifient sur place. À droite, la conversation du cadrage dont elle vient : on peut aussi y demander la correction à l'agent.",
+    rendu: () => objet("backlog", [["Backlog", "backlog-version"], ["Partie contre l'ordinateur", "cadrage"], "Ordinateur Facile"], {
+      actions: `<button class="btn" title="Fermer, déplacer, dupliquer">⋯</button>`,
+      onglets: ["Story", "Journal"],
+      contenu: `<div class="carte">
+        <div class="bandeau bleu petit-txt" style="margin-bottom:12px">Brouillon du cadrage « Partie contre l'ordinateur », à valider. <span class="lien" data-aller="cadrage">Ouvrir le cadrage</span></div>
+        <div class="champ-story"><label>Titre</label><input value="Ordinateur Facile"></div>
+        <div class="champ-story"><label>Résultat attendu</label><textarea>En mode « Contre l'ordinateur », niveau Facile, l'ordinateur joue O au hasard parmi les cases libres, en moins d'une seconde.</textarea></div>
+        <div class="champ-story"><label>Critères d'acceptation</label>
+          <div class="critere"><span>MRP-32</span><input value="L'ordinateur ne joue que sur une case libre"></div>
+          <div class="critere"><span>MRP-33</span><input value="Il joue en moins d'une seconde"></div>
+          <div class="critere"><span>MRP-34</span><input value="Une partie va jusqu'à la victoire ou au match nul"></div>
+          <span class="lien">+ Critère</span></div>
+        <div class="champ-story"><label>Hors périmètre</label><input value="Niveau Moyen ; choix de qui commence"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="champ-story"><label>Version</label><select><option>1.2.0 · Jouer seul</option></select></div><div class="champ-story"><label>Epic</label><select><option>Partie contre l'ordinateur</option></select></div></div>
+        <p class="discret petit-txt" style="margin:0">Dépend de : Menu de mode · enregistré à chaque modification</p></div>`,
+      conv: CONV_CADRAGE,
+    }),
+  },
+  "decision-archi": {
+    nom: "P2.4 Décision d'architecture (conception)", groupe: "P2. Demander une feature",
+    note: "La page de la story, ouverte depuis À traiter : la décision en haut, le contexte complet dessous (avancement, fichiers, journal) et la conversation à droite pour questionner l'agent avant de trancher.",
+    rendu: () => objet("traiter", [["À traiter", "traiter"], "Son de pose des pions"], {
+      actions: ACT_STORY,
+      decision: { titre: "Décision d'architecture : où jouer les sons ?", corps: `
+        <label class="option"><input type="radio" name="a" checked><span>Nouveau composant libs/audio, utilisé par actors/pion<span class="reco">recommandé</span><small>réutilisable pour les prochains sons et entre projets · règles respectées ✓ · coût si c'est faux : une petite story</small></span></label>
+        <label class="option"><input type="radio" name="a"><span>Le son directement dans actors/pion<small>plus simple aujourd'hui ; à refaire au deuxième son</small></span></label>`,
+        actions: `<button class="btn">Demander une autre conception</button><span class="espace"></span><button class="btn vert" data-aller="traiter">✓ Valider</button>` },
+      contenu: `<div class="carte"><p style="margin-top:0"><strong>Résultat attendu.</strong> Un son court quand un pion est posé ; coupé si le son du jeu est désactivé.</p>
+        <p class="petit-txt" style="margin-bottom:0"><strong>Plan de conception :</strong> 1. lecteur de sons (libs/audio), testé · 2. le pion joue « pose » à la pose</p></div>
+        ${etapes([["Cadrage", "validé par toi le 17 nov."], ["Conception", "plan en 2 tâches · décision d'architecture à prendre"], ["Développement"], ["Vérification"], ["Recette"], ["Livraison dans 1.1.0"]], "Conception")}`,
+      conv: CONV("Conversation", [
+        ["agent", "Conception faite. Il n'y a pas encore de son dans le jeu : je propose un composant libs/audio, réutilisable. C'est un nouveau composant, donc ta décision."],
+        ["moi", "Ça alourdit pour un seul son, non ?"],
+        ["agent", "Pour un seul son, oui. Mais « Écran de victoire » et le menu en prévoient chacun un : libs/audio évite de le refaire trois fois."],
+      ]),
+    }),
+  },
+  story: {
+    nom: "P2.5 Une story en cours : question de l'agent", groupe: "P2. Demander une feature",
+    note: "Une question de l'agent arrive dans À traiter et s'ouvre ici : la question en haut, avec des réponses rapides, et la conversation à droite pour répondre autrement.",
+    rendu: () => objet("versions", [["Versions", "versions"], ["1.1.0", "versions"], "Animation des pions"], {
+      actions: ACT_STORY,
+      decision: { titre: "Question de l'agent", corps: `<span class="petit-txt">« Le pion glisse depuis le bord de la grille, ou apparaît en fondu ? »</span>`,
+        actions: `<button class="btn">Il glisse depuis le bord</button><button class="btn">Il apparaît en fondu</button><span class="discret petit-txt">ou réponds dans la conversation</span>` },
+      contenu: `<div class="carte"><p style="margin-top:0"><strong>Résultat attendu.</strong> Un pion posé arrive à sa case en 0,2 s ; aucun clic n'est perdu pendant l'animation.</p>
+        <p class="discret petit-txt" style="margin-bottom:0"><strong>Critères :</strong> MRP-24 animation en 0,2 s · MRP-25 clics gardés · <strong>Décision :</strong> 004, composant actors/pion</p></div>
+        ${etapes(ETAPES_FEATURE, "Développement")}`,
+      conv: CONV("Conversation", [["evt", "Tâche 1 terminée et relue : le pion a sa scène"], ["agent", "Pour la tâche 2, le résultat attendu ne dit pas d'où vient le pion. Il glisse depuis le bord de la grille, ou apparaît en fondu ?"]]),
+    }),
+  },
+  recette: {
+    nom: "P3 Recetter", groupe: "P3. Recetter",
+    note: "La recette sur la page de la story : le geste en haut ; dessous, les critères et leurs preuves, et tous les onglets (fichiers touchés, journal) ; à droite, le compte rendu de l'agent, qui est une déclaration, pas une preuve.",
+    rendu: () => objet("traiter", [["À traiter", "traiter"], "Score des joueurs"], {
+      actions: ACT_STORY,
+      decision: { titre: "Recette", corps: `<div class="redemande" style="margin-top:4px"><input placeholder="Ce qui ne remplit pas les critères…"><button class="btn">Demander des changements</button></div>`,
+        actions: `<button class="btn">Abandonner…</button><span class="espace"></span><button class="btn vert" data-aller="traiter">✓ Valider · livrer dans 1.1.0</button>` },
+      contenu: `<div class="carte"><p style="margin-top:0"><strong>Résultat attendu.</strong> Un compteur de victoires par joueur au-dessus de la grille, qui survit à « Rejouer ».</p>
+        <table><tr><th>Critère d'acceptation</th><th>Preuve</th></tr>
+          <tr><td>MRP-14 Le score s'affiche au-dessus de la grille</td><td class="ok">capture · test de bout en bout ✓</td></tr>
+          <tr><td>MRP-15 Il survit à « Rejouer »</td><td class="ok">test ✓</td></tr></table>
+        <p class="discret petit-txt">Definition of Done, vérifiée par l'outil : compilation ✓ · 35 tests ✓ · smoke test ✓ · bout en bout ✓ · relecture ✓ · règles d'architecture ✓</p>
+        <div class="medias"><div class="media">capture : score 2 – 1</div><div class="media">vidéo : partie complète</div></div></div>`,
+      conv: CONV("Conversation", [["evt", "Vérification par l'outil : tout est vert"], ["agent", "Compte rendu (déclaration, pas une preuve) : un score par joueur, remis à zéro par « Nouvelle partie ». Pour vérifier : gagner deux parties de suite."]]),
+    }),
+  },
+  "cadrage-bug": {
+    nom: "P5.2 Cadrage d'un bug", groupe: "P5. Signaler un bug",
+    note: "La page du bug : la décision (la version) en haut ; dessous, la reproduction par l'outil et le cadrage ; à droite, ton signalement et la conversation.",
+    rendu: () => objet("traiter", [["À traiter", "traiter"], "Victoire non détectée sur la diagonale ↗"], {
+      actions: `<button class="btn" title="Fermer">⋯</button>`,
+      decision: { titre: "Valider le cadrage : dans quelle version corriger ?", corps: `
+        <label class="option"><input type="radio" name="v" checked><span>Dans la 1.0.1, puis reporté dans la 1.1.0<span class="reco">recommandé</span><small>les joueurs de la 1.0.0 l'auront vite ; le report est fait par l'outil</small></span></label>
+        <label class="option"><input type="radio" name="v"><span>Seulement dans la 1.1.0</span></label>`,
+        actions: `<button class="btn" data-aller="fermer">Fermer… (ce n'est pas un bug)</button><span class="espace"></span><button class="btn vert" data-aller="traiter">✓ Valider le cadrage</button>` },
+      contenu: `<div class="carte"><div class="bandeau bleu"><strong>Reproduit par l'outil</strong> : le test « victoire sur l'anti-diagonale » échoue sur la 1.0.0 et sur la 1.1.0.</div>
+        <p><strong>Cause probable.</strong> regles_morpion ne vérifie qu'une des deux diagonales.</p>
+        <p><strong>Résultat attendu.</strong> Trois symboles alignés sur l'une ou l'autre diagonale donnent la victoire.</p>
+        <p class="petit-txt" style="margin-bottom:0"><strong>Critère :</strong> MRP-40 victoire sur les deux diagonales · <strong>Architecture :</strong> aucun changement prévu</p></div>
+        ${etapes([["Reproduction", "le test échoue sur la 1.0.0"], ["Cadrage", "à valider"], ["Conception"], ["Développement"], ["Vérification"], ["Recette"], ["Livraison dans 1.0.1"], ["Report dans 1.1.0"]], "Cadrage")}`,
+      conv: CONV("Conversation", [["moi", "Je gagne avec trois X sur la diagonale ↗ et la partie continue. (signalé dans la 1.0.0)"], ["agent", "Reproduit : un test le montre sur la 1.0.0 et la 1.1.0. La cause est dans regles_morpion, pas de changement d'architecture."]]),
+    }),
+  },
+  "story-bug": {
+    nom: "P5.3 Un correctif en cours", groupe: "P5. Signaler un bug",
+    note: "Rien à décider : pas de bloc en haut. Un correctif n'est terminé qu'une fois reporté dans la version en développement.",
+    rendu: () => objet("versions", [["Versions", "versions"], ["1.0.1", "versions"], "Rejouer reste actif pendant l'animation"], {
+      actions: ACT_STORY,
+      contenu: `<div class="maintenant"><span class="anim"></span><span>Vérification : suite complète sur la 1.0.1</span></div>${etapes(ETAPES_BUG, "Vérification")}`,
+      conv: CONV("Conversation", [["evt", "Tâche 1 terminée et relue"], ["evt", "Vérification lancée par l'outil"]]),
+    }),
+  },
+  ecart: {
+    nom: "P8.1 Écart d'architecture", groupe: "P8. Architecture",
+    note: "Sur la page de la story : l'écart et le choix en haut ; dessous, ce qui a été annoncé et ce qui est relevé, et les fichiers touchés pour juger ; à droite, l'agent explique.",
+    rendu: () => objet("traiter", [["À traiter", "traiter"], "Écran de victoire"], {
+      actions: ACT_STORY,
+      decision: { titre: "Écart d'architecture : une dépendance non annoncée casse une règle", corps: `
+        <label class="option"><input type="radio" name="e" checked><span>Demander la correction<span class="reco">recommandé</span><small>regles_morpion émet « victoire(ligne) » ; l'interface l'écoute. La story repart en développement.</small></span></label>
+        <label class="option"><input type="radio" name="e"><span>Accepter l'exception<small>enregistrée comme décision, avec ta raison</small></span></label>`,
+        actions: `<span class="espace"></span><button class="btn vert" data-aller="traiter">Valider</button>` },
+      contenu: `<div class="carte"><table><tr><th>Annoncé à la conception</th><th>Relevé par l'outil sur la branche</th></tr>
+          <tr><td>Nouveau composant gui/victoire</td><td class="ok">✓ gui/victoire</td></tr>
+          <tr><td>gui/victoire → systems/regles_morpion</td><td class="ok">✓ présente</td></tr>
+          <tr><td class="discret">(non annoncée)</td><td class="ko">✗ gui/victoire → actors/grille</td></tr></table>
+        <p class="petit-txt" style="margin-bottom:0"><strong>Règle cassée :</strong> gui et actors ne dépendent pas l'un de l'autre (décision 001). La fusion est bloquée.</p></div>
+        ${etapes([["Cadrage", "validé par toi"], ["Conception", "1 décision validée"], ["Développement", "3 tâches, relues"], ["Vérification", "règle d'architecture cassée : fusion bloquée"], ["Recette"], ["Livraison dans 1.1.0"]], "Vérification")}`,
+      conv: CONV("Conversation", [["evt", "Vérification : 1 règle d'architecture cassée"], ["agent", "Pour surligner la ligne gagnante, le panneau lit la grille directement. Je ne l'avais pas annoncé. La correction propre : que regles_morpion émette la ligne gagnante."]]),
+    }),
+  },
+  "story-menu": {
+    nom: "P4.1 Le menu ⋯ d'une story en cours", groupe: "P4. Changer d'avis",
+    note: "Le périmètre d'une story en cours ne change pas. Un nouveau besoin : une suite. Un besoin qui a changé : abandonner et recadrer. Rien ne se supprime.",
+    rendu: () => objet("versions", [["Versions", "versions"], ["1.1.0", "versions"], "Animation des pions"], {
+      actions: ACT_STORY, contenu: etapes(ETAPES_FEATURE, "Développement"),
+      conv: CONV("Conversation", [["evt", "Tâche 1 terminée et relue"]]),
+      flottant: `<div class="menu-objet">
+        <div class="entree"><span>Renommer</span><span class="discret petit-txt">F2</span></div>
+        <div class="entree off"><span>Modifier la demande<small>impossible une fois commencée</small></span></div>
+        <div class="sep"></div>
+        <div class="entree" data-aller="nouvelle"><span>Ajouter une suite…<small>nouvelle story liée, avec son cadrage</small></span></div>
+        <div class="entree" data-aller="recadrer"><span>Abandonner et recadrer…<small>la demande corrigée repart au cadrage</small></span></div>
+        <div class="sep"></div>
+        <div class="entree"><span>Abandonner…</span></div></div>`,
+    }),
+  },
+});
+
+const ORDRE = [
+  ["Les lieux", ["traiter", "traiter-vide", "backlog-version", "backlog-epic", "backlog-etat", "versions", "architecture", "vision"]],
+  ["P1. Créer un projet", ["nouveau-projet", "vision-creation", "regles-creation", "projet-neuf"]],
+  ["P2. Demander une feature", ["nouvelle", "discuter", "cadrage", "story-brouillon", "decision-archi", "story"]],
+  ["P3. Recetter", ["recette"]],
+  ["P4. Changer d'avis", ["story-menu", "recadrer", "fermer"]],
+  ["P5. Signaler un bug", ["signaler", "cadrage-bug", "story-bug"]],
+  ["P6–P7. Versions", ["livrer", "planifier"]],
+  ["P8. Architecture", ["ecart", "adr"]],
+  ["La barre", ["projets", "replie"]],
+];
+
+function afficher(id) {
+  const e = ECRANS[id];
+  const neuf = ["vision-creation", "regles-creation", "projet-neuf"].includes(id);
+  document.getElementById("fenetre").innerHTML = `<div class="titre-fenetre"><span>Spawn Game Studio — ${neuf ? "Casse-briques" : "Morpion"}</span><span>— ☐ ✕</span></div>` + e.rendu();
+  document.getElementById("note").innerHTML = `<strong>${e.nom}</strong> · ${e.note}`;
+  document.querySelectorAll(".nav button").forEach((b) => b.classList.toggle("actif", b.dataset.aller === id));
+  try { history.replaceState(null, "", "#" + id); } catch {}
+}
+document.getElementById("nav").innerHTML = `<h1>Maquette de l'app</h1><p>Tirée de docs/parcours.md et docs/modele.md. Ce panneau sert à naviguer, il ne fait pas partie de l'app. Tout est cliquable.</p>` +
+  ORDRE.map(([t, ids]) => `<h2>${t}</h2>` + ids.map((i) => `<button data-aller="${i}">${ECRANS[i].nom}</button>`).join("")).join("");
+document.addEventListener("click", (ev) => { const c = ev.target.closest("[data-aller]"); if (c && ECRANS[c.dataset.aller]) { ev.preventDefault(); afficher(c.dataset.aller); } });
+afficher(ECRANS[location.hash.slice(1)] ? location.hash.slice(1) : "traiter");
+</script>
+</body>
+</html>

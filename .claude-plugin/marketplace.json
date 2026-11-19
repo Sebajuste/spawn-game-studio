@@ -1,0 +1,14 @@
+{
+  "name": "spawn-game-studio",
+  "description": "Marketplace locale du kit Spawn Game Studio.",
+  "owner": {
+    "name": "Sebajuste"
+  },
+  "plugins": [
+    {
+      "name": "spawnstudio",
+      "source": "./kit/core",
+      "description": "Kit Spawn Game Studio : skills, agents et hooks indépendants du moteur."
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:spawn:adapter-result:v1",
+  "title": "Résultat d'une sous-commande d'adaptateur de moteur",
+  "description": "Contrat v1, kit/engine-contract.md §3. ok: false si et seulement si errors n'est pas vide (vérifié par la suite de contrat).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "engine", "command", "ok", "errors", "warnings", "artifacts", "log", "duration_ms", "data"],
+  "properties": {
+    "contract": { "const": 1 },
+    "engine": { "$ref": "#/$defs/identifier" },
+    "command": { "type": "string", "minLength": 1 },
+    "ok": { "type": "boolean" },
+    "errors": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
+    "warnings": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "type"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "role": { "$ref": "#/$defs/identifier" },
+          "type": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "log": { "type": ["string", "null"], "minLength": 1 },
+    "duration_ms": { "type": "integer", "minimum": 0 },
+    "data": { "type": "object" }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "$ref": "#/$defs/identifier" },
+        "message": { "type": "string", "minLength": 1 },
+        "file": { "type": "string", "minLength": 1, "pattern": "^[^\\\\]+$" },
+        "line": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

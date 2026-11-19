@@ -1,0 +1,59 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SPAWN-SCENE res://a/garbage.tres
+ERROR: res://a/garbage.tres:1 - Parse Error: Expected '['.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+ERROR: Failed loading resource: res://a/garbage.tres.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+ERROR: Error loading resource: 'res://a/garbage.tres'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+SPAWN-SCENE-FAILED res://a/garbage.tres
+SPAWN-SCENE res://a/garbage.tscn
+ERROR: res://a/garbage.tscn:5 - Parse Error: Unexpected end of file.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+ERROR: Failed loading resource: res://a/garbage.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+ERROR: Error loading resource: 'res://a/garbage.tscn'.
+   at: load (core/core_bind.cpp:82)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+SPAWN-SCENE-FAILED res://a/garbage.tscn
+SPAWN-SCENE res://a/manque.tscn
+ERROR: Cannot open file 'res://absente.tscn'.
+   at: load (scene/resources/resource_format_text.cpp:1442)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+ERROR: Failed loading resource: res://absente.tscn.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+ERROR: res://a/manque.tscn:7 - Parse Error: [ext_resource] referenced non-existent resource at: res://absente.tscn.
+   at: _printerr (scene/resources/resource_format_text.cpp:41)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:24)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+WARNING: Node './B' was modified from inside an instance, but it has vanished.
+   at: instantiate (scene/resources/packed_scene.cpp:312)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:32)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+SPAWN-SCENE res://a/ok.tscn
+SPAWN-SCENES 4 2

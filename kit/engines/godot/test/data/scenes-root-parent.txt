@@ -1,0 +1,18 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SPAWN-SCENE res://core/actors/grille/case.tscn
+ERROR: Invalid scene: root node CaseNode cannot specify a parent node.
+   at: instantiate (scene/resources/packed_scene.cpp:221)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:32)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+SPAWN-SCENE-FAILED res://core/actors/grille/case.tscn
+SPAWN-SCENE res://core/actors/grille/grille.tscn
+ERROR: Invalid scene: root node Grille3x3 cannot specify a parent node.
+   at: instantiate (scene/resources/packed_scene.cpp:221)
+   GDScript backtrace (most recent call first):
+       [0] _verifier (C:/jeu/outils/verifier-scenes.gd:32)
+       [1] _initialize (C:/jeu/outils/verifier-scenes.gd:17)
+SPAWN-SCENE-FAILED res://core/actors/grille/grille.tscn
+SPAWN-SCENE res://core/games/morpion/main.tscn
+SPAWN-SCENES 3 2

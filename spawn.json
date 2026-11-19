@@ -1,0 +1,27 @@
+{
+  "engine": "node",
+  "version": "24",
+  "tag": "SGS",
+  "limits": {
+    "parallel_agents": 2,
+    "rounds": 5,
+    "model": "sonnet",
+    "escalation_model": "opus"
+  },
+  "node": {
+    "compile": [
+      "typecheck",
+      "lint"
+    ],
+    "test": "test:spawn",
+    "smoke_test": "smoke",
+    "launch": "launch:spawn",
+    "capture": {
+      "path": "/",
+      "wait_ms": 3000
+    },
+    "end_to_end": [
+      "service/test/service.test.ts"
+    ]
+  }
+}

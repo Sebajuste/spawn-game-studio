@@ -1,0 +1,3 @@
+#!/bin/sh
+# Hooks git du kit : un projet les active par `git config core.hooksPath <kit>/core/git-hooks`.
+exec node "$(dirname "$0")/../src/git/commit-msg.ts" "$1"

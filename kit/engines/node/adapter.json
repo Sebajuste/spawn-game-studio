@@ -1,0 +1,12 @@
+{
+  "contract": 1,
+  "engine": "node",
+  "command": ["node", "src/cli.ts"],
+  "domain": {
+    "product": "app",
+    "entry": "point d'entrée de l'app",
+    "user": "utilisateur",
+    "framing": "tout se fait avec la pile du projet (TypeScript, React, Rust pour la coque), selon ses conventions"
+  },
+  "not_applicable": ["invalid-scene", "empty-main-scene", "new-project"]
+}

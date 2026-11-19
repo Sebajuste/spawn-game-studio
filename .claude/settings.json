@@ -1,0 +1,8 @@
+{
+  "env": {
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "260000"
+  },
+  "enabledPlugins": {
+    "spawnstudio@spawn-game-studio": true
+  }
+}

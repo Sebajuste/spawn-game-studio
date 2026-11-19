@@ -1,0 +1,26 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SPAWN-OK res://abstrait.gd
+SPAWN-OK res://bon.gd
+SCRIPT ERROR: Parse Error: Unexpected "Indent" in class body.
+   at: GDScript::reload (res://casse.gd:4)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (C:/jeu/outils/verifier.gd:8)
+ERROR: Failed to load script "res://casse.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (C:/jeu/outils/verifier.gd:8)
+SPAWN-FAILED res://casse.gd
+SPAWN-OK res://outil.gd
+SPAWN-OK res://utilise.gd
+SPAWN-OK res://sub/classe.gd
+SCRIPT ERROR: Parse Error: Identifier "inconnu" not declared in the current scope.
+   at: GDScript::reload (res://sub/compile.gd:4)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (C:/jeu/outils/verifier.gd:8)
+ERROR: Failed to load script "res://sub/compile.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (C:/jeu/outils/verifier.gd:8)
+SPAWN-FAILED res://sub/compile.gd
+SPAWN-CHECKED 7 2

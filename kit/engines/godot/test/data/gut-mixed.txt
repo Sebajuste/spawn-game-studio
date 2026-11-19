@@ -1,0 +1,95 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/donnees/exp3] for temporary output.
+Godot version:  4.7.2
+GUT version:  9.6.0
+SCRIPT ERROR: Parse Error: Unexpected "Indent" in class body.
+   at: GDScript::reload (res://test/test_casse.gd:4)
+   GDScript backtrace (most recent call first):
+       [0] load_script_using_custom_warnings (res://addons/gut/warnings_manager.gd:173)
+       [1] _parse_script (res://addons/gut/test_collector.gd:76)
+       [2] add_script (res://addons/gut/test_collector.gd:127)
+       [3] add_script (res://addons/gut/gut.gd:1053)
+       [4] add_directory (res://addons/gut/gut.gd:1076)
+       [5] _apply_options (res://addons/gut/gut_config.gd:136)
+       [6] apply_options (res://addons/gut/gut_config.gd:207)
+       [7] run_tests (res://addons/gut/gui/GutRunner.gd:192)
+       [8] _run_tests (res://addons/gut/cli/gut_cli.gd:238)
+       [9] main (res://addons/gut/cli/gut_cli.gd:284)
+       [10] _init (res://addons/gut/gut_cmdln.gd:38)
+ERROR: Failed to load script "res://test/test_casse.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+   GDScript backtrace (most recent call first):
+       [0] load_script_using_custom_warnings (res://addons/gut/warnings_manager.gd:173)
+       [1] _parse_script (res://addons/gut/test_collector.gd:76)
+       [2] add_script (res://addons/gut/test_collector.gd:127)
+       [3] add_script (res://addons/gut/gut.gd:1053)
+       [4] add_directory (res://addons/gut/gut.gd:1076)
+       [5] _apply_options (res://addons/gut/gut_config.gd:136)
+       [6] apply_options (res://addons/gut/gut_config.gd:207)
+       [7] run_tests (res://addons/gut/gui/GutRunner.gd:192)
+       [8] _run_tests (res://addons/gut/cli/gut_cli.gd:238)
+       [9] main (res://addons/gut/cli/gut_cli.gd:284)
+       [10] _init (res://addons/gut/gut_cmdln.gd:38)
+[33m[WARNING]:  [0mIgnoring script res://test/test_casse.gd because it does not extend GutTest
+[4m
+
+res://test/test_a.gd
+[0m* test_ok
+* test_rouge
+[31m    [Failed]:  [0m[1] expected to equal [2]:  un different de deux
+      at line 7
+* test_pend
+[33m    [Pending]:  [0mplus tard
+* test_null
+SCRIPT ERROR: Cannot call method 'get_name' on a null value.
+   at: test_null (res://test/test_a.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] test_null (res://test/test_a.gd:14)
+       [1] _run_test (res://addons/gut/gut.gd:615)
+       [2] _test_the_scripts (res://addons/gut/gut.gd:818)
+       [3] test_scripts (res://addons/gut/gut.gd:1030)
+       [4] run_tests (res://addons/gut/gui/GutRunner.gd:198)
+       [5] _run_tests (res://addons/gut/cli/gut_cli.gd:238)
+       [6] main (res://addons/gut/cli/gut_cli.gd:284)
+       [7] _init (res://addons/gut/gut_cmdln.gd:38)
+[31m    [Failed]:  [0mUnexpected Errors:
+    [1] <engine-2>Cannot call method 'get_name' on a null value.
+      at line -1
+[1m1/4 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m[4m
+res://test/test_a.gd
+[0m- test_rouge
+[31m    [Failed]:  [0m[1] expected to equal [2]:  un different de deux
+          at line 7
+- test_pend
+[33m    [Pending]:  [0mplus tard
+- test_null
+[31m    [Failed]:  [0mUnexpected Errors:
+    [1] <engine-2>Cannot call method 'get_name' on a null value.
+          at line -1
+
+Totals
+------
+Warnings              1
+
+Scripts               1
+Tests                 4
+Passing Tests         1
+Failing Tests         2
+Risky/Pending         1
+Asserts             1/3
+Time              0.512s
+
+
+[31m---- 2 failing tests ----
+[0m
+Results saved to D:\exp3\j.xml

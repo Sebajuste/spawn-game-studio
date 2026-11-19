@@ -1,0 +1,11 @@
+{
+  "contract": 1,
+  "engine": "fake",
+  "command": ["node", "src/cli.ts"],
+  "domain": {
+    "product": "jeu",
+    "entry": "scène principale",
+    "user": "joueur",
+    "framing": "tout se fait avec ce moteur (ses scènes, ses scripts, ses tests), jamais en technologies web (HTML, CSS, JavaScript)"
+  }
+}
