@@ -3,7 +3,7 @@
 // aussi les hooks du plugin (`--plugin-dir`), mais `--allow-all-paths` lève ses propres bornes de dossier.
 // Mesures : jetons et interventions lus dans les sorties des tours ; `maxContext` reste inconnu (null) plutôt qu'un
 // chiffre faux, Copilot compactant lui-même sans dire son seuil.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { excerpt, summarizeTool, type AgentEvent } from "./events.ts";
 import type { AgentAdapter, AgentMetrics } from "./type.ts";
@@ -139,12 +139,14 @@ export function copilotAdapter(o: { model?: string; run?: Launcher } = {}): Agen
       const r = runSync("copilot", ["--version"], process.cwd());
       return r.code === 0 ? [] : ["copilot : absent → installer GitHub Copilot CLI (https://docs.github.com/copilot/how-tos/copilot-cli) puis `copilot login`"];
     },
-    // Les traces sont les sorties des tours (`turn-N.jsonl`), à côté du dossier d'exports du pilote.
-    async measure({ exportsDir }) {
+    // Les traces sont les sorties des tours (`turn-N.jsonl`), à côté du dossier d'exports du pilote. Celles d'un essai
+    // précédent (même dossier, plus de tours) restent : seules les sorties écrites depuis le début de l'essai comptent.
+    async measure({ exportsDir, since }) {
       const dir = dirname(exportsDir);
       if (!existsSync(dir)) return null;
+      const from = Date.parse(since);
       const turns = readdirSync(dir)
-        .filter((f) => /^turn-\d+\.jsonl$/.test(f))
+        .filter((f) => /^turn-\d+\.jsonl$/.test(f) && (Number.isNaN(from) || statSync(join(dir, f)).mtimeMs >= from))
         .sort((a, b) => parseInt(a.slice(5), 10) - parseInt(b.slice(5), 10))
         .map((f) => readFileSync(join(dir, f), "utf8"));
       const m = measureCopilot(turns);
