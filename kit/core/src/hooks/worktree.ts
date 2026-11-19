@@ -1,7 +1,7 @@
 // Hooks WorktreeCreate et WorktreeRemove (D1) : toute création de worktree par Claude Code passe ici.
 // Hors projet Spawn, ils reproduisent le comportement par défaut de Claude Code, puisqu'ils le remplacent.
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { callAdapter, loadAdapter } from "../adapter/call.ts";
 import { createStory, readStory, updateStory, transitionAllowed } from "../stories.ts";
 import { git, gitOk } from "../git.ts";
@@ -117,7 +117,11 @@ export async function createWorktree(input: { cwd: string; name: string }, optio
 
 // Retrait d'un worktree. Un fichier au nom réservé de Windows (`nul`, laissé par une redirection `> nul` d'un agent
 // sous bash) fait échouer `git worktree remove` : le dossier est alors supprimé par Node, puis git oublie le worktree.
+// Windows refuse (EPERM) de supprimer le dossier courant du processus : on en sort d'abord, quand l'outil est lancé
+// depuis le worktree qu'il range (essai sans surveillance, shell ouvert dans le fil).
 export function removeWorktree(root: string, path: string): void {
+  const rel = relative(resolve(path), process.cwd());
+  if (rel === "" || (!rel.startsWith("..") && !isAbsolute(rel))) process.chdir(root);
   if (git(root, ["worktree", "remove", "--force", path]).code === 0) return;
   rmSync(path, { recursive: true, force: true, maxRetries: 5 });
   gitOk(root, ["worktree", "prune"]);
