@@ -7,7 +7,7 @@ import { pickFolder, inTauri, type Api, type KnownEngine, type ProjectView } fro
 export function Home({ projects, onNew, onOpen, onPick }: { projects: ProjectView[]; onNew: () => void; onOpen: () => void; onPick: (id: string) => void }) {
   return (
     <main className="home">
-      <h1>Spawn Game Studio</h1>
+      <h1>Spawn App Studio</h1>
       <p className="muted">Tu dis ce que tu veux, tu juges ce que tu vois.</p>
       <div className="big-buttons">
         <button onClick={onNew}>
