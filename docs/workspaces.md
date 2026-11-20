@@ -119,3 +119,19 @@ Vérifié : `spawn next` répond « en attente d'une dépendance » tant que l'a
 
 Origine du premier écart : sans capture possible, l'étape de preuve bloquait et le pilote abandonnait (« 3 tours sans changement », 18 min) ; le POC l'avait contourné par une page HTML servie au lancement. Le champ `epic` sur la story n'a pas été nécessaire : le lien se lit dans `workspaces.json`.
 
+### Second essai (ARN-2, après corrections)
+
+Même chaîne `ar-db` → `ar-api` → `ar-site`, même agent (Copilot en Docker) : un champ optionnel `location` qui traverse les trois contrats. Les trois stories sont fusionnées.
+
+| Dépôt | ARN-1 | ARN-2 | cache_read ARN-1 → ARN-2 |
+|-------|--------|--------|----------------------------|
+| ar-db | 9 min | 14 min | 2,1 M → 2,8 M |
+| ar-api | 38 min | 12 min | 8,3 M → 2,7 M |
+| ar-site | 44 min | 11 min | 10,4 M → 2,2 M |
+| Total | 91 min | 37 min | 20,8 M → 7,7 M |
+
+Le test réel de l'API et du site ensemble donne les résultats attendus : `location` vide ou non string refusé (400), filtre par emplacement, page qui affiche l'emplacement (échappé). Non vérifié : la qualité du code relu, et l'effet de la difficulté (la feature est plus petite que ARN-1, la comparaison n'est donc pas à iso-travail).
+
+Écart relevé : la commande `spawn next` donnée à l'agent est un chemin relatif au dossier d'où le pilote est lancé (`next.ts`, `SPAWN`, mode dépôt). Lancé depuis un autre dossier, l'agent ne trouve pas la commande et le pilote abandonne en 2 min. Sans effet avec le runtime installé (commande `spawn`).
+
+
