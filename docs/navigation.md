@@ -31,7 +31,7 @@ Conséquences :
 │ (▶ Lancer)   ├─────────────────────────────────────────────────────┤
 │──────────────│ En-tête du lieu ou de l'objet (titre, actions)      │
 │ Lieux        │                                                     │
-│  À traiter 2 │ Contenu                                             │
+│  Accueil   2 │ Contenu                                             │
 │  Backlog     │                                                     │
 │  …           │                                                     │
 ├──────────────┴─────────────────────────────────────────────────────┤
@@ -57,27 +57,27 @@ Les lieux dépendent de la portée et ne changent pas d'ordre. **Un lieu n'appar
 
 | Portée | Lieu | Contenu | Création dans ce lieu |
 |---|---|---|---|
-| Projet | **À traiter** (Ctrl+1) | les stories qui attendent l'utilisateur : décision, recette ; vide : « Rien ne t'attend » et ce qui tourne | aucune |
-| Projet | **Backlog** (Ctrl+2) | les stories en cours et à venir ; filtres « Livrées » et « Fermées » (remplace l'Historique) | + Nouvelle feature (Ctrl+Maj+N) |
-| Workspace | **À traiter** (Ctrl+1) | la même chose, pour tous les projets du workspace, chaque carte avec son projet | aucune |
+| Projet | **Accueil** (Ctrl+1) | la conversation avec l'agent du projet, et à droite **À juger** : les stories qui attendent l'utilisateur (décision, recette), sinon ce qui tourne (`conversation.md`) | dire, dans la conversation (Ctrl+J) |
+| Projet | **Backlog** (Ctrl+2) | les stories en cours et à venir ; filtres « Livrées » et « Fermées » (remplace l'Historique) | aucune : une feature se demande dans la conversation |
+| Workspace | **Accueil** (Ctrl+1) | la même chose pour le workspace : sa conversation, et À juger pour tous ses projets, chaque carte avec son projet | dire, dans la conversation (Ctrl+J) |
 | Workspace | **Epics** (Ctrl+2) | les epics en voies par projet (vue actuelle) | + Epic |
 | Workspace | **Projets** (Ctrl+3) | les projets du workspace, état en une ligne ; clic : le projet, avec ce workspace pour parent | + Ajouter un projet (Retirer viendra avec sa route dans le service) |
 
-Le badge à droite d'À traiter compte les cartes. Le lieu par défaut d'une portée est À traiter.
+Le badge à droite d'Accueil compte les cartes d'À juger. Le lieu par défaut d'une portée est Accueil.
 
 ## 5. Le fil d'Ariane
 
 Toujours en tête de la zone principale, chaque segment cliquable sauf le dernier :
 
 - `ar-api › Backlog`
-- `Arena › ar-api › À traiter › equipment-routes`
+- `Arena › ar-api › Accueil › equipment-routes`
 - `Arena › Epics › ARN-2 Emplacement des équipements`
 
 Il est le seul geste de retour : les boutons « ← Retour » et la `ws-bar` disparaissent. Alt+← et Alt+→ (et les boutons de la souris) parcourent l'historique de navigation.
 
 ## 6. Une page par objet
 
-Une story s'ouvre sur la même page quel que soit le chemin (À traiter, Backlog, epic, barre d'état, Ctrl+K) ; le fil d'Ariane garde le lieu d'où l'on vient. Une story d'un epic, ouverte depuis le workspace, se montre dans la portée de son projet : `Arena › ar-db › Backlog › equipment-table`. Les onglets de la story font partie de la page, pas de la navigation (ils ne sont pas dans le fil d'Ariane).
+Une story s'ouvre sur la même page quel que soit le chemin (Accueil, Backlog, epic, barre d'état, Ctrl+K) ; le fil d'Ariane garde le lieu d'où l'on vient. Une story d'un epic, ouverte depuis le workspace, se montre dans la portée de son projet : `Arena › ar-db › Backlog › equipment-table`. Les onglets de la story font partie de la page, pas de la navigation (ils ne sont pas dans le fil d'Ariane).
 
 Un epic a sa page (`Arena › Epics › ARN-2`) : critères, voies par projet, + Story.
 
@@ -91,12 +91,12 @@ Toute la navigation tient dans une seule valeur, écrite dans l'URL :
 
 | Adresse | Écran |
 |---|---|
-| `#/p/hello-web` | projet hors workspace, À traiter |
+| `#/p/hello-web` | projet hors workspace, Accueil |
 | `#/p/hello-web/backlog` | son Backlog |
 | `#/p/hello-web/backlog/s/greeting` | une story, ouverte depuis le Backlog |
-| `#/w/arena` | workspace, À traiter |
+| `#/w/arena` | workspace, Accueil |
 | `#/w/arena/epics/ARN-2` | un epic |
-| `#/w/arena/p/ar-api/inbox/s/equipment-routes` | une story de ar-api, ouverte depuis À traiter, avec Arena pour parent |
+| `#/w/arena/p/ar-api/home/s/equipment-routes` | une story de ar-api, ouverte depuis Accueil, avec Arena pour parent (`inbox`, l'ancien nom du lieu, est encore lu) |
 
 - Un lien ou une capture de recette ouvre l'écran exact (remplace `#workspace=…&project=…`, encore lu une fois pour les liens existants).
 - Au démarrage, l'app rouvre la dernière adresse (remplace la clé `spawn.game`) ; une adresse dont le projet ou le workspace a disparu ramène au sélecteur de portée.
@@ -108,11 +108,12 @@ Toute la navigation tient dans une seule valeur, écrite dans l'URL :
 |---|---|---|
 | Application | menu Fichier, sélecteur de portée | nouveau, ouvrir un projet ; nouveau workspace ; changer de portée |
 | Portée | bloc de portée, menu Projet | ▶ Lancer, ouvrir le dossier, réglages |
-| Lieu | en-tête du lieu | + Nouvelle feature (Backlog), + Epic (Epics), + Ajouter un projet et supprimer le workspace (Projets) |
+| Portée | Accueil | dire : la conversation (une story, un fix, un epic ou rien) |
+| Lieu | en-tête du lieu | + Epic (Epics), + Ajouter un projet et supprimer le workspace (Projets) |
 | Objet | en-tête de la story ou de l'epic | gestes de la story (inchangés), + Story (epic) |
 | Activité | barre d'état | ouvrir la story au travail |
 
-Le champ « Que veux-tu ? » permanent disparaît : « + Nouvelle feature » ouvre le même champ en tête du Backlog (Ctrl+Maj+N l'ouvre de partout, dans la portée projet). Dans un workspace, Ctrl+Maj+N ouvre « + Epic ».
+Le champ « Que veux-tu ? » permanent disparaît, et « + Nouvelle feature » aussi : dire passe par la conversation de l'Accueil (Ctrl+J y mène de partout dans la portée).
 
 ## 10. Raccourcis
 
@@ -122,13 +123,13 @@ Le champ « Que veux-tu ? » permanent disparaît : « + Nouvelle feature » ouv
 | Ctrl+1, Ctrl+2, Ctrl+3 | lieux de la portée, dans l'ordre |
 | Ctrl+K | aller à un objet de la portée (stories ; epics dans un workspace) |
 | Alt+←, Alt+→ | retour, avance |
-| Ctrl+Maj+N | nouvelle feature (projet) ou nouvel epic (workspace) |
+| Ctrl+J | la conversation de la portée, curseur dans le champ |
 | F5 | lancer le projet, ou la version de la story ouverte |
 | Ctrl+W | fermer la portée : revient au parent (workspace) ou au sélecteur |
 
 ## 11. Ce qui ne change pas
 
-Le service, ses routes et le contrat du kit : chaque lieu se lit dans les données déjà servies (`/api/projects/:id/backlog`, `/api/workspaces`). À traiter d'un workspace agrège les backlogs de ses projets côté app. Le contenu de la page d'une story et de ses onglets ne change pas.
+Le contrat du kit : chaque lieu se lit dans les données déjà servies (`/api/projects/:id/backlog`, `/api/workspaces`), plus la conversation de portée (`/api/…/talk`, `conversation.md`). À juger d'un workspace agrège les backlogs de ses projets côté app. Le contenu de la page d'une story et de ses onglets ne change pas.
 
 ## 12. Écarté
 
@@ -139,5 +140,5 @@ Le service, ses routes et le contrat du kit : chaque lieu se lit dans les donné
 
 1. Le modèle est retenu : une coque, une portée, des lieux, le fil d'Ariane, une adresse.
 2. Seuls les lieux qui ont du contenu sont livrés sur cette branche ; Versions, Architecture et Vision viendront avec leur contenu.
-3. Le champ « Que veux-tu ? » permanent est retiré au profit de « + Nouvelle feature » dans le Backlog.
+3. Le champ « Que veux-tu ? » permanent est retiré. Remplacé d'abord par « + Nouvelle feature » dans le Backlog, puis (même jour) par la conversation de portée : l'Accueil remplace À traiter (`conversation.md`).
 4. Le code de l'interface est organisé en composants : un fichier, une responsabilité ; les fichiers d'un même thème sont regroupés dans un dossier (`src/navigation/`, `src/shell/`, `src/project/`, `src/workspace/`, `src/story/`, `src/data/`, `src/shared/`, `src/i18n/`, `src/styles/`).

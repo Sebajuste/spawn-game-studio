@@ -8,7 +8,7 @@ Tiré du modèle validé (`docs/modele.md`). Remplace les sections « Versions, 
 
 - **Menus** : Fichier (projets), Projet (commandes du projet), Affichage, Aide.
 - **Barre de lieux** (gauche) : le projet en haut (nom, ▶ lancer le jeu, clic : changer de projet), puis cinq lieux fixes :
-  - **À traiter** : tout ce qui attend une décision de l'utilisateur, et rien d'autre ;
+  - **Accueil** : la conversation avec l'agent de la portée, où l'on dit ce qu'on veut, et à côté **À juger** : tout ce qui attend une décision de l'utilisateur, et rien d'autre (`conversation.md`) ;
   - **Backlog** : les stories non livrées ; regroupement par version, epic ou état ;
   - **Versions** : la feuille de route, des livrées aux prévues ;
   - **Architecture** : carte, règles, décisions ;
@@ -38,11 +38,11 @@ Vide : « Rien ne t'attend », avec ce qui tourne et la prochaine recette probab
 1. Fichier > Nouveau projet : nom, dossier, moteur (« Avancé » fermé : préfixe d'exigences, dépôt distant, agent).
 2. **Vision** : cinq questions (ce que c'est, pour qui, plateforme et contrôles, style, ce qu'il ne sera jamais). « Plus tard » possible : les cadrages le rappelleront.
 3. **Architecture** : l'outil montre les règles par défaut du moteur (lecture ; une exception se décidera au cadrage qui en a besoin).
-4. Le projet s'ouvre sur À traiter, vide : « Écris ta première feature » mène au Backlog. Version `0.1.0` en développement.
+4. Le projet s'ouvre sur l'Accueil : la conversation, vide, invite à dire la première feature. Version `0.1.0` en développement.
 
 ## P2. Demander une feature (pipeline : `docs/modele.md` §6)
 
-1. Backlog > **+ Nouvelle feature** (ou Ctrl+Maj+N) : une phrase. Option : « Je cadre moi-même ».
+1. Accueil (Ctrl+J) : on le dit dans la conversation, en une phrase ou en discutant ; l'agent de la portée crée la story (ou l'epic, ou rien) par le service (`conversation.md`). Option : « Je cadre moi-même ».
 2. **Cadrage** par l'agent, seul : les stories apparaissent dans le Backlog en **brouillon**.
 3. À traiter : **Cadrage à valider**. Un résumé : ce qu'il a compris, la conformité à la vision (« hors vision : … » est une décision), les choix ouverts (recommandation présélectionnée), la liste des stories.
 4. Une story se corrige en l'ouvrant, sur sa propre page, comme toute story pas commencée (titre, résultat attendu, critères, hors périmètre, version, epic). « + Story » en ajoute une. Puis **Valider le cadrage** : les brouillons deviennent « prêtes ».

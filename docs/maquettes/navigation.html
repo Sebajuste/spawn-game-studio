@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maquette Spawn App Studio : navigation</title>
-<!-- Proposition docs/navigation.md (2026-11-20, à valider). Les éléments cliquables de la fenêtre mènent à l'écran correspondant. -->
+<!-- docs/navigation.md et docs/conversation.md (2026-11-20, validés). Les éléments cliquables de la fenêtre mènent à l'écran correspondant. -->
 <style>
 :root { --fond:#f4f3ef; --barre:#ecebe6; --carte:#fff; --bord:#d8d5cc; --texte:#22231f; --discret:#77756d; --accent:#2f6fd6; --vert:#2e9d5b; --orange:#d98a1c; --rouge:#c9473c; --violet:#6b5bd2; }
 * { box-sizing:border-box; }
@@ -89,6 +89,19 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .selecteur button small { margin-left:auto; color:var(--discret); font-size:11px; }
 .selecteur .sous { padding-left:28px; }
 .selecteur hr { border:0; border-top:1px solid var(--bord); margin:6px 0; }
+.maison { flex:1; display:grid; grid-template-columns:1fr 280px; min-height:0; }
+.parole { display:flex; flex-direction:column; min-height:0; }
+.parole .fil { flex:1; overflow:auto; padding:12px 18px; display:flex; flex-direction:column; gap:8px; }
+.moi { align-self:flex-end; background:var(--accent); color:#fff; border-radius:10px 10px 2px 10px; padding:7px 11px; max-width:75%; }
+.lui { align-self:flex-start; background:var(--carte); border:1px solid var(--bord); border-radius:10px 10px 10px 2px; padding:7px 11px; max-width:80%; }
+.fait-par { align-self:flex-start; font-size:12px; color:var(--vert); background:#e7f4ec; border-radius:6px; padding:4px 9px; }
+.fait-par button { border:0; background:none; color:var(--accent); padding:0 0 0 6px; }
+.saisie { display:flex; gap:8px; padding:10px 18px 14px; border-top:1px solid var(--bord); }
+.saisie textarea { flex:1; border:1px solid var(--bord); border-radius:8px; padding:7px 10px; font:inherit; resize:none; height:52px; }
+.juger { border-left:1px solid var(--bord); background:#faf9f6; padding:12px; overflow:auto; }
+.juger h3 { margin:0 0 8px; font-size:13px; }
+.juger .carte { display:block; }
+.juger .carte button { margin-top:6px; }
 .accueil { flex:1; display:grid; place-items:center; text-align:center; }
 .accueil .gros { display:flex; gap:12px; justify-content:center; margin-top:16px; }
 .accueil .gros button { border:1px solid var(--bord); background:#fff; border-radius:8px; padding:16px 22px; min-width:190px; }
@@ -116,15 +129,18 @@ const portee = (p) => p.ws
 const lieu = (id, nom, choisi, extra, aller) => `<button class="lieu ${choisi === id ? "choisi" : ""}" data-aller="${aller}">${nom}${extra}</button>`;
 
 const barreProjet = (p, choisi) => `<aside class="lieux">${portee(p)}
-  ${lieu("inbox", "À traiter", choisi, `<span class="nb">${p.nb}</span><kbd>Ctrl+1</kbd>`, p.inbox)}
+  ${lieu("home", "Accueil", choisi, `<span class="nb">${p.nb}</span><kbd>Ctrl+1</kbd>`, p.inbox)}
   ${lieu("backlog", "Backlog", choisi, `<kbd>Ctrl+2</kbd>`, p.backlog)}
 </aside>`;
 
 const barreWs = (choisi) => `<aside class="lieux">${portee({ ws: true })}
-  ${lieu("inbox", "À traiter", choisi, `<span class="nb">3</span><kbd>Ctrl+1</kbd>`, "ws-inbox")}
+  ${lieu("home", "Accueil", choisi, `<span class="nb">3</span><kbd>Ctrl+1</kbd>`, "ws-inbox")}
   ${lieu("epics", "Epics", choisi, `<kbd>Ctrl+2</kbd>`, "ws-epics")}
   ${lieu("projets", "Projets", choisi, `<kbd>Ctrl+3</kbd>`, "ws-projets")}
 </aside>`;
+
+const saisie = (txt) => `<div class="saisie"><textarea placeholder="${txt}"></textarea><button class="btn fort">Envoyer</button></div>`;
+const maison = (fil, juger) => `<div class="maison"><div class="parole"><div class="fil">${fil}</div>${saisie("Dis ce que tu veux : une idée, un bug, une question… (Ctrl+J)")}</div><aside class="juger">${juger}</aside></div>`;
 
 const fenetre = (barre, principal, agents, flottant = "") => `<div class="fenetre">${MENUS}<div class="corps">${barre}<section class="principal">${principal}</section></div>${etat(agents)}${flottant}</div>`;
 
@@ -140,15 +156,16 @@ const voies = `<div class="voies">
 
 const ECRANS = {
   "ws-inbox": {
-    nom: "1. Workspace : À traiter",
-    note: "La portée est le workspace Arena. À traiter agrège les trois projets ; chaque carte dit son projet et ouvre la page de la story dans la portée de ce projet, avec le workspace pour parent. Barre d'état : les agents du workspace.",
-    rendu: () => fenetre(barreWs("inbox"), ariane([["Arena", "ws-inbox"], ["À traiter"]]) + `
-      <div class="entete"><div><h2>À traiter</h2><p>3 choses t'attendent dans Arena</p></div></div>
-      <div class="defile">
-        <div class="carte o"><span><span class="proj">ar-api</span><strong>equipment-routes</strong><small>question de l'agent : format de la date de mise en service ?</small></span><button class="btn fort" data-aller="ar-api-story">Répondre</button></div>
+    nom: "1. Workspace : Accueil",
+    note: "L'Accueil d'une portée : la conversation avec son agent au centre, À juger à droite (agrège les trois projets, chaque carte avec son projet). On y dit ce qu'on veut ; l'agent crée l'epic et ses stories par le service, et la conversation le montre, vérifié, avec un lien. Rien à cliquer pour « valider l'intention » : la spec de chaque story arrive dans À juger.",
+    rendu: () => fenetre(barreWs("home"), ariane([["Arena", "ws-inbox"], ["Accueil"]]) + maison(`
+        <div class="moi">Il faudrait pouvoir dire où est installé chaque équipement, et filtrer là-dessus sur le site.</div>
+        <div class="lui">Ça touche les trois projets : la colonne en base (ar-db), les routes (ar-api), le filtre (ar-site), dans cet ordre. Je crée l'epic avec ces trois stories ; chacune s'arrêtera à sa spec pour que tu la valides.</div>
+        <div class="fait-par">✓ Epic créé : ARN-2 Emplacement des équipements, 3 stories<button data-aller="ws-epic">Ouvrir →</button></div>`, `
+        <h3>À juger (3)</h3>
+        <div class="carte o"><span><span class="proj">ar-api</span><strong>equipment-routes</strong><small>question : format de la date ?</small></span><button class="btn fort" data-aller="ar-api-story">Répondre</button></div>
         <div class="carte b"><span><span class="proj">ar-db</span><strong>equipment-location</strong><small>en recette depuis 12 min</small></span><button class="btn">Recetter</button></div>
-        <div class="carte o"><span><span class="proj">ar-site</span><strong>equipment-page</strong><small>cadrage à valider</small></span><button class="btn">Ouvrir</button></div>
-      </div>`, AGENTS_WS),
+        <div class="carte o"><span><span class="proj">ar-site</span><strong>equipment-page</strong><small>spec à valider</small></span><button class="btn">Ouvrir</button></div>`), AGENTS_WS),
   },
   "ws-epics": {
     nom: "2. Workspace : Epics",
@@ -179,18 +196,21 @@ const ECRANS = {
       </div>`, AGENTS_WS),
   },
   "ar-api-inbox": {
-    nom: "5. Projet dans un workspace : À traiter",
-    note: "Même coque. La portée est ar-api (« dans Arena ») ; le fil d'Ariane commence par le workspace, qui est le seul chemin de retour. Ctrl+W ferme la portée et revient au workspace.",
-    rendu: () => fenetre(barreProjet(AR_API, "inbox"), ariane([["Arena", "ws-inbox"], ["ar-api", "ar-api-inbox"], ["À traiter"]]) + `
-      <div class="entete"><div><h2>À traiter</h2><p>1 chose t'attend</p></div></div>
-      <div class="defile"><div class="carte o"><span><strong>equipment-routes</strong><small>question de l'agent : format de la date de mise en service ?</small></span><button class="btn fort" data-aller="ar-api-story">Répondre</button></div></div>`,
+    nom: "5. Projet dans un workspace : Accueil",
+    note: "Même coque. La portée est ar-api (« dans Arena ») ; le fil d'Ariane commence par le workspace. La conversation est celle du projet : un bug vu en recette s'y raconte, l'agent en fait une story de correction (ou explique que ce n'en est pas un).",
+    rendu: () => fenetre(barreProjet(AR_API, "home"), ariane([["Arena", "ws-inbox"], ["ar-api", "ar-api-inbox"], ["Accueil"]]) + maison(`
+        <div class="moi">La route /equipment renvoie 500 quand la date est vide.</div>
+        <div class="lui">Confirmé en lisant le code : la date est parsée sans contrôle (src/routes/equipment.ts). C'est un petit correctif ; je le crée.</div>
+        <div class="fait-par">✓ Story créée : Corrige la date vide de /equipment<button>Ouvrir →</button></div>`, `
+        <h3>À juger (1)</h3>
+        <div class="carte o"><span><strong>equipment-routes</strong><small>question : format de la date ?</small></span><button class="btn fort" data-aller="ar-api-story">Répondre</button></div>`),
       [AGENTS_WS[0]]),
   },
   "ar-api-backlog": {
     nom: "6. Projet : Backlog",
-    note: "Le Backlog liste ce qui est en cours et à venir ; « Livrées » et « Fermées » sont des filtres (remplacent l'Historique). « + Nouvelle feature » est ici, et seulement ici (Ctrl+Maj+N l'ouvre de partout).",
+    note: "Le Backlog liste ce qui est en cours et à venir ; « Livrées » et « Fermées » sont des filtres (remplacent l'Historique). Aucun bouton de création : une feature se demande dans la conversation de l'Accueil (Ctrl+J).",
     rendu: () => fenetre(barreProjet(AR_API, "backlog"), ariane([["Arena", "ws-inbox"], ["ar-api", "ar-api-inbox"], ["Backlog"]]) + `
-      <div class="entete"><div><h2>Backlog</h2><p>2 stories ouvertes</p></div><button class="btn fort">+ Nouvelle feature</button></div>
+      <div class="entete"><div><h2>Backlog</h2><p>2 stories ouvertes</p></div></div>
       <div class="defile"><div class="filtres"><span>Livrées (4)</span><span>Fermées (1)</span></div>
         <div class="groupe">En cours</div>
         <div class="carte b" data-aller="ar-api-story"><span><strong>equipment-routes</strong><small>ARN-2 · tâche 2/4</small></span></div>
@@ -200,8 +220,8 @@ const ECRANS = {
   },
   "ar-api-story": {
     nom: "7. Page d'une story",
-    note: "La même page quel que soit le chemin (À traiter, Backlog, epic, barre d'état, Ctrl+K). Le fil d'Ariane garde le lieu d'où l'on vient ; les onglets font partie de la page, pas de la navigation.",
-    rendu: () => fenetre(barreProjet(AR_API, "inbox"), ariane([["Arena", "ws-inbox"], ["ar-api", "ar-api-inbox"], ["À traiter", "ar-api-inbox"], ["equipment-routes"]]) + `
+    note: "La même page quel que soit le chemin (Accueil, Backlog, epic, barre d'état, Ctrl+K). Le fil d'Ariane garde le lieu d'où l'on vient ; les onglets font partie de la page, pas de la navigation.",
+    rendu: () => fenetre(barreProjet(AR_API, "home"), ariane([["Arena", "ws-inbox"], ["ar-api", "ar-api-inbox"], ["Accueil", "ar-api-inbox"], ["equipment-routes"]]) + `
       <div class="entete"><div><h2>equipment-routes</h2><p>ARN-2 · Claude Code · depuis 12 min</p></div><button class="btn">⋯</button></div>
       <div class="defile" style="padding-top:0">
         <div class="decision"><strong>L'agent demande :</strong> format de la date de mise en service ?<div style="margin-top:8px"><button class="btn fort">ISO 8601</button> <button class="btn">Horodatage Unix</button> <button class="btn">Autre…</button></div></div>
@@ -210,25 +230,26 @@ const ECRANS = {
       </div>`, [AGENTS_WS[0]]),
   },
   "hello-inbox": {
-    nom: "8. Projet hors workspace",
-    note: "Un projet seul : pas de parent, le fil d'Ariane commence au projet. Rien ne l'attend : l'écran le dit, avec ce qui tourne.",
-    rendu: () => fenetre(barreProjet(HELLO, "inbox").replace('<span class="nb">0</span>', ""), ariane([["hello-web", "hello-inbox"], ["À traiter"]]) + `
-      <div class="defile" style="display:grid;place-items:center;text-align:center"><div><div style="font-size:30px">✓</div><p><strong>Rien ne t'attend.</strong></p><p style="color:var(--discret);font-size:13px">Aucun agent au travail. <button class="btn" data-aller="hello-backlog">Ouvrir le Backlog</button></p></div></div>`, []),
+    nom: "8. Projet hors workspace : Accueil, au repos",
+    note: "Un projet seul : pas de parent. Conversation vide : une invite. Rien à juger : la colonne le dit, avec ce qui tourne.",
+    rendu: () => fenetre(barreProjet(HELLO, "home").replace('<span class="nb">0</span>', ""), ariane([["hello-web", "hello-inbox"], ["Accueil"]]) + maison(`
+        <div style="margin:auto;text-align:center;color:var(--discret)"><p><strong style="color:var(--texte)">De quoi veux-tu parler ?</strong></p><p style="font-size:13px">Une idée, un bug, une question sur le code. Si ça mène à une story ou à un correctif, l'agent la crée ; sinon, on a juste parlé.</p></div>`, `
+        <h3>À juger</h3><p style="color:var(--discret);font-size:13px">Rien ne t'attend. Aucun agent au travail.</p>`), []),
   },
   "hello-backlog": {
     nom: "9. Projet hors workspace : Backlog",
-    note: "Backlog vide d'un projet seul : la seule action proposée est la première feature.",
+    note: "Backlog vide d'un projet seul : il renvoie à la conversation pour la première feature.",
     rendu: () => fenetre(barreProjet(HELLO, "backlog").replace('<span class="nb">0</span>', ""), ariane([["hello-web", "hello-inbox"], ["Backlog"]]) + `
-      <div class="entete"><div><h2>Backlog</h2><p>aucune story ouverte</p></div><button class="btn fort">+ Nouvelle feature</button></div>
+      <div class="entete"><div><h2>Backlog</h2><p>aucune story ouverte</p></div><button class="btn" data-aller="hello-inbox">Demander dans l'Accueil (Ctrl+J)</button></div>
       <div class="defile"><div class="filtres"><span>Livrées (2)</span><span>Fermées (0)</span></div></div>`, []),
   },
   selecteur: {
     nom: "10. Sélecteur de portée (Ctrl+P)",
     note: "Clic sur le bloc de portée : recherche, workspaces avec leurs projets en retrait, projets hors workspace, puis créer et ouvrir. Remplace l'accueil, la barre d'onglets du projet, la barre « workspaces et projets » et les sous-menus Récents / Workspaces.",
-    rendu: () => fenetre(barreWs("inbox"), ariane([["Arena", "ws-inbox"], ["À traiter"]]) + `<div class="defile"></div>`, AGENTS_WS, `<div class="voile"></div>
+    rendu: () => fenetre(barreWs("home"), ariane([["Arena", "ws-inbox"], ["Accueil"]]) + `<div class="defile"></div>`, AGENTS_WS, `<div class="voile"></div>
       <div class="selecteur"><input placeholder="Chercher un projet ou un workspace…">
         <h5>Workspaces</h5>
-        <button class="sel" data-aller="ws-inbox"><span class="logo ws">A</span>Arena<small>3 à traiter</small></button>
+        <button class="sel" data-aller="ws-inbox"><span class="logo ws">A</span>Arena<small>3 à juger</small></button>
         <button class="sous">ar-db<small>1</small></button>
         <button class="sous" data-aller="ar-api-inbox">ar-api<small>1</small></button>
         <button class="sous">ar-site<small>1</small></button>
