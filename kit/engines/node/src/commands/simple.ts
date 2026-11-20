@@ -1,9 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
-import type { FileType, FileTypesData, GitPatternsData, ReadLogData } from "../../../../core/src/adapter/types.ts";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import type { FileType, FileTypesData, GitPatternsData, NewProjectData, ReadLogData } from "../../../../core/src/adapter/types.ts";
 import type { Options } from "../arguments.ts";
 import { lines, parseErrors, Paths } from "../parse.ts";
 import { workspaceDirs } from "../project.ts";
 import { Failure, type Report } from "../result.ts";
+import { starter } from "./example.ts";
 
 export function readLog(o: Options, r: Report): Promise<void> {
   r.data = { lines: 0 } satisfies ReadLogData;
@@ -16,9 +18,24 @@ export function readLog(o: Options, r: Report): Promise<void> {
   return Promise.resolve();
 }
 
-// Hors périmètre de l'adaptateur Node (kit/engine-contract.md §6) : le projet se crée avec les outils de sa pile.
-export function newProject(): Promise<void> {
-  throw new Failure("not-supported", "new-project n'est pas pris en charge par l'adaptateur Node : créer le projet avec npm init, puis déclarer ses scripts dans spawn.json");
+// Gabarit minimal : une app Node sans dépendance (package.json, un serveur, un test unitaire, un test de bout en bout,
+// un smoke test), et la section "node" de spawn.json que le cœur a déjà créé sans elle.
+export function newProject(o: Options, r: Report): Promise<void> {
+  r.data = { files: [] } satisfies NewProjectData;
+  const project = o.required("project");
+  const name = o.required("name");
+  if (existsSync(join(project, "package.json"))) throw new Failure("project-exists", `package.json existe déjà dans ${project}`);
+  const { files, node } = starter(name);
+  for (const [rel, content] of Object.entries(files)) {
+    const path = join(project, rel);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, content);
+  }
+  const config = join(project, "spawn.json");
+  const current = existsSync(config) ? (JSON.parse(readFileSync(config, "utf8")) as Record<string, unknown>) : {};
+  writeFileSync(config, `${JSON.stringify({ ...current, node }, null, 2)}\n`);
+  r.data = { files: Object.keys(files) } satisfies NewProjectData;
+  return Promise.resolve();
 }
 
 const TYPES: readonly FileType[] = [

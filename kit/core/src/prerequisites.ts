@@ -81,7 +81,10 @@ export async function checkPrerequisites(cwd: string, ex: Runner = run): Promise
   checks.push({ name: "node", ok: nodeOk, detail: process.version, ...(nodeOk ? {} : { correction: "installer Node.js 22.18 ou plus récent" }) });
   tool("git", "git", ["--version"], "installer Git (Git for Windows sous Windows)");
   tool("git-lfs", "git", ["lfs", "version"], "installer Git LFS puis `git lfs install`");
-  const claude = tool("claude", "claude", ["--version"], "installer Claude Code");
+  // Claude Code n'est requis que pour Claude Code : Copilot et OpenCode s'en passent, et ses contrôles ne les concernent pas.
+  const claudeRun = ex("claude", ["--version"], cwd);
+  const claude = claudeRun.code === 0;
+  checks.push({ name: "claude", ok: true, detail: claude ? claudeRun.stdout.trim().split(/\r?\n/)[0] ?? "" : "absent (utile seulement pour Claude Code ; Copilot et OpenCode s'en passent)" });
 
   const project = findProject(cwd);
   if (claude) {
@@ -101,7 +104,8 @@ export async function checkPrerequisites(cwd: string, ex: Runner = run): Promise
     }
   }
 
-  if (project !== null) {
+  // Les réglages de Claude Code comptent quand Claude Code est là, ou que le projet en porte déjà.
+  if (project !== null && (claude || existsSync(projectSettingsPath(project.root)))) {
     // Un worktree n'hérite que des fichiers versionnés : des réglages non commités laissent les fils sans plugin.
     // Les réglages qui comptent sont ceux du checkout de la session (worktree ou racine), pas ceux de la racine.
     const toplevel = ex("git", ["rev-parse", "--show-toplevel"], cwd);
@@ -121,6 +125,8 @@ export async function checkPrerequisites(cwd: string, ex: Runner = run): Promise
       detail: window ? `CLAUDE_CODE_AUTO_COMPACT_WINDOW = ${COMPACTION_WINDOW}` : "seuil de compactage du kit absent des réglages du projet",
       ...(window ? {} : { correction: "spawn prerequisites --install" }),
     });
+  }
+  if (project !== null) {
     try {
       const r = await callAdapter(projectAdapter(project), "prerequisites", { project: project.root });
       const res = r.result;

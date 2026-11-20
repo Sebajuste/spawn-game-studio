@@ -63,7 +63,8 @@ const FIELDS: Record<LedgerEventType, readonly Field[]> = {
     { name: "detail", kind: "text", placeholder: "<findings corrigés ; commits a..b>", optional: true },
   ],
   captures: [
-    { name: "paths", kind: "list", placeholder: "<png> [--paths <png>]…" },
+    // Sans chemin : seulement pour un projet sans rien à montrer, ce que l'outil vérifie auprès de l'adaptateur.
+    { name: "paths", kind: "list", placeholder: "<png> [--paths <png>]…", optional: true },
     { name: "verdict", kind: ["valid", "invalid", "undecidable"], placeholder: "valid|invalid|undecidable" },
     { name: "detail", kind: "text", placeholder: "<ce que les captures ne montrent pas>", optional: true },
   ],
@@ -155,6 +156,7 @@ export function validate(type: string, values: Record<string, unknown>, date: st
   if (type === "final-review" && ev.verdict === "changes" && ev.detail === undefined) {
     throw new LedgerError(`final-review : --detail requis avec le verdict changes ; ${expected}`);
   }
+  if (type === "captures" && ev.paths === undefined) ev.paths = [];
   return ev as LedgerEvent;
 }
 
@@ -231,7 +233,7 @@ export function render(ev: LedgerEvent): string {
       case "final-review":
         return `relecture finale ${REVIEW_WORDS[ev.verdict]}${ev.detail ? ` : ${ev.detail}` : ""}`;
       case "captures":
-        return `captures ${CAPTURES_WORDS[ev.verdict]} : ${ev.paths.join(", ")}${ev.detail ? ` (${ev.detail})` : ""}`;
+        return `captures ${CAPTURES_WORDS[ev.verdict]} : ${ev.paths.length > 0 ? ev.paths.join(", ") : "rien à montrer"}${ev.detail ? ` (${ev.detail})` : ""}`;
       case "proof":
         return `preuve vérifiée par l'outil : compilation ${ev.compilation}, tests ${ev.tests}, lancement ${ev.launch}, bout en bout ${ev.end_to_end}`;
       case "acceptance-report":

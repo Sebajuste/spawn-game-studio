@@ -6,7 +6,7 @@
     "product": "app",
     "entry": "point d'entrée de l'app",
     "user": "utilisateur",
-    "framing": "tout se fait avec la pile du projet (TypeScript, React, Rust pour la coque), selon ses conventions"
+    "framing": "tout se fait avec la pile que déclarent package.json et les conventions du projet (langage, bibliothèques, outils) ; n'en introduis pas d'autre"
   },
-  "not_applicable": ["invalid-scene", "empty-main-scene", "new-project"]
+  "not_applicable": ["invalid-scene", "empty-main-scene"]
 }

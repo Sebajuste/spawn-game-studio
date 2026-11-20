@@ -1,6 +1,7 @@
 // Outil `spawn` des skills et des agents : node "${CLAUDE_PLUGIN_ROOT}/src/cli.ts" <commande> …
 // Le fil et le worktree se déduisent du dossier courant ; aucune commande ne demande de chemin du kit.
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { callAdapter, type OptionValue } from "./adapter/call.ts";
 import { ledgerPath, contextOf, type Context } from "./context.ts";
@@ -101,6 +102,15 @@ function checkSpec(ctx: Context, path: string): void {
   if (text === null) throw new LedgerError(`spec : ${path} introuvable dans ${ctx.dir} ; écris-la là, commite-la, puis recommence`);
   const defects = specDefects(text, ctx.project.config.tag);
   if (defects.length > 0) throw new LedgerError(`spec refusée, ${path} : ${defects.join(" ; ")}. Corrige le fichier, commite, puis relance cette commande`);
+}
+
+// Le projet n'a rien à montrer quand l'adaptateur répond `not-declared` à une capture (aucun lancement déclaré). Toute
+// autre réponse, succès compris, veut une vraie capture. L'essai est jeté.
+async function nothingToCapture(ctx: Context): Promise<boolean> {
+  const probe = join(tmpdir(), `spawn-probe-${process.pid}.png`);
+  const r = await callAdapter(projectAdapter(ctx.project), "capture", { project: ctx.dir, output: probe }, { timeoutMs: 120_000 });
+  rmSync(probe, { force: true });
+  return r.result?.ok === false && r.result.errors.some((e) => e.code === "not-declared");
 }
 
 // Chaque exigence « Preuve : capture » de la spec validée a sa capture, nommée par son identifiant, sur le disque.
@@ -303,6 +313,11 @@ async function main(argv: string[]): Promise<number> {
         }
         // La preuve est faite ici, par l'outil, et notée avant les captures : c'est elle que l'app montre comme vérifiée.
         if (ev.type === "captures" && ev.verdict === "valid") {
+          // Sans chemin, la preuve vaut pour un projet sans rien à montrer (une bibliothèque, une API sans page) : c'est
+          // l'adaptateur qui le dit, pas l'agent (essai du 20/11 : pilote abandonné, la capture d'une bibliothèque étant impossible).
+          if (ev.paths.length === 0 && !(await nothingToCapture(ctx))) {
+            throw new LedgerError(`captures : --paths manquant : ce projet peut montrer quelque chose, une capture par exigence « Preuve : capture » est attendue (${SPAWN} engine capture --output <png>)`);
+          }
           checkCaptures(ctx, ev.paths, events);
           // Une preuve refusée est notée : sans trace, `spawn next` redonnait la même étape et l'agent rejouait captures
           // et refus en boucle, le motif perdu (essai du 19/11 : une heure, ~95 next d'affilée).
@@ -535,9 +550,13 @@ ${renderOutcome(outcome, renderAction)}`);
     case "pilot": {
       const agentName = positionals[0];
       if (agentName !== "opencode" && agentName !== "claude" && agentName !== "copilot") {
-        throw new Usage("pilot <claude|opencode|copilot> --story <nom> (--intent \"<texte>\" | --intent-file <f>) [--model M] [--restarts N] [--max-hours H] [--load]");
+        throw new Usage("pilot <claude|opencode|copilot> --story <nom> (--intent \"<texte>\" | --intent-file <f>) [--model M] [--restarts N] [--max-hours H] [--project <racine>] [--load]");
       }
-      const ctx = requireContext();
+      // Le projet se désigne par --project, ou par le dossier courant. Un dossier courant dans un worktree de fil est
+      // refusé : le pilote supprime ce worktree à la fusion (EPERM sous Windows), et le fil visé serait le mauvais.
+      const target = opt("project");
+      const ctx = target === undefined ? requireContext() : (contextOf(resolve(target)) ?? (() => { throw new Usage(`pilot : ${target} n'est pas un projet Spawn (aucun spawn.json)`); })());
+      if (ctx.story !== null) throw new Usage(`pilot : lancé depuis le worktree du fil « ${ctx.story} » ; le lancer depuis la racine du projet (${ctx.project.root}) ou passer --project <racine>`);
       const story = opt("story");
       const file = opt("intent-file");
       const intent = opt("intent") ?? (file ? readFileSync(file, "utf8").trim() : undefined);

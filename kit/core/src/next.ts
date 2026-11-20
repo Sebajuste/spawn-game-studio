@@ -490,6 +490,9 @@ function stepAction(ctx: Context, agent?: Agent): Action {
       instruction:
         `Import du moteur (commite les fichiers qu'il génère à côté des tiens, comme les .uid de Godot). Puis ${required.length > 0 ? `une capture par exigence « Preuve : capture » de ${spec.path} (${required.join(", ")}), nommée par son identifiant, regardée : elle doit montrer ce que l'exigence promet ; sinon, ne la note pas et arrête-toi pour le dire à l'utilisateur` : `pour chaque élément de « Résultat attendu » de ${spec.path}, une capture`} dans ${dir} (${sceneless ? "sans --scene, la capture montre la page que le projet déclare" : `ou l'agent ${v.subagent("scene-validator")} pour une scène qui évolue`}), ${v.viewImage} avant d'être montrée. ` +
         `Ne lance ni compilation, ni suite, ni smoke test : la commande des captures fait la preuve elle-même (compilation, suite complète, smoke test) et refuse avec la raison au moindre rouge ; un rouge devient une tâche « ## Tâche N : correction » ajoutée au plan.` +
+        (sceneless && required.length === 0
+          ? ` Si la capture répond « not-declared » (le projet ne déclare aucun lancement : une bibliothèque n'a rien à montrer), n'invente ni page ni serveur : note ${SPAWN} ledger captures --verdict valid sans --paths ; l'outil vérifie lui-même qu'il n'y a rien à capturer et fait la preuve.`
+          : "") +
         (captures ? ` Dernières captures : ${captures.verdict}, à corriger d'abord.` : ""),
       commands: [...pngs.map(capture), `${SPAWN} ledger captures --paths ${pngs.map((p) => `"${p}"`).join(" ")} --verdict valid`],
       proof: "captures regardées, preuve faite par l'outil (compilation, tests, smoke test)",

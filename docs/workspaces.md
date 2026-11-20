@@ -109,10 +109,13 @@ Trois dépôts (`ar-db`, `ar-api`, `ar-site`), epic ARN-1, trois stories chaîn�
 
 Vérifié : `spawn next` répond « en attente d'une dépendance » tant que l'amont n'est pas fusionné ; la suppression du worktree après fusion fonctionne (correctif EPERM).
 
-Écarts relevés (décisions du mainteneur, cœur) :
+Écarts relevés, **corrigés ensuite** (cœur, avec l'accord du mainteneur) :
 
-- Un projet sans `launch` (bibliothèque) n'a pas de capture : l'étape de preuve bloque et le pilote abandonne (« 3 tours sans changement »). Contournement du POC : une page HTML servie au lancement. À trancher : preuve sans capture pour les moteurs sans sortie visible.
-- Le texte de l'étape `spec` parle de « TypeScript, React, Rust » pour un projet node.
-- `spawn prerequisites` exige `claude` même sous Copilot ; `new-project --engine node` n'a pas de gabarit.
-- Un pilote lancé hors de la racine du projet crée le fil dans le dépôt courant : à refuser (le POC l'a fait une fois par erreur, nettoyé).
-- Le champ `epic` sur la story n'a pas été nécessaire : le lien se lit dans `workspaces.json`.
+- Un projet sans `launch` (bibliothèque) n'a pas de capture : `spawn ledger captures --verdict valid` sans `--paths` est admis quand l'adaptateur répond `not-declared` à une capture (vérifié par l'outil, pas par l'agent) ; la preuve (compilation, suite, smoke test, bout en bout) reste faite. Un projet qui peut capturer garde l'obligation de captures.
+- Le texte de l'étape `spec` ne cite plus « TypeScript, React, Rust » pour un projet node (`framing` de `adapter.json`).
+- `spawn prerequisites` n'exige plus `claude` (il ne sert qu'à Claude Code) ; ses contrôles propres ne s'appliquent que s'il est présent ou si le projet porte `.claude/settings.json`.
+- `new-project --engine node` crée un gabarit sans dépendance (serveur, test unitaire, bout en bout, smoke test, section `node`).
+- `spawn pilot` refuse d'être lancé depuis un worktree de fil, et accepte `--project <racine>`.
+
+Origine du premier écart : sans capture possible, l'étape de preuve bloquait et le pilote abandonnait (« 3 tours sans changement », 18 min) ; le POC l'avait contourné par une page HTML servie au lancement. Le champ `epic` sur la story n'a pas été nécessaire : le lien se lit dans `workspaces.json`.
+
