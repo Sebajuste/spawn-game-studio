@@ -1,5 +1,5 @@
 // Les backlogs des projets de la portée (un projet, ou tous ceux d'un workspace), chargés une fois et partagés par
-// À traiter, le Backlog, le badge, la barre d'état et « Aller à ». Chaque événement ne recharge que son projet.
+// À juger (Accueil), le Backlog, le badge, la barre d'état et « Aller à ». Chaque événement ne recharge que son projet.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Api, StoryView } from "../shared/api.ts";
 import type { Backlogs } from "./inbox.ts";

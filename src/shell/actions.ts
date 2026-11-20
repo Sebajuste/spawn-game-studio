@@ -6,8 +6,8 @@ export interface ShellActions {
   navigate: (route: Route) => void;
   open: (dialog: DialogKind) => void;
   closeDialog: () => void;
-  // Ctrl+Maj+N : nouvelle feature dans un projet, nouvel epic dans un workspace.
-  create: () => void;
+  // Ctrl+J : l'Accueil de la portée, curseur dans la conversation.
+  talk: () => void;
   launch: () => void;
   folder: () => void;
   // Ctrl+W : au parent (workspace) ou au sélecteur.

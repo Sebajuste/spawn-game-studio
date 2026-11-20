@@ -4,6 +4,7 @@ import { story } from "./zones/story.ts";
 import { misc } from "./zones/misc.ts";
 import { workspace } from "./zones/workspace.ts";
 import { navigation } from "./zones/navigation.ts";
+import { talk } from "./zones/talk.ts";
 
 export const en = {
   "app.connecting": "Connecting to the service…",
@@ -14,7 +15,6 @@ export const en = {
   "menu.file.open": "Open project…",
   "menu.file.recent": "Recent projects",
   "menu.project": "Project",
-  "menu.project.feature": "New feature",
   "menu.project.launch": "Run project",
   "menu.project.folder": "Open folder",
   "menu.project.settings": "Project settings…",
@@ -53,4 +53,5 @@ export const en = {
   ...misc.en,
   ...workspace.en,
   ...navigation.en,
+  ...talk.en,
 };

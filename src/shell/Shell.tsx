@@ -45,7 +45,8 @@ export function Shell({ api }: { api: Api }) {
   const { route: asked, navigate } = useRoute();
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [composing, setComposing] = useState(false);
+  // Compteur des Ctrl+J : chaque appui remet le curseur dans la conversation, même si l'Accueil est déjà ouvert.
+  const [talkFocus, setTalkFocus] = useState(0);
 
   // L'adresse demandée n'est jugée qu'une fois le registre lu ; une adresse disparue ramène au sélecteur.
   const resolved = useMemo(() => {
@@ -77,7 +78,6 @@ export function Shell({ api }: { api: Api }) {
   const go = useCallback(
     (next: Route, replace = false) => {
       setGone(false);
-      setComposing(false);
       navigate(next, replace);
     },
     [navigate],
@@ -111,14 +111,10 @@ export function Shell({ api }: { api: Api }) {
       navigate: go,
       open: setDialog,
       closeDialog: () => setDialog(null),
-      create: () => {
-        if (route.kind === "project") {
-          go(projectRoute(route.project, route.workspace, "backlog"));
-          setComposing(true);
-        } else if (route.kind === "workspace") {
-          go(workspaceRoute(route.workspace, "epics"));
-          setDialog("epic");
-        }
+      talk: () => {
+        if (route.kind === "picker") return;
+        go(withPlace(route, "home"));
+        setTalkFocus((n) => n + 1);
       },
       launch: () => run(route.kind === "project" ? route.story : null),
       folder: () => {
@@ -166,7 +162,7 @@ export function Shell({ api }: { api: Api }) {
       connected={connected}
       notice={notice}
       projectName={projectName}
-      onOpen={(item) => go(projectRoute(item.project, route.kind === "picker" ? null : route.workspace, "inbox", item.story.story))}
+      onOpen={(item) => go(projectRoute(item.project, route.kind === "picker" ? null : route.workspace, "home", item.story.story))}
       onNotice={() => setNotice(null)}
     />
   );
@@ -209,9 +205,9 @@ export function Shell({ api }: { api: Api }) {
               <ScopePicker projects={allProjects} workspaces={allWorkspaces} inline notice={gone ? t("nav.picker.gone") : null} onPick={go} onNewProject={() => setDialog("new")} onOpenProject={() => setDialog("open")} onNewWorkspace={() => setDialog("workspace")} onClose={() => undefined} />
             </div>
           ) : route.kind === "project" && project ? (
-            <ProjectContent api={api} events={events} route={route} project={project} backlogs={backlogs} active={active} composing={composing} onCompose={setComposing} navigate={go} onLaunch={run} onError={onError} />
+            <ProjectContent api={api} events={events} route={route} project={project} backlogs={backlogs} active={active} focus={talkFocus} onTalk={() => actions.talk()} navigate={go} onLaunch={run} onError={onError} />
           ) : route.kind === "workspace" && workspace ? (
-            <WorkspaceContent api={api} route={route} workspace={workspace} projects={allProjects} backlogs={backlogs} active={active} projectName={projectName} navigate={go} onNewEpic={() => setDialog("epic")} onChanged={() => void reloadWorkspaces()} onError={onError} />
+            <WorkspaceContent api={api} events={events} route={route} workspace={workspace} projects={allProjects} backlogs={backlogs} active={active} projectName={projectName} focus={talkFocus} navigate={go} onNewEpic={() => setDialog("epic")} onChanged={() => void reloadWorkspaces()} onError={onError} />
           ) : null}
         </section>
       </div>

@@ -1,5 +1,5 @@
 // Ce qui attend l'utilisateur et ce qui tourne, sur un projet ou sur tous les projets d'un workspace
-// (docs/navigation.md §4, À traiter ; §7, barre d'état). Lu dans les backlogs déjà chargés : aucun appel de plus.
+// (docs/conversation.md §2, À juger ; §7, barre d'état). Lu dans les backlogs déjà chargés : aucun appel de plus.
 import type { StoryView } from "../shared/api.ts";
 
 export interface InboxItem {

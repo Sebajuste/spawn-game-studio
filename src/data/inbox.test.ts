@@ -11,7 +11,7 @@ const backlogs = new Map<string, StoryView[] | null>([
   ["site", null],
 ]);
 
-test("À traiter : les décisions de tous les projets, puis les recettes", () => {
+test("À juger : les décisions de tous les projets, puis les recettes", () => {
   assert.deepEqual(
     waitingFor(backlogs, ["api", "db", "site"]).map((i) => `${i.project}/${i.story.story}`),
     ["api/a2", "db/d1", "api/a1"],

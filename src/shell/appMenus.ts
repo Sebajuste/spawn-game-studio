@@ -35,7 +35,7 @@ export function appMenus(route: Route, projects: ProjectView[], workspaces: Work
     {
       title: t("menu.project"),
       entries: [
-        { title: t("menu.project.feature"), shortcut: "Ctrl+Maj+N", action: act.create, disabled: !project },
+        { title: t("menu.project.talk"), shortcut: "Ctrl+J", action: act.talk, disabled: !inScope },
         { title: t("menu.project.launch"), shortcut: "F5", action: act.launch, disabled: !project },
         "-",
         { title: t("menu.project.folder"), action: act.folder, disabled: !project },

@@ -1,13 +1,12 @@
 // Lieu « Backlog » d'un projet (docs/navigation.md §4) : les stories ouvertes par groupe, les livrées et les fermées en
-// filtres, et « + Nouvelle feature », la seule création du projet.
+// filtres. Rien ne s'y crée : on demande dans la conversation de l'Accueil (docs/conversation.md).
 import { useMemo, useState } from "react";
-import type { Api, StoryGroup, StoryView } from "../shared/api.ts";
+import type { StoryGroup, StoryView } from "../shared/api.ts";
 import { PlaceHeader } from "../shared/PlaceHeader.tsx";
 import { t } from "../i18n/i18n.ts";
 import { BacklogFilters } from "./BacklogFilters.tsx";
 import { countByFilter, filterBacklog, type BacklogFilter } from "./backlogFilter.ts";
 import { EndedTable } from "./EndedTable.tsx";
-import { NewFeatureForm } from "./NewFeatureForm.tsx";
 import { StoryCard } from "./StoryCard.tsx";
 import "./project.css";
 
@@ -18,19 +17,17 @@ const OPEN_GROUPS: { id: StoryGroup; title: () => string }[] = [
 ];
 
 interface Props {
-  api: Api;
-  project: string;
   stories: StoryView[] | null;
-  composing: boolean;
-  onCompose: (open: boolean) => void;
   onOpen: (story: string) => void;
+  // Ctrl+J : l'Accueil, curseur dans la conversation.
+  onTalk: () => void;
 }
 
 function subtitleOf(n: number): string {
   return n === 0 ? t("nav.backlog.subtitle.zero") : t(n === 1 ? "nav.backlog.subtitle.one" : "nav.backlog.subtitle.other", { n });
 }
 
-export function ProjectBacklog({ api, project, stories, composing, onCompose, onOpen }: Props) {
+export function ProjectBacklog({ stories, onOpen, onTalk }: Props) {
   const [filter, setFilter] = useState<BacklogFilter>("open");
   const [search, setSearch] = useState("");
   const all = useMemo(() => stories ?? [], [stories]);
@@ -40,33 +37,18 @@ export function ProjectBacklog({ api, project, stories, composing, onCompose, on
   return (
     <>
       <PlaceHeader title={t("nav.place.backlog")} subtitle={stories && subtitleOf(counts.open)}>
-        {!composing && (
-          <button className="btn primary" onClick={() => onCompose(true)} title="Ctrl+Maj+N">
-            {t("nav.backlog.newFeature")}
-          </button>
-        )}
+        <button className="btn" onClick={onTalk} title="Ctrl+J">
+          {t("nav.backlog.talk")}
+        </button>
       </PlaceHeader>
       <div className="scroll">
-        {composing && (
-          <NewFeatureForm
-            api={api}
-            project={project}
-            onCancel={() => onCompose(false)}
-            onCreated={(story) => {
-              onCompose(false);
-              onOpen(story);
-            }}
-          />
-        )}
         {stories === null ? (
-          <p className="muted">{t("nav.inbox.loading")}</p>
+          <p className="muted">{t("nav.home.loading")}</p>
         ) : all.length === 0 ? (
-          !composing && (
-            <section className="card prompt" onClick={() => onCompose(true)}>
-              <h2>{t("nav.backlog.firstTitle")}</h2>
-              <p>{t("nav.backlog.firstBody")}</p>
-            </section>
-          )
+          <section className="card prompt" onClick={onTalk}>
+            <h2>{t("nav.backlog.firstTitle")}</h2>
+            <p>{t("nav.backlog.firstBody")}</p>
+          </section>
         ) : (
           <>
             <div className="backlog-tools">

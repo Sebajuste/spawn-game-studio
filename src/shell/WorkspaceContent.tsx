@@ -1,8 +1,7 @@
-// Le contenu d'un workspace selon l'adresse : À traiter, les Epics (ou la page d'un epic), les Projets.
+// Le contenu d'un workspace selon l'adresse : l'Accueil, les Epics (ou la page d'un epic), les Projets.
 import type { Api, ProjectView, WorkspaceView } from "../shared/api.ts";
-import { t } from "../i18n/i18n.ts";
 import { inProgress, waitingFor, type Backlogs } from "../data/inbox.ts";
-import { Inbox } from "../inbox/Inbox.tsx";
+import { Home } from "../home/Home.tsx";
 import { projectRoute, workspaceRoute, type Route, type WorkspaceRoute } from "../navigation/route.ts";
 import { EpicPage } from "../workspace/EpicPage.tsx";
 import { WorkspaceEpics } from "../workspace/WorkspaceEpics.tsx";
@@ -10,19 +9,22 @@ import { WorkspaceProjects } from "../workspace/WorkspaceProjects.tsx";
 
 interface Props {
   api: Api;
+  events: EventSource | null;
   route: WorkspaceRoute;
   workspace: WorkspaceView;
   projects: ProjectView[];
   backlogs: Backlogs;
   active: ReadonlySet<string>;
   projectName: (id: string) => string;
+  // Change à chaque Ctrl+J : le curseur va dans la conversation.
+  focus: number;
   navigate: (route: Route, replace?: boolean) => void;
   onNewEpic: () => void;
   onChanged: () => void;
   onError: (e: string) => void;
 }
 
-export function WorkspaceContent({ api, route, workspace, projects, backlogs, active, projectName, navigate, onNewEpic, onChanged, onError }: Props) {
+export function WorkspaceContent({ api, events, route, workspace, projects, backlogs, active, projectName, focus, navigate, onNewEpic, onChanged, onError }: Props) {
   const ws = workspace.id;
   if (route.place === "epics") {
     const epic = route.epic ? workspace.epics.find((e) => e.id === route.epic) : undefined;
@@ -48,17 +50,22 @@ export function WorkspaceContent({ api, route, workspace, projects, backlogs, ac
       />
     );
   }
-  if (!active.has("backlog")) return <main className="empty">{t("project.off")}</main>;
   const ids = workspace.projects;
   const loading = ids.some((p) => (backlogs.get(p) ?? null) === null);
   return (
-    <Inbox
+    <Home
+      api={api}
+      events={events}
+      scope="workspace"
+      id={ws}
+      active={active}
+      focus={focus}
       waiting={loading ? null : waitingFor(backlogs, ids)}
       running={inProgress(backlogs, ids)}
-      workspace={workspace.name}
       projectName={projectName}
-      onOpen={(item) => navigate(projectRoute(item.project, ws, "inbox", item.story.story))}
-      onBacklog={null}
+      onOpenItem={(item) => navigate(projectRoute(item.project, ws, "home", item.story.story))}
+      onOpenStory={(project, story) => navigate(projectRoute(project, ws, "home", story))}
+      onOpenEpic={(epic) => navigate(workspaceRoute(ws, "epics", epic))}
     />
   );
 }

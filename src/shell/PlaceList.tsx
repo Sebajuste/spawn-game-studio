@@ -1,4 +1,4 @@
-// Les lieux de la portée, dans leur ordre fixe, chacun avec son raccourci ; À traiter porte le nombre de cartes.
+// Les lieux de la portée, dans leur ordre fixe, chacun avec son raccourci ; l'Accueil porte le nombre de cartes à juger.
 import { t } from "../i18n/i18n.ts";
 import type { Place } from "../navigation/route.ts";
 import { placeLabel } from "./placeLabel.ts";
@@ -9,7 +9,7 @@ export function PlaceList({ places, current, badge, onPick }: { places: Place[];
       {places.map((p, i) => (
         <button key={p} className={`place ${p === current ? "current" : ""}`} aria-current={p === current ? "page" : undefined} onClick={() => onPick(p)}>
           {placeLabel(p)}
-          {p === "inbox" && badge > 0 && <span className="badge">{badge}</span>}
+          {p === "home" && badge > 0 && <span className="badge">{badge}</span>}
           <kbd>Ctrl+{i + 1}</kbd>
         </button>
       ))}

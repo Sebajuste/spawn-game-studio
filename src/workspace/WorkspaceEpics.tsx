@@ -12,7 +12,7 @@ export function WorkspaceEpics({ workspace, onNew, onOpen }: { workspace: Worksp
   return (
     <>
       <PlaceHeader title={t("nav.place.epics")} subtitle={subtitle}>
-        <button className="btn primary" onClick={onNew} title="Ctrl+Maj+N">
+        <button className="btn primary" onClick={onNew}>
           {t("nav.epics.add")}
         </button>
       </PlaceHeader>

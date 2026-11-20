@@ -10,11 +10,11 @@ const backlogs = new Map([
   ["web", null],
 ]);
 
-test("une story qui attend l'utilisateur s'ouvre dans À traiter, les autres dans le Backlog", () => {
+test("une story qui attend l'utilisateur s'ouvre depuis l'Accueil, les autres dans le Backlog", () => {
   const entries = goToEntries(["api", "web"], backlogs, null, (p) => p, () => "");
   assert.deepEqual(
     entries.map((e) => formatRoute(e.route)),
-    ["#/p/api/inbox/s/login", "#/p/api/backlog/s/health"],
+    ["#/p/api/home/s/login", "#/p/api/backlog/s/health"],
   );
 });
 
@@ -24,7 +24,7 @@ test("dans un workspace, les epics d'abord et chaque story garde le workspace po
   const [epic, story] = entries;
   assert.ok(epic && story);
   assert.equal(formatRoute(epic.route), "#/w/ar/epics/eq");
-  assert.equal(formatRoute(story.route), "#/w/ar/p/api/inbox/s/login");
+  assert.equal(formatRoute(story.route), "#/w/ar/p/api/home/s/login");
   assert.equal(story.detail, "API · x");
   assert.deepEqual(
     matchEntries(entries, "équip").map((e) => e.key),

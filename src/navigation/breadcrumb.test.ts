@@ -11,14 +11,14 @@ const names: Names = {
 const label = (p: Place) => `L:${p}`;
 
 test("une story ouverte depuis un workspace : workspace › projet › lieu › story", () => {
-  const list = crumbs(projectRoute("api", "ws", "inbox", "routes"), names, label);
+  const list = crumbs(projectRoute("api", "ws", "home", "routes"), names, label);
   assert.deepEqual(
     list.map((c) => c.label),
-    ["W:ws", "P:api", "L:inbox", "routes"],
+    ["W:ws", "P:api", "L:home", "routes"],
   );
   assert.deepEqual(list[0]?.route, workspaceRoute("ws"));
   assert.deepEqual(list[1]?.route, projectRoute("api", "ws"));
-  assert.deepEqual(list[2]?.route, projectRoute("api", "ws", "inbox"));
+  assert.deepEqual(list[2]?.route, projectRoute("api", "ws", "home"));
   assert.equal(list[3]?.route, null);
 });
 

@@ -4,6 +4,7 @@ import { story } from "./zones/story.ts";
 import { misc } from "./zones/misc.ts";
 import { workspace } from "./zones/workspace.ts";
 import { navigation } from "./zones/navigation.ts";
+import { talk } from "./zones/talk.ts";
 
 export const fr: Messages = {
   "app.connecting": "Connexion au service…",
@@ -14,7 +15,6 @@ export const fr: Messages = {
   "menu.file.open": "Ouvrir un projet…",
   "menu.file.recent": "Projets récents",
   "menu.project": "Projet",
-  "menu.project.feature": "Nouvelle feature",
   "menu.project.launch": "Lancer le projet",
   "menu.project.folder": "Ouvrir le dossier",
   "menu.project.settings": "Réglages du projet…",
@@ -53,4 +53,5 @@ export const fr: Messages = {
   ...misc.fr,
   ...workspace.fr,
   ...navigation.fr,
+  ...talk.fr,
 };

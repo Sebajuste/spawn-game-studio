@@ -2,6 +2,6 @@
 import { t } from "../i18n/i18n.ts";
 import type { Place } from "../navigation/route.ts";
 
-const KEYS = { inbox: "nav.place.inbox", backlog: "nav.place.backlog", epics: "nav.place.epics", projects: "nav.place.projects" } as const;
+const KEYS = { home: "nav.place.home", backlog: "nav.place.backlog", epics: "nav.place.epics", projects: "nav.place.projects" } as const;
 
 export const placeLabel = (place: Place): string => t(KEYS[place]);

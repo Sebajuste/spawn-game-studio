@@ -1,8 +1,8 @@
 // Les lieux d'une portée, dans leur ordre fixe (docs/navigation.md §4) : Ctrl+1, Ctrl+2, Ctrl+3 les suivent.
 import { projectRoute, workspaceRoute, type Place, type ProjectPlace, type Route, type WorkspacePlace } from "../navigation/route.ts";
 
-const PROJECT: ProjectPlace[] = ["inbox", "backlog"];
-const WORKSPACE: WorkspacePlace[] = ["inbox", "epics", "projects"];
+const PROJECT: ProjectPlace[] = ["home", "backlog"];
+const WORKSPACE: WorkspacePlace[] = ["home", "epics", "projects"];
 
 export function placesOf(route: Route): Place[] {
   if (route.kind === "project") return PROJECT;

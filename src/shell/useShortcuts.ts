@@ -12,8 +12,8 @@ export function useShortcuts(route: Route, dialog: DialogKind, act: ShellActions
       const ctrl = e.ctrlKey || e.metaKey;
       const k = e.key.toLowerCase();
       const place = ctrl && /^[1-9]$/.test(e.key) ? placesOf(route)[Number(e.key) - 1] : undefined;
-      if (ctrl && e.shiftKey && k === "n") {
-        if (inScope) act.create();
+      if (ctrl && k === "j") {
+        if (inScope) act.talk();
       } else if (ctrl && k === "n") act.open("new");
       else if (ctrl && k === "o") act.open("open");
       else if (ctrl && k === "p") act.open("picker");

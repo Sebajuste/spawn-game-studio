@@ -3,15 +3,20 @@ import assert from "node:assert/strict";
 import { formatRoute, legacyRoute, parseRoute, projectRoute, workspaceRoute } from "./route.ts";
 
 test("les adresses de la spec font l'aller-retour", () => {
-  for (const hash of ["#/p/hello-web", "#/p/hello-web/backlog", "#/p/hello-web/backlog/s/greeting", "#/w/arena", "#/w/arena/epics", "#/w/arena/epics/ARN-2", "#/w/arena/projects", "#/w/arena/p/ar-api/inbox/s/equipment-routes", "#/w/arena/p/ar-api", "#/pick"]) {
+  for (const hash of ["#/p/hello-web", "#/p/hello-web/backlog", "#/p/hello-web/backlog/s/greeting", "#/w/arena", "#/w/arena/epics", "#/w/arena/epics/ARN-2", "#/w/arena/projects", "#/w/arena/p/ar-api/home/s/equipment-routes", "#/w/arena/p/ar-api", "#/pick"]) {
     const route = parseRoute(hash);
     assert.ok(route, hash);
     assert.equal(formatRoute(route), hash);
   }
 });
 
-test("un projet sans lieu ouvre À traiter, sans parent", () => {
+test("un projet sans lieu ouvre l'Accueil, sans parent", () => {
   assert.deepEqual(parseRoute("#/p/x"), projectRoute("x"));
+});
+
+test("les adresses de l'ancien lieu À traiter mènent à l'Accueil", () => {
+  assert.deepEqual(parseRoute("#/w/ws/p/api/inbox/s/routes"), projectRoute("api", "ws", "home", "routes"));
+  assert.deepEqual(parseRoute("#/w/ws/inbox"), workspaceRoute("ws"));
 });
 
 test("une story ouverte depuis un workspace garde le workspace pour parent", () => {

@@ -1,0 +1,10 @@
+/* Accueil : la conversation prend la place, À juger reste visible à droite. */
+.home { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; }
+.home > .talk, .home > .empty { min-height: 0; }
+.to-judge { border-left: 1px solid var(--border); background: var(--bg-bar); padding: 12px; overflow-y: auto; }
+.to-judge h3 { margin: 0 0 8px; font-size: 13px; }
+.to-judge .group-title { margin-top: 16px; }
+@media (max-width: 760px) {
+  .home { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .to-judge { border-left: 0; border-top: 1px solid var(--border); max-height: 35vh; }
+}

@@ -24,7 +24,7 @@ export function goToEntries(
       label: s.title,
       detail: workspace ? `${projectName(p)} · ${describe(s)}` : describe(s),
       search: `${s.title} ${s.request ?? ""} ${s.story} ${p}`.toLowerCase(),
-      route: projectRoute(p, workspace?.id ?? null, s.group === "blocked" || s.group === "acceptance" ? "inbox" : "backlog", s.story),
+      route: projectRoute(p, workspace?.id ?? null, s.group === "blocked" || s.group === "acceptance" ? "home" : "backlog", s.story),
     })),
   );
   const epics: GoToEntry[] = workspace
