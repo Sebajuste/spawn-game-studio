@@ -96,3 +96,23 @@ Le cœur du kit ne change qu'avec le mainteneur, hors d'une story (`CLAUDE.md`) 
 3. `blocked_by` et ordre dans `spawn next` (cœur, par le mainteneur).
 4. POC : trois dépôts (base, API, site) sur le projet Arena, un epic de trois stories.
 5. Interface de suivi et plugins, quand l'accès à Jira est clarifié.
+
+## 9. Résultat du POC (étape 4)
+
+Trois dépôts (`ar-db`, `ar-api`, `ar-site`), epic ARN-1, trois stories chaînées par `blocked_by`, pilotées par Copilot en Docker : **les trois sont fusionnées dans `develop`**, dans l'ordre. Le contrat passe de dépôt en dépôt par un fichier (`docs/schema.md` → `docs/contract.md` → page du site), lu sans être modifié.
+
+| Story | Durée | Interventions | cache_read |
+|---|---|---|---|
+| ar-db/equipment-schema | 9 min (reprise ; 1er essai abandonné à 18 min) | 2 | 2,1 M |
+| ar-api/equipment-routes | 38 min | 4 | 8,3 M |
+| ar-site/equipment-page | 44 min | 4 | 10,4 M |
+
+Vérifié : `spawn next` répond « en attente d'une dépendance » tant que l'amont n'est pas fusionné ; la suppression du worktree après fusion fonctionne (correctif EPERM).
+
+Écarts relevés (décisions du mainteneur, cœur) :
+
+- Un projet sans `launch` (bibliothèque) n'a pas de capture : l'étape de preuve bloque et le pilote abandonne (« 3 tours sans changement »). Contournement du POC : une page HTML servie au lancement. À trancher : preuve sans capture pour les moteurs sans sortie visible.
+- Le texte de l'étape `spec` parle de « TypeScript, React, Rust » pour un projet node.
+- `spawn prerequisites` exige `claude` même sous Copilot ; `new-project --engine node` n'a pas de gabarit.
+- Un pilote lancé hors de la racine du projet crée le fil dans le dépôt courant : à refuser (le POC l'a fait une fois par erreur, nettoyé).
+- Le champ `epic` sur la story n'a pas été nécessaire : le lien se lit dans `workspaces.json`.
