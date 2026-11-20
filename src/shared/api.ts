@@ -22,8 +22,8 @@ import type {
   StoryView,
   TouchedFile,
   WorkspaceView,
-} from "../service/src/contract.ts";
-import { t } from "./i18n.ts";
+} from "../../service/src/contract.ts";
+import { t } from "../i18n/i18n.ts";
 
 export type {
   AgentEvent,

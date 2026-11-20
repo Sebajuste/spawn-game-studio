@@ -1,4 +1,4 @@
-﻿import type { Messages } from "../i18n.ts";
+import type { Messages } from "../i18n.ts";
 import { project } from "./zones/project.ts";
 import { story } from "./zones/story.ts";
 import { misc } from "./zones/misc.ts";

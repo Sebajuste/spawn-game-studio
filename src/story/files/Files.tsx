@@ -2,8 +2,8 @@
 // recharge quand la story change ou qu'un tour de l'agent finit. Un aperçu n'est montré que si le service le dit
 // affichable ; sinon, Ouvrir passe la main à l'application du système.
 import { useCallback, useEffect, useState } from "react";
-import type { Api, StoryCapture, StoryFiles, TouchedFile } from "./api.ts";
-import { t } from "./i18n.ts";
+import type { Api, StoryCapture, StoryFiles, TouchedFile } from "../../shared/api.ts";
+import { t } from "../../i18n/i18n.ts";
 
 interface Props {
   api: Api;

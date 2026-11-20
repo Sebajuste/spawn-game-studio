@@ -4,6 +4,8 @@ Tiré du modèle validé (`docs/modele.md`). Remplace les sections « Versions, 
 
 ## Structure de la fenêtre
 
+> Avec les workspaces : proposition de navigation unifiée (portée, lieux, fil d'Ariane, une adresse) dans `docs/navigation.md`, maquette `docs/maquettes/navigation.html` (validée et codée le 2026-11-20 ; elle prime sur la barre de lieux décrite ci-dessous pour la coque, la portée et les adresses).
+
 - **Menus** : Fichier (projets), Projet (commandes du projet), Affichage, Aide.
 - **Barre de lieux** (gauche) : le projet en haut (nom, ▶ lancer le jeu, clic : changer de projet), puis cinq lieux fixes :
   - **À traiter** : tout ce qui attend une décision de l'utilisateur, et rien d'autre ;

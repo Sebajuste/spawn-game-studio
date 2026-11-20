@@ -1,13 +1,15 @@
-﻿// Une story (docs/ux-parcours.md §4 à §7). Onglet Avancement par défaut : ce qui attend l'utilisateur en tête
+// Une story (docs/ux-parcours.md §4 à §7). Onglet Avancement par défaut : ce qui attend l'utilisateur en tête
 // (question, recette), une ligne « maintenant », puis les étapes. Les autres onglets (Conversation, Fichiers, Journal,
 // Technique) gardent le détail, chacun selon son module.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Api, AgentEvent, ConversationEvent, ProgressStep, StoryDetail, StoryFiles, StoryStateDetail } from "./api.ts";
-import { label, Refusal, useAction, type Action } from "./action.ts";
-import { Conversation } from "./Conversation.tsx";
-import { Files } from "./Files.tsx";
-import { since, AGENT_NAMES, subtitle } from "./Project.tsx";
-import { t } from "./i18n.ts";
+import type { Api, AgentEvent, ConversationEvent, ProgressStep, StoryDetail, StoryFiles, StoryStateDetail } from "../shared/api.ts";
+import { label, Refusal, useAction, type Action } from "../shared/action.ts";
+import { Conversation } from "./conversation/Conversation.tsx";
+import { Files } from "./files/Files.tsx";
+import { since } from "../shared/time.ts";
+import { AGENT_NAMES } from "../project/agents.ts";
+import { subtitle } from "../project/storyText.ts";
+import { t } from "../i18n/i18n.ts";
 
 interface Props {
   api: Api;

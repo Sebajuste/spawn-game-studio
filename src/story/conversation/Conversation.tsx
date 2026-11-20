@@ -1,9 +1,9 @@
 // Conversation avec l'agent d'une story, et ses vues autour : ligne d'activité, jauge de contexte, barre d'état. Chaque
 // zone n'existe que si son module est actif ; la conversation se met à jour par le flux d'événements du service.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { label, Refusal, type Action } from "./action.ts";
-import { t } from "./i18n.ts";
-import type { Api, AgentEvent, AgentName, ConversationEnd, ConversationEvent, ConversationTurn, ConversationView } from "./api.ts";
+import { label, Refusal, type Action } from "../../shared/action.ts";
+import { t } from "../../i18n/i18n.ts";
+import type { Api, AgentEvent, AgentName, ConversationEnd, ConversationEvent, ConversationTurn, ConversationView } from "../../shared/api.ts";
 
 interface Props {
   api: Api;

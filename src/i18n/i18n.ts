@@ -1,4 +1,4 @@
-﻿// Langue de l'interface : l'anglais par défaut, le français proposé (menu Affichage > Langue). Les textes vivent dans
+// Langue de l'interface : l'anglais par défaut, le français proposé (menu Affichage > Langue). Les textes vivent dans
 // `locales/<langue>.ts` ; l'anglais est la source des clés, et `Messages` oblige chaque autre langue à les avoir
 // toutes (le typecheck échoue sinon). Le choix est gardé dans localStorage et change toute la fenêtre à la fois.
 import { useSyncExternalStore } from "react";
