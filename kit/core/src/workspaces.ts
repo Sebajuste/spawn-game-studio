@@ -1,7 +1,7 @@
 // Workspaces (docs/workspaces.md) : des projets regroupés en produit, et des epics dont les stories visent plusieurs
 // projets. Stockés dans `~/.spawn/workspaces.json` ; un projet ne connaît pas ses workspaces, et chaque story reste
 // dans son projet. Le suivi local est l'implémentation par défaut d'un éventuel plugin de suivi (Jira…).
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { readRegistry, type RegisteredProject } from "./registry.ts";
@@ -30,8 +30,10 @@ export interface Workspace {
   epics: Epic[];
 }
 
+// `SPAWN_WORKSPACES` place le fichier dans un dépôt git d'équipe (suivi partagé, versionné). Le registre des projets reste
+// local : il contient des chemins propres à la machine.
 export function workspacesPath(): string {
-  return join(process.env.SPAWN_CONFIG || join(homedir(), ".spawn"), "workspaces.json");
+  return process.env.SPAWN_WORKSPACES || join(process.env.SPAWN_CONFIG || join(homedir(), ".spawn"), "workspaces.json");
 }
 
 export function readWorkspaces(): Workspace[] {
@@ -46,8 +48,12 @@ export function readWorkspaces(): Workspace[] {
 }
 
 function writeWorkspaces(workspaces: Workspace[]): void {
-  mkdirSync(dirname(workspacesPath()), { recursive: true });
-  writeFileSync(workspacesPath(), JSON.stringify({ workspaces }, null, 2) + "\n");
+  const path = workspacesPath();
+  mkdirSync(dirname(path), { recursive: true });
+  // Fichier temporaire puis renommage : un arrêt en cours d'écriture ne laisse pas un JSON tronqué, et le diff git reste propre.
+  const tmp = `${path}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify({ workspaces }, null, 2) + "\n");
+  renameSync(tmp, path);
 }
 
 const kebab = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
