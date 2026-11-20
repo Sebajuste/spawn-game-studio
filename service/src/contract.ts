@@ -42,6 +42,31 @@ export interface ProjectView {
   problem: string | null;
 }
 
+// Workspace : état réel de chaque story d'epic, lu dans son projet.
+export interface EpicStoryView {
+  project: string;
+  story: string;
+  blocked_by: { project: string; story: string }[];
+  state: string;
+  merged: boolean;
+  waiting_for: { project: string; story: string }[];
+}
+
+export interface EpicView {
+  id: string;
+  title: string;
+  acceptance: string[];
+  stories: EpicStoryView[];
+  merged: number;
+}
+
+export interface WorkspaceView {
+  id: string;
+  name: string;
+  projects: string[];
+  epics: EpicView[];
+}
+
 // État technique d'une story (module stories), avec l'étape donnée par `spawn next`.
 export interface StoryStateView extends Story {
   step: string | null;

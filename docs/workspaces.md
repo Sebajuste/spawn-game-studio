@@ -1,6 +1,6 @@
-# Workspaces : plusieurs projets, une équipe agile (proposition, à valider)
+# Workspaces : plusieurs projets, une équipe agile (validé)
 
-Statut : **proposition**, non décidée. Rien de ce document n'est codé. Elle étend `modele.md` (qui reste vrai pour un projet seul) et respecte sa règle : aucun concept absent des outils de suivi courants (Jira, GitLab, GitHub), pour qu'un adaptateur de suivi reste possible.
+Statut : **validé**. Codé : registre `workspaces.json`, module de service `workspaces`, règle `blocked_by` dans `spawn next`. Pas encore codés : l'interface, le champ `epic` dans l'état des stories, l'interface de plugins de suivi. Elle étend `modele.md` (qui reste vrai pour un projet seul) et respecte sa règle : aucun concept absent des outils de suivi courants (Jira, GitLab, GitHub), pour qu'un adaptateur de suivi reste possible.
 
 ## 1. Le besoin
 

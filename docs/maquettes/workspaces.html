@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette Spawn App Studio : workspaces et epics</title>
+<style>
+:root { --fond:#f4f3ef; --barre:#ecebe6; --carte:#fff; --bord:#d8d5cc; --texte:#22231f; --discret:#77756d; --accent:#2f6fd6; --vert:#2e9d5b; --orange:#d98a1c; --rouge:#c9473c; }
+* { box-sizing: border-box; }
+body { margin:0; font:14px/1.45 "Segoe UI",system-ui,sans-serif; color:var(--texte); background:#dcd9d0; padding:18px; }
+.note { background:#fffbe6; border:1px solid #e6d98a; border-radius:6px; padding:8px 12px; font-size:13px; max-width:1180px; margin:0 auto 10px; }
+.fenetre { background:var(--fond); border:1px solid #c9c6bd; border-radius:8px; box-shadow:0 8px 30px #0003; max-width:1180px; margin:0 auto 24px; display:grid; grid-template-columns:240px 1fr; min-height:560px; overflow:hidden; }
+.lieux { background:var(--barre); border-right:1px solid var(--bord); padding:10px 8px; }
+.lieux h3 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); margin:12px 6px 4px; }
+.ws { font-weight:600; padding:6px 8px; border-radius:6px; display:flex; justify-content:space-between; }
+.ws.choisi { background:var(--carte); box-shadow:0 0 0 1px var(--bord); }
+.ws small { color:var(--discret); font-weight:400; }
+.proj { padding:4px 8px 4px 22px; color:#44453f; display:flex; justify-content:space-between; font-size:13px; }
+.proj i { font-style:normal; color:var(--discret); font-size:11px; }
+.btn { border:1px solid var(--bord); background:var(--carte); border-radius:6px; padding:5px 10px; font-size:12px; }
+.btn.fort { background:var(--accent); border-color:var(--accent); color:#fff; }
+.main { padding:16px 20px; }
+.entete { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.entete h2 { margin:0; font-size:18px; }
+.entete p { margin:2px 0 0; color:var(--discret); font-size:13px; }
+.onglets { display:flex; gap:4px; margin:12px 0; border-bottom:1px solid var(--bord); }
+.onglets span { padding:6px 12px; border-radius:6px 6px 0 0; font-size:13px; color:var(--discret); }
+.onglets .actif { background:var(--carte); color:var(--texte); font-weight:600; border:1px solid var(--bord); border-bottom:0; }
+.epic { background:var(--carte); border:1px solid var(--bord); border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+.epic header { display:flex; justify-content:space-between; align-items:center; }
+.epic header strong small { color:var(--discret); font-weight:400; margin-right:6px; }
+.barre { height:6px; background:#e6e3da; border-radius:3px; margin:8px 0 10px; overflow:hidden; }
+.barre b { display:block; height:100%; background:var(--vert); }
+.criteres { font-size:12px; color:var(--discret); margin:0 0 10px; padding-left:18px; }
+.voies { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.voie h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); }
+.story { border:1px solid var(--bord); border-left:4px solid var(--bord); border-radius:6px; padding:6px 8px; margin-bottom:6px; font-size:13px; background:#fcfbf8; }
+.story small { display:block; color:var(--discret); font-size:11px; }
+.story.fait { border-left-color:var(--vert); }
+.story.cours { border-left-color:var(--accent); }
+.story.attend { border-left-color:var(--orange); }
+.story.libre { border-left-color:var(--bord); }
+.pastille { font-size:11px; border-radius:9px; padding:1px 8px; color:#fff; }
+.pastille.v { background:var(--vert); } .pastille.b { background:var(--accent); } .pastille.o { background:var(--orange); } .pastille.g { background:#9a978d; }
+.bas { margin-top:8px; font-size:12px; color:var(--discret); }
+.dialogue { background:var(--carte); border:1px solid var(--bord); border-radius:8px; padding:14px; max-width:520px; margin:24px auto; box-shadow:0 8px 30px #0003; }
+.dialogue label { display:block; font-size:12px; color:var(--discret); margin:8px 0 2px; }
+.dialogue .champ { border:1px solid var(--bord); border-radius:6px; padding:5px 8px; background:#fff; }
+.cases span { display:inline-block; border:1px solid var(--bord); border-radius:6px; padding:3px 8px; margin:2px 4px 2px 0; font-size:13px; }
+.cases .on { background:var(--accent); border-color:var(--accent); color:#fff; }
+</style>
+</head>
+<body>
+<div class="note"><b>Écran 1 : vue d'un workspace.</b> La barre de lieux regroupe les projets par workspace (un projet peut apparaître dans deux). L'onglet <i>Epics</i> montre chaque epic en voies par projet : l'état de chaque story est lu dans son projet, et une story reste « en attente » tant que ses dépendances ne sont pas fusionnées. Les sections existantes (Backlog, Activité…) deviennent des onglets du workspace, filtrés par projet.</div>
+
+<div class="fenetre">
+  <aside class="lieux">
+    <button class="btn fort" style="width:100%">+ Nouveau workspace</button>
+    <h3>Workspaces</h3>
+    <div class="ws choisi">Arena <small>3 projets</small></div>
+    <div class="proj">ar-db <i>node · 1 story</i></div>
+    <div class="proj">ar-api <i>node · 2 stories</i></div>
+    <div class="proj">ar-site <i>node · 0</i></div>
+    <div class="ws">Firmware passerelle <small>2 projets</small></div>
+    <h3>Hors workspace</h3>
+    <div class="proj" style="padding-left:8px">hello-web <i>node</i></div>
+    <div class="proj" style="padding-left:8px">proto-lobby <i>node</i></div>
+    <h3>Suivi</h3>
+    <div class="proj" style="padding-left:8px">Local <i>actif</i></div>
+    <div class="proj" style="padding-left:8px;color:var(--discret)">Jira <i>plugin à venir</i></div>
+  </aside>
+  <section class="main">
+    <div class="entete">
+      <div><h2>Arena</h2><p>3 projets · 1 epic en cours · 1 à cadrer</p></div>
+      <div><button class="btn">+ Projet</button> <button class="btn fort">+ Epic</button></div>
+    </div>
+    <div class="onglets"><span class="actif">Epics</span><span>Backlog</span><span>Activité</span><span>Projets</span></div>
+
+    <div class="epic">
+      <header><strong><small>ARN-1</small>Intégration d'un fournisseur</strong><span class="pastille b">1 / 3 fusionnée</span></header>
+      <div class="barre"><b style="width:33%"></b></div>
+      <ul class="criteres"><li>Un équipement créé en base est lisible par l'API</li><li>Le site affiche l'état de l'équipement</li></ul>
+      <div class="voies">
+        <div class="voie"><h4>ar-db</h4>
+          <div class="story fait">schema-equipement<small>fusionnée · 29/29 tests</small></div></div>
+        <div class="voie"><h4>ar-api</h4>
+          <div class="story cours">routes-equipement<small>active · tâche 2/4 · débloquée par schema-equipement</small></div></div>
+        <div class="voie"><h4>ar-site</h4>
+          <div class="story attend">page-equipement<small>⏳ attend ar-api/routes-equipement</small></div></div>
+      </div>
+      <div class="bas">Ordre : ar-db → ar-api → ar-site. Contrat : <code>ar-api/docs/contract.md</code> (dans le dépôt qui le porte).</div>
+    </div>
+
+    <div class="epic">
+      <header><strong><small>ARN-2</small>Alertes de latence</strong><span class="pastille g">à cadrer</span></header>
+      <div class="bas">Décris l'intention : l'agent propose les stories par projet et leur ordre, tu valides.</div>
+      <div style="margin-top:8px"><button class="btn fort">Cadrer avec l'agent</button></div>
+    </div>
+  </section>
+</div>
+
+<div class="note"><b>Écran 2 : nouvel epic.</b> L'intention en une phrase ; l'agent propose le découpage, l'utilisateur ajuste les projets et l'ordre avant de valider (rien ne démarre sans cela).</div>
+<div class="dialogue">
+  <strong>Nouvel epic · Arena</strong>
+  <label>Intention</label><div class="champ">Recevoir les alertes de latence sur le site</div>
+  <label>Projets concernés</label>
+  <div class="cases"><span class="on">ar-db</span><span class="on">ar-api</span><span class="on">ar-site</span></div>
+  <label>Découpage proposé par l'agent (modifiable)</label>
+  <div class="story libre">1 · ar-db / table-alertes</div>
+  <div class="story libre">2 · ar-api / alertes-latence <small>après 1</small></div>
+  <div class="story libre">3 · ar-site / bandeau-alertes <small>après 2</small></div>
+  <div style="text-align:right;margin-top:10px"><button class="btn">Annuler</button> <button class="btn fort">Valider l'epic</button></div>
+</div>
+</body>
+</html>
