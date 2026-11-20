@@ -30,7 +30,7 @@
 | `src/talk/strip.ts` (+ test) | retirer les blocs ```` ```spawn ```` d'un texte |
 | `src/talk/talk.css` | mise en page Accueil |
 | `src/home/Home.tsx` | Accueil : conversation + colonne À juger |
-| `src/inbox/Inbox.tsx` | devient la colonne À juger (compacte) |
+| `src/home/ToJudge.tsx` | la colonne À juger (compacte) ; `src/inbox/` supprimé |
 | `src/shell/*` | Accueil par défaut, Ctrl+J, retrait de « + Nouvelle feature » |
 
 ## Tâches
@@ -40,6 +40,10 @@
 3. **Route** : `home` remplace `inbox` dans `ProjectPlace` / `WorkspacePlace`, défaut `home`, `inbox` lu comme `home` ; tests de route, fil d'Ariane, Ctrl+K.
 4. **App** : `src/talk/`, `src/home/Home.tsx`, À juger compact, retrait de `NewFeatureForm` du Backlog, Ctrl+J, i18n en et fr.
 5. **Vérification** : `npm run typecheck`, `npm run lint`, `npm run test:app`, tests du service ; captures (Accueil projet vide, Accueil avec un tour et une action, Accueil workspace, Backlog sans bouton) comparées à `docs/maquettes/navigation.html`.
+
+## Statut
+
+Tâches 1 à 5 faites (commits « service: conversation de portée… » et « gui: Accueil… »). Vérifié : typecheck, lint, `test:app` (31), tests du service talk, talk-actions et backlog (13) ; captures de l'Accueil projet (tours, action story), de l'Accueil vide, de l'Accueil workspace (action epic, À juger multi-projets), du Backlog sans création, et curseur dans la saisie après Ctrl+J. **Non vérifié** : un vrai agent Claude qui suit le protocole ```` ```spawn ```` (seul un faux agent scripté l'a été).
 
 ## Hors de ce plan
 
