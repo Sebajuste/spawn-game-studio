@@ -5,7 +5,7 @@ import { t, setLang, getLang, useLang, LANGS } from "./i18n.ts";
 import { Home, NewProjectDialog, OpenDialog } from "./Home.tsx";
 import { Api, connect, type ModuleState, type ProjectView, type WorkspaceView } from "./api.ts";
 import { Project } from "./Project.tsx";
-import { NewWorkspaceDialog, Workspace, WorkspaceSidebar } from "./Workspace.tsx";
+import { NewWorkspaceDialog, Workspace, WorkspaceBar, WorkspaceSidebar } from "./Workspace.tsx";
 import { Menus, type Menu } from "./Menus.tsx";
 import "./App.css";
 
@@ -43,9 +43,9 @@ export default function App() {
   const [modules, setModules] = useState<ModuleState[]>([]);
   const [projects, setProjects] = useState<ProjectView[] | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceView[]>([]);
-  // `#workspace=<id>` ouvre un workspace directement (lien, capture d'écran de recette).
+  // `#workspace=<id>&project=<id>` ouvre directement un workspace, ou un projet dans son workspace (lien, capture de recette).
   const [workspaceId, setWorkspaceId] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get("workspace"));
-  const [game, setGame] = useState<string | null>(readProject);
+  const [game, setGame] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get("project") ?? readProject());
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [events, setEvents] = useState<EventSource | null>(null);
   // Demandes faites par les menus et les raccourcis au jeu ouvert : un compteur par action.
@@ -91,9 +91,10 @@ export default function App() {
     return () => source.close();
   }, [api, loadWorkspaces]);
 
-  const openProject = useCallback((id: string | null) => {
+  // Ouvrir un projet depuis un workspace garde le workspace : la barre de contexte permet d'y revenir.
+  const openProject = useCallback((id: string | null, fromWorkspace: string | null = null) => {
     setGame(id);
-    setWorkspaceId(null);
+    setWorkspaceId(fromWorkspace);
     rememberProject(id);
     setDialog(null);
   }, []);
@@ -215,10 +216,24 @@ export default function App() {
         </div>
       )}
       {project ? (
-        <Project key={project.id} api={api} events={events} project={project} active={active} signal={signal} dialog={dialog} closeDialog={() => setDialog(null)} onError={setError} />
+        <>
+          {workspace && (
+            <WorkspaceBar
+              workspace={workspace}
+              projects={projects ?? []}
+              current={project.id}
+              onBack={() => {
+                setGame(null);
+                rememberProject(null);
+              }}
+              onPick={(id) => openProject(id, workspace.id)}
+            />
+          )}
+          <Project key={project.id} api={api} events={events} project={project} active={active} signal={signal} dialog={dialog} closeDialog={() => setDialog(null)} onError={setError} />
+        </>
       ) : workspace ? (
         <div className="layout">
-          <WorkspaceSidebar workspaces={workspaces} projects={projects ?? []} selected={workspace.id} onPickWorkspace={setWorkspaceId} onPickProject={openProject} />
+          <WorkspaceSidebar workspaces={workspaces} projects={projects ?? []} selected={workspace.id} onPickWorkspace={setWorkspaceId} onPickProject={(id) => openProject(id, workspace.id)} />
           <div className="main-pane">
             <Workspace
               api={api}

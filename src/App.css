@@ -121,6 +121,10 @@ details > summary { cursor: pointer; color: var(--muted); margin: 4px 0 10px; }
 .item:hover { background: var(--hover); }
 .item.selected { background: var(--card); box-shadow: 0 0 0 1px var(--border); }
 .item.sub { padding: 3px 8px 3px 24px; font-size: 13px; }
+.ws-bar { display: flex; gap: 6px; align-items: center; padding: 6px 12px; background: var(--bg-bar); border-bottom: 1px solid var(--border); flex: none; }
+.ws-tab { border: 0; background: none; padding: 4px 10px; border-radius: 6px; color: var(--text); }
+.ws-tab:hover { background: var(--hover); }
+.ws-tab.current { background: var(--card); box-shadow: 0 0 0 1px var(--border); font-weight: 600; }
 .item-text { min-width: 0; overflow: hidden; }
 .item small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .game-home strong { font-size: 15px; }

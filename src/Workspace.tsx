@@ -17,6 +17,23 @@ const stateClass = (s: EpicStoryView) => (s.merged ? "done" : s.state === "not-s
 
 const megas = (n: number) => (n / 1_000_000).toFixed(1);
 
+// Barre de contexte d'un projet ouvert depuis un workspace : retour au workspace et passage d'un projet frère à l'autre.
+export function WorkspaceBar({ workspace, projects, current, onBack, onPick }: { workspace: WorkspaceView; projects: ProjectView[]; current: string; onBack: () => void; onPick: (id: string) => void }) {
+  const names = new Map(projects.map((p) => [p.id, p.name]));
+  return (
+    <nav className="ws-bar">
+      <button className="btn small" onClick={onBack}>
+        ← {workspace.name}
+      </button>
+      {workspace.projects.map((p) => (
+        <button key={p} className={`ws-tab${p === current ? " current" : ""}`} onClick={() => p !== current && onPick(p)}>
+          {names.get(p) ?? p}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 // Barre de lieux : les workspaces avec leurs projets, puis les projets hors workspace (maquette workspaces.html).
 export function WorkspaceSidebar({ workspaces, projects, selected, onPickWorkspace, onPickProject }: { workspaces: WorkspaceView[]; projects: ProjectView[]; selected: string | null; onPickWorkspace: (id: string) => void; onPickProject: (id: string) => void }) {
   const names = new Map(projects.map((p) => [p.id, p.name]));
