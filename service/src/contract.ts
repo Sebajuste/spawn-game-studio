@@ -128,6 +128,39 @@ export interface ConversationEnd {
   restarted: boolean;
 }
 
+// Conversation de portée (docs/conversation.md) : l'Accueil d'un projet ou d'un workspace.
+export type TalkScope = "project" | "workspace";
+
+// Ce que le service a fait d'une action demandée par l'agent : vérifié par lui, jamais une promesse de l'agent.
+export type TalkActionResult =
+  | { kind: "story"; ok: true; project: string; story: string; title: string }
+  | { kind: "epic"; ok: true; epic: string; title: string; stories: { project: string; story: string }[] }
+  | { kind: "story" | "epic" | "invalid"; ok: false; error: string };
+
+export interface TalkTurn extends ConversationTurn {
+  actions: TalkActionResult[];
+}
+
+export interface TalkView {
+  agent: AgentName | null;
+  running: boolean;
+  turns: TalkTurn[];
+}
+
+// Événements poussés par le module talk : `id` est celui du projet ou du workspace.
+export interface TalkEvent {
+  scope: TalkScope;
+  id: string;
+  turn: number;
+  events: AgentEvent[];
+}
+
+export interface TalkEnd {
+  scope: TalkScope;
+  id: string;
+  turn: number;
+}
+
 export interface StoryStateDetail extends StoryStateView {
   ledger: string[];
   next: Action | null;

@@ -157,7 +157,7 @@ function writeQueue(root: string, story: string, queue: Queued[]): void {
 
 // Lecture incrémentale d'une sortie en cours d'écriture : seules les lignes complètes sont rendues (jamais un caractère
 // UTF-8 coupé en deux).
-class Tail {
+export class Tail {
   private position = 0;
   private readonly path: string;
   constructor(path: string) {

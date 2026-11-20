@@ -87,6 +87,18 @@ export function firstMessage(request: string): string {
   ].join("\n");
 }
 
+// Une phrase suffit : titre et nom tirés d'elle, agent des réglages du projet sauf choix contraire. Le seul chemin de
+// création d'une feature (Backlog d'hier, conversation de portée aujourd'hui).
+export async function requestFeature(conversation: ConversationModule, projectId: string, project: Project, request: string, agent?: AgentName): Promise<{ story: string; title: string }> {
+  const title = titleFrom(request);
+  const name = freeName(project.root, title);
+  writeJson(metaPath(project.root, name), { title, request, created: new Date().toISOString() } satisfies StoryMeta);
+  // La story existe dès la réponse : l'app la montre tout de suite, avant même le premier mot de l'agent.
+  await createWorktree({ cwd: project.root, name }, { log: () => {} });
+  await conversation.send(projectId, name, firstMessage(request), agent ?? readSettings(project.root).agent);
+  return { story: name, title };
+}
+
 export function backlogModule(conversation: ConversationModule): ServiceModule {
   // Acceptations en cours (fusion), par « projet/story » : la fusion rejoue la suite complète, elle peut durer.
   const merges = new Map<string, { work: Promise<void>; since: string }>();
@@ -223,20 +235,13 @@ export function backlogModule(conversation: ConversationModule): ServiceModule {
         };
       });
 
-      // Une phrase suffit : titre et nom tirés d'elle, agent des réglages du projet sauf choix contraire.
       routes.add("POST", base, async ({ params, body }) => {
         const id = params.id ?? "";
         const project = projectOf(id);
         const request = text(body, "request");
         const chosen = (body as { agent?: unknown }).agent;
         if (chosen !== undefined && !AGENTS.includes(chosen as AgentName)) throw new HttpError(400, `agent inconnu : ${String(chosen)}`);
-        const title = titleFrom(request);
-        const name = freeName(project.root, title);
-        writeJson(metaPath(project.root, name), { title, request, created: new Date().toISOString() } satisfies StoryMeta);
-        // La story existe dès la réponse : l'app la montre tout de suite, avant même le premier mot de l'agent.
-        await createWorktree({ cwd: project.root, name }, { log: () => {} });
-        await conversation.send(id, name, firstMessage(request), (chosen as AgentName | undefined) ?? readSettings(project.root).agent);
-        return { story: name, title };
+        return requestFeature(conversation, id, project, request, chosen as AgentName | undefined);
       });
 
       routes.add("PATCH", `${base}/:story`, ({ params, body }) => {
