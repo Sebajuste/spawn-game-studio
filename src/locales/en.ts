@@ -2,6 +2,7 @@
 import { project } from "./zones/project.ts";
 import { story } from "./zones/story.ts";
 import { misc } from "./zones/misc.ts";
+import { workspace } from "./zones/workspace.ts";
 
 export const en = {
   "app.connecting": "Connecting to the service…",
@@ -59,4 +60,5 @@ export const en = {
   ...project.en,
   ...story.en,
   ...misc.en,
+  ...workspace.en,
 };

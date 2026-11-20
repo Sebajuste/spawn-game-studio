@@ -7,6 +7,8 @@ import type {
   ConversationEvent,
   ConversationTurn,
   ConversationView,
+  EpicStoryView,
+  EpicView,
   KnownEngine,
   ModuleState,
   ProgressStep,
@@ -19,6 +21,7 @@ import type {
   StoryStateDetail,
   StoryView,
   TouchedFile,
+  WorkspaceView,
 } from "../service/src/contract.ts";
 import { t } from "./i18n.ts";
 
@@ -41,6 +44,9 @@ export type {
   StoryStateDetail,
   StoryView,
   TouchedFile,
+  EpicView,
+  EpicStoryView,
+  WorkspaceView,
 };
 
 export const inTauri = () => "__TAURI_INTERNALS__" in window;

@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { t, setLang, getLang, useLang, LANGS } from "./i18n.ts";
 import { Home, NewProjectDialog, OpenDialog } from "./Home.tsx";
-import { Api, connect, type ModuleState, type ProjectView } from "./api.ts";
+import { Api, connect, type ModuleState, type ProjectView, type WorkspaceView } from "./api.ts";
 import { Project } from "./Project.tsx";
+import { NewWorkspaceDialog, Workspace } from "./Workspace.tsx";
 import { Menus, type Menu } from "./Menus.tsx";
 import "./App.css";
 
@@ -33,7 +34,7 @@ function rememberProject(id: string | null): void {
   }
 }
 
-export type DialogKind = "new" | "open" | "goto" | "settings" | null;
+export type DialogKind = "new" | "open" | "goto" | "settings" | "workspace" | null;
 
 export default function App() {
   useLang();
@@ -41,6 +42,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [modules, setModules] = useState<ModuleState[]>([]);
   const [projects, setProjects] = useState<ProjectView[] | null>(null);
+  const [workspaces, setWorkspaces] = useState<WorkspaceView[]>([]);
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [game, setGame] = useState<string | null>(readProject);
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [events, setEvents] = useState<EventSource | null>(null);
@@ -64,20 +67,32 @@ export default function App() {
     }
   }, [api]);
 
+  const loadWorkspaces = useCallback(async () => {
+    if (!api) return;
+    try {
+      setWorkspaces(await api.call<WorkspaceView[]>("GET", "/api/workspaces"));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [api]);
+
   useEffect(() => {
     void loadProjects();
-  }, [loadProjects]);
+    void loadWorkspaces();
+  }, [loadProjects, loadWorkspaces]);
 
   useEffect(() => {
     if (!api) return;
     const source = api.events();
     source.addEventListener("modules", (e) => setModules(JSON.parse((e as MessageEvent<string>).data) as ModuleState[]));
+    source.addEventListener("workspaces", () => void loadWorkspaces());
     setEvents(source);
     return () => source.close();
-  }, [api]);
+  }, [api, loadWorkspaces]);
 
   const openProject = useCallback((id: string | null) => {
     setGame(id);
+    setWorkspaceId(null);
     rememberProject(id);
     setDialog(null);
   }, []);
@@ -111,6 +126,7 @@ export default function App() {
     }
   };
 
+  const workspace = workspaces.find((w) => w.id === workspaceId) ?? null;
   const hasProject = project !== null;
   const menus: Menu[] = [
     {
@@ -121,6 +137,18 @@ export default function App() {
         {
           title: t("menu.file.recent"),
           sub: (projects ?? []).map((p) => ({ title: p.name, detail: p.root, action: () => openProject(p.id), checked: p.id === game })),
+        },
+        { title: t("menu.file.newWorkspace"), action: () => setDialog("workspace") },
+        {
+          title: t("menu.file.workspaces"),
+          sub: workspaces.map((w) => ({
+            title: w.name,
+            action: () => {
+              openProject(null);
+              setWorkspaceId(w.id);
+            },
+            checked: w.id === workspaceId,
+          })),
         },
         "-",
         { title: t("menu.file.close"), shortcut: "Ctrl+W", action: () => openProject(null), disabled: !hasProject },
@@ -187,8 +215,41 @@ export default function App() {
       )}
       {project ? (
         <Project key={project.id} api={api} events={events} project={project} active={active} signal={signal} dialog={dialog} closeDialog={() => setDialog(null)} onError={setError} />
+      ) : workspace ? (
+        <Workspace
+          api={api}
+          workspace={workspace}
+          projects={projects ?? []}
+          onBack={() => setWorkspaceId(null)}
+          onChanged={() => void loadWorkspaces()}
+          onDeleted={() => {
+            setWorkspaceId(null);
+            void loadWorkspaces();
+          }}
+          onError={setError}
+        />
       ) : (
-        <Home projects={projects ?? []} onNew={() => setDialog("new")} onOpen={() => setDialog("open")} onPick={openProject} />
+        <Home
+          projects={projects ?? []}
+          workspaces={workspaces}
+          onNew={() => setDialog("new")}
+          onOpen={() => setDialog("open")}
+          onPick={openProject}
+          onPickWorkspace={setWorkspaceId}
+          onNewWorkspace={() => setDialog("workspace")}
+        />
+      )}
+      {dialog === "workspace" && (
+        <NewWorkspaceDialog
+          api={api}
+          projects={projects ?? []}
+          onClose={() => setDialog(null)}
+          onCreated={(w) => {
+            void loadWorkspaces();
+            setDialog(null);
+            setWorkspaceId(w.id);
+          }}
+        />
       )}
       {dialog === "new" && (
         <NewProjectDialog

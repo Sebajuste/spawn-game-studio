@@ -247,3 +247,18 @@ details > summary { cursor: pointer; color: var(--muted); margin: 4px 0 10px; }
 .queued { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; max-width: 75%; }
 .queued-bubble { opacity: 0.55; max-width: 100%; }
 .queued button { padding: 0 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); }
+
+/* Workspaces et epics */
+.workspace { max-width: 980px; margin: 24px auto; padding: 0 20px; width: 100%; overflow-y: auto; }
+.workspace h1 { font-size: 22px; margin: 8px 0 2px; }
+.epic-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.epic-head h2 { margin: 0; }
+.epic-bar { height: 6px; background: var(--border); border-radius: 3px; margin: 8px 0 10px; overflow: hidden; }
+.epic-bar b { display: block; height: 100%; background: var(--active); }
+.epic-lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.epic-lane h4 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.epic-story { border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; font-size: 13px; }
+.epic-story small { display: block; color: var(--muted); font-size: 11px; }
+.epic-story.done { border-left-color: var(--active); }
+.epic-story.running { border-left-color: var(--accent); }
+.epic-story.waiting { border-left-color: var(--paused); }

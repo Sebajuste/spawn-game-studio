@@ -3,9 +3,25 @@
 import { useEffect, useState } from "react";
 import { useAction } from "./action.ts";
 import { t } from "./i18n.ts";
-import { pickFolder, inTauri, type Api, type KnownEngine, type ProjectView } from "./api.ts";
+import { pickFolder, inTauri, type Api, type KnownEngine, type ProjectView, type WorkspaceView } from "./api.ts";
 
-export function Home({ projects, onNew, onOpen, onPick }: { projects: ProjectView[]; onNew: () => void; onOpen: () => void; onPick: (id: string) => void }) {
+export function Home({
+  projects,
+  workspaces,
+  onNew,
+  onOpen,
+  onPick,
+  onPickWorkspace,
+  onNewWorkspace,
+}: {
+  projects: ProjectView[];
+  workspaces: WorkspaceView[];
+  onNew: () => void;
+  onOpen: () => void;
+  onPick: (id: string) => void;
+  onPickWorkspace: (id: string) => void;
+  onNewWorkspace: () => void;
+}) {
   return (
     <main className="home">
       <h1>Spawn App Studio</h1>
@@ -20,6 +36,16 @@ export function Home({ projects, onNew, onOpen, onPick }: { projects: ProjectVie
           <span className="muted">{t("home.openHint")}</span>
         </button>
       </div>
+      <h2 className="small-title">{t("home.workspaces")}</h2>
+      {workspaces.map((w) => (
+        <button key={w.id} className="recent" onClick={() => onPickWorkspace(w.id)}>
+          <strong>{w.name}</strong>
+          <span className="muted">{t(w.projects.length === 1 ? "home.workspaceProjects.one" : "home.workspaceProjects.other", { n: w.projects.length })}</span>
+        </button>
+      ))}
+      <button className="recent" onClick={onNewWorkspace}>
+        <strong>+ {t("menu.file.newWorkspace")}</strong>
+      </button>
       {projects.length > 0 && (
         <>
           <h2 className="small-title">{t("home.recent")}</h2>
