@@ -1,5 +1,5 @@
 // Barre de menus classique (Fichier, Projet, Affichage, Aide) : ouverte au clic, puis au survol des voisins ; fermée par
-// un clic ailleurs ou Échap. Les raccourcis sont tenus par App.tsx, les menus ne font que les afficher.
+// un clic ailleurs ou Échap. Les raccourcis sont tenus par useShortcuts.ts, les menus ne font que les afficher.
 import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n/i18n.ts";
 

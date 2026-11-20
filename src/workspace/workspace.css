@@ -1,0 +1,27 @@
+/* Workspace : epics et leur avancement, voies par projet, liste des projets. */
+.epic:hover { border-color: var(--ended); }
+.epic-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.epic-head h2 { margin: 0; }
+.epic-progress { font-size: 12px; }
+.epic-bar { height: 6px; background: var(--border); border-radius: 3px; margin: 6px 0 2px; overflow: hidden; }
+.epic-bar b { display: block; height: 100%; background: var(--active); }
+.acceptance-list { margin: 0 0 14px; padding-left: 20px; font-size: 13px; }
+.epic-lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 14px 0 10px; }
+.epic-lane h4 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.epic-story { border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; font-size: 13px; background: var(--card); }
+.epic-story.clickable:hover { border-color: var(--ended); }
+.epic-story small { display: block; color: var(--muted); font-size: 11px; }
+.epic-story.done { border-left-color: var(--active); }
+.epic-story.running { border-left-color: var(--accent); }
+.epic-story.waiting { border-left-color: var(--paused); }
+
+.project-row { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.project-row:hover { border-color: var(--ended); }
+.project-row-text { flex: 1; min-width: 0; }
+.project-row-text small { display: block; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-row .state { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.project-row .state.orange { color: var(--paused); font-weight: 600; }
+.project-row .state.blue { color: var(--accent); }
+.project-row .state.green { color: var(--active); }
+.place-header select { padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }
+.danger-zone { margin-top: 28px; padding-top: 14px; border-top: 1px dashed var(--border); }

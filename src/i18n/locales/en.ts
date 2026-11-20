@@ -1,8 +1,9 @@
-﻿// Source des clés de l'interface : toute nouvelle clé s'écrit ici d'abord, `fr.ts` doit suivre (typecheck).
+// Source des clés de l'interface : toute nouvelle clé s'écrit ici d'abord, `fr.ts` doit suivre (typecheck).
 import { project } from "./zones/project.ts";
 import { story } from "./zones/story.ts";
 import { misc } from "./zones/misc.ts";
 import { workspace } from "./zones/workspace.ts";
+import { navigation } from "./zones/navigation.ts";
 
 export const en = {
   "app.connecting": "Connecting to the service…",
@@ -12,11 +13,9 @@ export const en = {
   "menu.file.new": "New project…",
   "menu.file.open": "Open project…",
   "menu.file.recent": "Recent projects",
-  "menu.file.close": "Close project",
   "menu.project": "Project",
   "menu.project.feature": "New feature",
   "menu.project.launch": "Run project",
-  "menu.project.history": "Delivered and abandoned",
   "menu.project.folder": "Open folder",
   "menu.project.settings": "Project settings…",
   "menu.view": "View",
@@ -25,14 +24,6 @@ export const en = {
   "menu.help": "Help",
   "menu.help.journey": "App walkthrough: docs/ux-parcours.md",
 
-  "home.tagline": "You say what you want, you judge what you see.",
-  "home.new": "New project",
-  "home.open": "Open project…",
-  "home.openHint": "Ctrl+O · pick its folder",
-  "home.recent": "Recent",
-  "home.nothing": "nothing in progress",
-  "home.features.one": "{n} feature in progress",
-  "home.features.other": "{n} features in progress",
 
   "dialog.cancel": "Cancel",
   "dialog.close": "Close",
@@ -61,4 +52,5 @@ export const en = {
   ...story.en,
   ...misc.en,
   ...workspace.en,
+  ...navigation.en,
 };

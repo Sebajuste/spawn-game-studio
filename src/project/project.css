@@ -1,0 +1,29 @@
+/* Projet : cartes de story (aussi dans À traiter), Backlog, nouvelle fonctionnalité, création de projet. */
+.story-card { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.story-card:hover { border-color: var(--ended); }
+.story-card.orange { border-left-color: var(--paused); }
+.story-card.blue { border-left-color: var(--accent); }
+.story-card.green { border-left-color: var(--active); }
+.story-card-text { flex: 1; min-width: 0; }
+.story-card-text small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-card .btn { flex: none; }
+
+.backlog-tools { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; }
+.backlog-tools .search { margin: 0; max-width: 280px; padding: 4px 10px; }
+.chips { display: flex; gap: 6px; }
+.chip { border: 1px solid var(--border); border-radius: 12px; padding: 1px 10px; background: var(--card); font-size: 12px; color: var(--muted); }
+.chip:hover { border-color: var(--accent); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.card.prompt { cursor: pointer; border-style: dashed; }
+.card.prompt:hover { border-color: var(--accent); }
+.card.prompt p { margin: 0; color: var(--muted); }
+.new-feature { border-color: var(--accent); }
+.new-feature textarea { width: 100%; min-height: 70px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); resize: vertical; margin-bottom: 8px; }
+.inline-field { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.inline-field select { padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+
+.creation-steps { padding-left: 20px; font-size: 13px; }
+.creation-steps li { margin: 4px 0; }
+.creation-steps li.done::marker { color: var(--active); }
+.creation-steps li.running { color: var(--muted); }

@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Api, StoryCapture, StoryFiles, TouchedFile } from "../../shared/api.ts";
 import { t } from "../../i18n/i18n.ts";
+import { Preview, type Choice } from "./Preview.tsx";
 
 interface Props {
   api: Api;
@@ -12,8 +13,6 @@ interface Props {
   story: string;
   gallery: boolean;
 }
-
-type Choice = { access: string; preview: TouchedFile["preview"]; title: string };
 
 const MARKS: Record<TouchedFile["state"], string> = { added: "A", modified: "M", deleted: "S", renamed: "R", untracked: "N" };
 const stateTitle = (s: TouchedFile["state"]): string => t(`files.state.${s}`);
@@ -122,37 +121,5 @@ export function Files({ api, events, project, story, gallery }: Props) {
 
       {choice && <Preview api={api} project={project} choice={choice} onClose={() => setChoice(null)} onOpen={() => void open(choice.access)} />}
     </>
-  );
-}
-
-function Preview({ api, project, choice, onClose, onOpen }: { api: Api; project: string; choice: Choice; onClose: () => void; onOpen: () => void }) {
-  const [text, setText] = useState<string | null>(null);
-  useEffect(() => {
-    setText(null);
-    if (choice.preview !== "text") return;
-    api
-      .text(project, choice.access)
-      .then(setText)
-      .catch((e: Error) => setText(`(${e.message})`));
-  }, [api, project, choice]);
-  const url = api.fileUrl(project, choice.access);
-  return (
-    <section className="card preview">
-      <header className="preview-header">
-        <strong>{choice.title}</strong>
-        <span>
-          <button className="muted mini" onClick={onOpen}>
-            {t("files.open")}
-          </button>
-          <button className="muted mini" onClick={onClose}>
-            {t("files.close")}
-          </button>
-        </span>
-      </header>
-      {choice.preview === "image" && <img src={url} alt={choice.title} />}
-      {choice.preview === "video" && <video src={url} controls />}
-      {choice.preview === "audio" && <audio src={url} controls />}
-      {choice.preview === "text" && <pre>{text ?? "…"}</pre>}
-    </section>
   );
 }

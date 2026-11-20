@@ -3,6 +3,7 @@ import { project } from "./zones/project.ts";
 import { story } from "./zones/story.ts";
 import { misc } from "./zones/misc.ts";
 import { workspace } from "./zones/workspace.ts";
+import { navigation } from "./zones/navigation.ts";
 
 export const fr: Messages = {
   "app.connecting": "Connexion au service…",
@@ -12,11 +13,9 @@ export const fr: Messages = {
   "menu.file.new": "Nouveau projet…",
   "menu.file.open": "Ouvrir un projet…",
   "menu.file.recent": "Projets récents",
-  "menu.file.close": "Fermer le projet",
   "menu.project": "Projet",
   "menu.project.feature": "Nouvelle feature",
   "menu.project.launch": "Lancer le projet",
-  "menu.project.history": "Livrées et abandonnées",
   "menu.project.folder": "Ouvrir le dossier",
   "menu.project.settings": "Réglages du projet…",
   "menu.view": "Affichage",
@@ -25,14 +24,6 @@ export const fr: Messages = {
   "menu.help": "Aide",
   "menu.help.journey": "Parcours de l'app : docs/ux-parcours.md",
 
-  "home.tagline": "Tu dis ce que tu veux, tu juges ce que tu vois.",
-  "home.new": "Nouveau projet",
-  "home.open": "Ouvrir un projet…",
-  "home.openHint": "Ctrl+O · choisir son dossier",
-  "home.recent": "Récents",
-  "home.nothing": "rien en cours",
-  "home.features.one": "{n} feature en cours",
-  "home.features.other": "{n} features en cours",
 
   "dialog.cancel": "Annuler",
   "dialog.close": "Fermer",
@@ -61,4 +52,5 @@ export const fr: Messages = {
   ...story.fr,
   ...misc.fr,
   ...workspace.fr,
+  ...navigation.fr,
 };

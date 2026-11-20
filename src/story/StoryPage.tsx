@@ -1,17 +1,26 @@
 // Une story (docs/ux-parcours.md §4 à §7). Onglet Avancement par défaut : ce qui attend l'utilisateur en tête
 // (question, recette), une ligne « maintenant », puis les étapes. Les autres onglets (Conversation, Fichiers, Journal,
 // Technique) gardent le détail, chacun selon son module.
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Api, AgentEvent, ConversationEvent, ProgressStep, StoryDetail, StoryFiles, StoryStateDetail } from "../shared/api.ts";
-import { label, Refusal, useAction, type Action } from "../shared/action.ts";
+import { useCallback, useEffect, useState } from "react";
+import type { Api, AgentEvent, ConversationEvent, StoryDetail } from "../shared/api.ts";
+import { label, Refusal, useAction } from "../shared/action.ts";
 import { Conversation } from "./conversation/Conversation.tsx";
 import { Files } from "./files/Files.tsx";
+import { Steps } from "./Steps.tsx";
+import { Outcome } from "./Outcome.tsx";
+import { Idle } from "./Idle.tsx";
+import { ApproveSpec } from "./ApproveSpec.tsx";
+import { Answer } from "./Answer.tsx";
+import { Acceptance } from "./Acceptance.tsx";
+import { Log } from "./Log.tsx";
+import { Technical } from "./Technical.tsx";
 import { since } from "../shared/time.ts";
 import { AGENT_NAMES } from "../project/agents.ts";
 import { subtitle } from "../project/storyText.ts";
 import { t } from "../i18n/i18n.ts";
+import "./story.css";
 
-interface Props {
+export interface StoryPageProps {
   api: Api;
   events: EventSource | null;
   project: string;
@@ -24,7 +33,7 @@ interface Props {
 
 type Tab = "progress" | "conversation" | "files" | "log" | "technical";
 
-export function Story({ api, events, project, story, active, onLaunch, onError, onClosed }: Props) {
+export function StoryPage({ api, events, project, story, active, onLaunch, onError, onClosed }: StoryPageProps) {
   const [detail, setDetail] = useState<StoryDetail | null>(null);
   const [tab, setTab] = useState<Tab>("progress");
   const [now, setNow] = useState<string | null>(null);
@@ -244,369 +253,10 @@ function nowLine(ev: AgentEvent): string | null {
   return null;
 }
 
-const ICONS: Record<ProgressStep["state"], string> = { done: "✓", current: "…", pending: "" };
-
-// Étape rendue par l'outil que l'app ne connaît pas : dite telle quelle, à la place de l'étape en cours (après la
-// dernière étape faite) ; l'app ne devine jamais une étape.
-function Steps({ steps, unknown }: { steps: ProgressStep[]; unknown: string | null }) {
-  const firstPending = steps.findIndex((e) => e.state !== "done");
-  const at = firstPending === -1 ? steps.length : firstPending;
-  const rows: (ProgressStep | "unknown")[] = unknown ? [...steps.slice(0, at), "unknown", ...steps.slice(at)] : steps;
-  return (
-    <ol className="steps">
-      {rows.map((e) =>
-        e === "unknown" ? (
-          <li key="unknown" className="current">
-            <span className="icon current">…</span>
-            <strong>{t("story.unknownStep", { step: unknown ?? "" })}</strong>
-            <span />
-          </li>
-        ) : (
-        <li key={e.id} className={e.state}>
-          <span className={`icon ${e.state}`}>{e.id === "tasks" && e.state === "current" && e.detail ? e.detail.split("/")[0] : ICONS[e.state]}</span>
-          <span>
-            <strong>{e.title}</strong>
-            {e.detail && <span className="muted"> · {e.detail}</span>}
-            {e.tasks && e.tasks.length > 0 && (
-              <ul className="tasks">
-                {e.tasks.map((task) => (
-                  <li key={task.number} className={task.state}>
-                    {task.state === "done" ? "✓" : task.state === "parked" ? "⏸" : task.state === "current" ? "●" : "○"} {task.title}
-                    {task.rounds > 0 && <span className="muted">{t(task.rounds > 1 ? "story.corrections.other" : "story.corrections.one", { count: task.rounds })}</span>}
-                    {task.state === "parked" && <span className="muted">{t("story.parked")}</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </span>
-          <span className="muted small-text">{duration(e.start, e.end)}</span>
-        </li>
-        ),
-      )}
-    </ol>
-  );
-}
-
 // Durée écoulée depuis une date, pour le bandeau d'action longue.
 function elapsed(from: string): string {
   const s = Math.max(0, Math.floor((Date.now() - Date.parse(from)) / 1000));
   if (s < 60) return `${s} s`;
   if (s < 3600) return `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;
   return `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")} min`;
-}
-
-// Dernière phrase du dernier message de l'agent : ce qu'il a dit avant de s'arrêter.
-function lastSentence(text: string | null): string {
-  const parts = (text ?? "").trim().split(/(?<=[.!?…])\s+|\n+/).filter(Boolean);
-  return parts.at(-1)?.slice(0, 200) ?? t("story.noSaid");
-}
-
-// Issue de la dernière fusion. Une fusion refusée n'est plus d'actualité une fois la story revenue en recette (l'agent
-// a corrigé) ; une erreur reste dite tant qu'une nouvelle fusion ne l'efface pas.
-function Outcome({ detail }: { detail: StoryDetail }) {
-  const m = detail.lastMerge;
-  if (!m) return null;
-  if (m.verdict === "merged") return detail.group === "history" ? <div className="banner green">{t("story.delivered")}{m.commit ? ` (${m.commit.slice(0, 7)})` : ""}</div> : null;
-  if (m.verdict === "refused") return detail.group === "acceptance" || detail.group === "history" ? null : <div className="banner orange">{t("story.mergeRefused", { cause: m.cause ?? t("story.unknownCause") })}</div>;
-  return detail.group === "history" ? null : <div className="banner orange">{t("story.mergeError", { cause: m.cause ?? t("story.unknownCause") })}</div>;
-}
-
-// Sans tour en cours, jamais de libellé d'activité : ce qui attend l'utilisateur, ou l'état de repos.
-function Idle({ detail, act, onResume }: { detail: StoryDetail; act: Action; onResume: () => void }) {
-  const w = detail.waiting;
-  if (!w) return null;
-  if (w.reason === "paused" || w.reason === "stopped") {
-    return (
-      <div className="banner grey">
-        <span>{w.reason === "paused" ? t("story.idle.paused") : t("story.idle.stopped", { text: lastSentence(w.text) })}</span>
-        <button className="btn small primary" disabled={act.pending !== null} onClick={onResume}>
-          {label(act, "resume", t("story.resume"), t("story.resuming"))}
-        </button>
-        <Refusal action={act} k="resume" />
-      </div>
-    );
-  }
-  const what = w.reason === "spec-approval" ? t("story.idle.specApproval") : w.reason === "interrupted" ? t("story.idle.interrupted") : (w.text ?? t("story.idle.decision")).split("\n")[0]?.slice(0, 160) ?? "";
-  return <div className="banner blue">{t("story.idle.yourTurn", { what })}</div>;
-}
-
-function duration(start: string | null, end: string | null): string {
-  if (!start || !end) return "";
-  const s = (Date.parse(end) - Date.parse(start)) / 1000;
-  if (s < 60) return `${Math.max(1, Math.round(s))} s`;
-  if (s < 3600) return `${Math.round(s / 60)} min`;
-  return `${(s / 3600).toFixed(1)} h`;
-}
-
-// La seule question de la story : la spec proposée, à valider telle quelle ou à faire corriger.
-function ApproveSpec({ api, project, detail, act, onApprove, onAnswer }: { api: Api; project: string; detail: StoryDetail; act: Action; onApprove: () => Promise<boolean>; onAnswer: (m: string) => Promise<boolean> }) {
-  const [spec, setSpec] = useState<string | null>(null);
-  const [text, setText] = useState("");
-  const path = detail.waiting?.spec ?? null;
-  useEffect(() => {
-    if (!path) return;
-    api
-      .text(project, path)
-      .then(setSpec)
-      .catch((e: Error) => setSpec(t("story.spec.unreadable", { message: e.message })));
-  }, [api, project, path]);
-  return (
-    <section className="card waiting">
-      <h2>{t("story.spec.title")}</h2>
-      <p className="muted small-text">{t("story.spec.only")}</p>
-      <div className="agent-text">{spec ?? "…"}</div>
-      <div className="actions">
-        <button className="btn green" disabled={act.pending !== null} onClick={() => void onApprove()}>
-          {act.pending === "approve" ? t("story.approving") : t("story.spec.approve")}
-        </button>
-        <Refusal action={act} k="approve" />
-      </div>
-      <form
-        className="reply"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (text.trim()) void onAnswer(text.trim()).then((ok) => ok && setText(""));
-        }}
-      >
-        <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("story.spec.placeholder")} />
-        <button type="submit" className="btn" disabled={!text.trim() || act.pending !== null}>
-          {label(act, "changes", t("story.requestChanges"), t("story.sending"))}
-        </button>
-        <Refusal action={act} k="changes" />
-      </form>
-    </section>
-  );
-}
-
-function Answer({ detail, act, onAnswer, onResume }: { detail: StoryDetail; act: Action; onAnswer: (m: string) => Promise<boolean>; onResume: () => void }) {
-  const [text, setText] = useState("");
-  const w = detail.waiting;
-  if (w?.reason === "interrupted") {
-    return (
-      <section className="card waiting">
-        <h2>{t("story.interrupted.title")}</h2>
-        <p>{t("story.interrupted.body")}</p>
-        <button className="btn primary" disabled={act.pending !== null} onClick={onResume}>
-          {label(act, "resume", t("story.resume"), t("story.resuming"))}
-        </button>
-        <Refusal action={act} k="resume" />
-      </section>
-    );
-  }
-  return (
-    <section className="card waiting">
-      <h2>{w?.reason === "question" ? t("story.blocked.question") : t("story.blocked.stopped")}</h2>
-      {w?.text ? <div className="agent-text">{w.text}</div> : <p className="muted">{t("story.blocked.nothing")}</p>}
-      <form
-        className="reply"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (text.trim()) void onAnswer(text.trim()).then((ok) => ok && setText(""));
-        }}
-      >
-        <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={w?.reason === "question" ? t("story.answer.question") : t("story.answer.other")} autoFocus />
-        <button type="submit" className="btn primary" disabled={!text.trim() || act.pending !== null}>
-          {label(act, "answer", t("story.answer"), t("story.sending"))}
-        </button>
-        <Refusal action={act} k="answer" />
-      </form>
-    </section>
-  );
-}
-
-function Acceptance({
-  api,
-  project,
-  story,
-  detail,
-  act,
-  onLaunch,
-  onAccept,
-  onRequestChanges,
-  onShowFiles,
-}: {
-  api: Api;
-  project: string;
-  story: string;
-  detail: StoryDetail;
-  act: Action;
-  onLaunch: () => void;
-  onAccept: () => Promise<boolean>;
-  onRequestChanges: (m: string) => Promise<boolean>;
-  onShowFiles: () => void;
-}) {
-  const [files, setFiles] = useState<StoryFiles | null>(null);
-  const [message, setMessage] = useState("");
-  const [large, setLarge] = useState<string | null>(null);
-  const loaded = useRef(false);
-  useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
-    api
-      .call<StoryFiles>("GET", `/api/projects/${project}/stories/${story}/files`)
-      .then(setFiles)
-      .catch(() => setFiles(null));
-  }, [api, project, story]);
-  const report = detail.acceptanceReport;
-  const media = files?.captures ?? [];
-  const p = detail.proof;
-  // Definition of Done : chaque point avec sa source. Seul ce que l'outil a fait est « vérifié » (§0) ; la relecture
-  // est le verdict d'un agent relecteur exigé par l'outil ; les captures ne sont regardées par personne avant toi.
-  const points: { name: string; state: "verified" | "agent" | "none"; detail: string }[] = [
-    { name: t("story.dod.compilation"), state: p ? "verified" : "none", detail: p ? p.compilation : t("story.dod.unverified") },
-    { name: t("story.dod.tests"), state: p ? "verified" : "none", detail: p ? t("story.dod.passed", { tests: p.tests }) : t("story.dod.unverified") },
-    { name: t("story.dod.smoke"), state: p ? "verified" : "none", detail: p ? p.launch : t("story.dod.unverified") },
-    { name: t("story.dod.e2e"), state: p ? "verified" : "none", detail: p ? t("story.dod.e2eDetail", { count: p.end_to_end }) : t("story.dod.unverified") },
-    { name: t("story.dod.review"), state: detail.reviewed ? "agent" : "none", detail: detail.reviewed ? t("story.dod.reviewApproved") : t("story.dod.reviewNone") },
-    { name: t("story.dod.captures"), state: "none", detail: media.length > 0 ? t("story.dod.capturesUnverified") : t("story.dod.capturesNone") },
-  ];
-  return (
-    <section className="card acceptance">
-      {!p && <div className="banner orange">{t("story.dod.notDone")}</div>}
-      <h2>{t("story.dod.title")}</h2>
-      <table className="table proof">
-        <tbody>
-          {points.map((x) => (
-            <tr key={x.name}>
-              <td className={`mark-${x.state}`}>{x.state === "verified" ? "✓" : x.state === "agent" ? "✓" : "?"}</td>
-              <td>{x.name}</td>
-              <td className="muted">
-                {x.detail}
-                {x.state === "verified" && p && t("story.dod.verifiedBy", { since: since(p.date) })}
-                {x.state === "agent" && t("story.dod.byAgent")}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <h2>{t("story.report.title")}</h2>
-      <p className="muted small-text">{t("story.report.note")}</p>
-      <p>{report?.summary ?? t("story.report.none")}</p>
-      {report?.how_to_check && (
-        <>
-          <h2>{t("story.howToCheck")}</h2>
-          <p>{report.how_to_check}</p>
-        </>
-      )}
-      {media.length > 0 && <h2>{t("story.capturesTitle")}</h2>}
-      {media.length > 0 && (
-        <div className="media-grid">
-          {media.map((m) => (
-            <button key={m.access} className="media" onClick={() => setLarge(large === m.access ? null : m.access)} title={m.name}>
-              {m.preview === "image" ? <img src={api.fileUrl(project, m.access)} alt={m.name} /> : <video src={api.fileUrl(project, m.access)} controls muted />}
-            </button>
-          ))}
-        </div>
-      )}
-      {large && (
-        <div className="media-large" onClick={() => setLarge(null)}>
-          <img src={api.fileUrl(project, large)} alt="" />
-        </div>
-      )}
-      {files && (
-        <p className="muted small-text">
-          {t(files.files.length > 1 ? "story.files.other" : "story.files.one", { count: files.files.length })}
-          <button className="link" onClick={onShowFiles}>
-            {t("story.view")}
-          </button>
-        </p>
-      )}
-      <div className="actions">
-        <button className="btn" disabled={act.pending !== null} onClick={onLaunch}>
-          {t("story.launch")}
-        </button>
-        <span className="spacer" />
-        <Refusal action={act} k="accept" />
-        <button className="btn green" disabled={act.pending !== null} onClick={() => void onAccept()}>
-          {act.pending === "accept" ? t("story.accepting") : t("story.accept")}
-        </button>
-      </div>
-      <form
-        className="reply"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (message.trim()) void onRequestChanges(message.trim()).then((ok) => ok && setMessage(""));
-        }}
-      >
-        <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("story.changes.placeholder")} />
-        <button type="submit" className="btn" disabled={!message.trim() || act.pending !== null}>
-          {label(act, "changes", t("story.requestChanges"), t("story.sending"))}
-        </button>
-        <Refusal action={act} k="changes" />
-      </form>
-    </section>
-  );
-}
-
-function Log({ api, project, story }: { api: Api; project: string; story: string }) {
-  const [detail, setDetail] = useState<StoryStateDetail | null>(null);
-  useEffect(() => {
-    api
-      .call<StoryStateDetail>("GET", `/api/projects/${project}/stories/${story}`)
-      .then(setDetail)
-      .catch(() => setDetail(null));
-  }, [api, project, story]);
-  if (!detail) return <div className="scroll" />;
-  return (
-    <div className="scroll">
-      {detail.refusals.length > 0 && (
-        <section className="card">
-          <h2>{t("story.refusals", { count: detail.refusals.length })}</h2>
-          {detail.refusals.map((r, i) => (
-            <p key={i} className="small-text">
-              <code>{r.target}</code> : {r.reason}
-            </p>
-          ))}
-        </section>
-      )}
-      <section className="card">
-        <h2>{t("story.log", { count: detail.ledger.length })}</h2>
-        {detail.ledger.length === 0 ? <p className="muted">{t("story.noEvents")}</p> : <ol className="ledger">{detail.ledger.map((l, i) => <li key={i}>{l}</li>)}</ol>}
-      </section>
-    </div>
-  );
-}
-
-function Technical({ api, project, story, detail }: { api: Api; project: string; story: string; detail: StoryDetail }) {
-  const [next, setNext] = useState<StoryStateDetail["next"]>(null);
-  useEffect(() => {
-    api
-      .call<StoryStateDetail>("GET", `/api/projects/${project}/stories/${story}`)
-      .then((d) => setNext(d.next))
-      .catch(() => setNext(null));
-  }, [api, project, story]);
-  return (
-    <div className="scroll">
-      <section className="card">
-        <table className="table">
-          <tbody>
-            <tr>
-              <th>{t("story.tech.thread")}</th>
-              <td>{t("story.tech.status", { story: detail.story, status: detail.status })}</td>
-            </tr>
-            <tr>
-              <th>{t("story.tech.branch")}</th>
-              <td>{detail.branch}</td>
-            </tr>
-            <tr>
-              <th>Worktree</th>
-              <td>{detail.worktree ?? t("story.tech.deleted")}</td>
-            </tr>
-            <tr>
-              <th>{t("story.tech.agent")}</th>
-              <td>{detail.agent ? AGENT_NAMES[detail.agent] : "—"}</td>
-            </tr>
-            {next && (
-              <tr>
-                <th>spawn next</th>
-                <td>
-                  <strong>{next.step}</strong> : {next.instruction}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </section>
-    </div>
-  );
 }
