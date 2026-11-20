@@ -5,7 +5,7 @@ import { t, setLang, getLang, useLang, LANGS } from "./i18n.ts";
 import { Home, NewProjectDialog, OpenDialog } from "./Home.tsx";
 import { Api, connect, type ModuleState, type ProjectView, type WorkspaceView } from "./api.ts";
 import { Project } from "./Project.tsx";
-import { NewWorkspaceDialog, Workspace } from "./Workspace.tsx";
+import { NewWorkspaceDialog, Workspace, WorkspaceSidebar } from "./Workspace.tsx";
 import { Menus, type Menu } from "./Menus.tsx";
 import "./App.css";
 
@@ -43,7 +43,8 @@ export default function App() {
   const [modules, setModules] = useState<ModuleState[]>([]);
   const [projects, setProjects] = useState<ProjectView[] | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceView[]>([]);
-  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  // `#workspace=<id>` ouvre un workspace directement (lien, capture d'écran de recette).
+  const [workspaceId, setWorkspaceId] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get("workspace"));
   const [game, setGame] = useState<string | null>(readProject);
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [events, setEvents] = useState<EventSource | null>(null);
@@ -216,18 +217,23 @@ export default function App() {
       {project ? (
         <Project key={project.id} api={api} events={events} project={project} active={active} signal={signal} dialog={dialog} closeDialog={() => setDialog(null)} onError={setError} />
       ) : workspace ? (
-        <Workspace
-          api={api}
-          workspace={workspace}
-          projects={projects ?? []}
-          onBack={() => setWorkspaceId(null)}
-          onChanged={() => void loadWorkspaces()}
-          onDeleted={() => {
-            setWorkspaceId(null);
-            void loadWorkspaces();
-          }}
-          onError={setError}
-        />
+        <div className="layout">
+          <WorkspaceSidebar workspaces={workspaces} projects={projects ?? []} selected={workspace.id} onPickWorkspace={setWorkspaceId} onPickProject={openProject} />
+          <div className="main-pane">
+            <Workspace
+              api={api}
+              workspace={workspace}
+              projects={projects ?? []}
+              onBack={() => setWorkspaceId(null)}
+              onChanged={() => void loadWorkspaces()}
+              onDeleted={() => {
+                setWorkspaceId(null);
+                void loadWorkspaces();
+              }}
+              onError={setError}
+            />
+          </div>
+        </div>
       ) : (
         <Home
           projects={projects ?? []}

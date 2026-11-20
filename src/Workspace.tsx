@@ -15,6 +15,41 @@ function stateLabel(state: string): string {
 
 const stateClass = (s: EpicStoryView) => (s.merged ? "done" : s.state === "not-started" ? (s.waiting_for.length > 0 ? "waiting" : "idle") : "running");
 
+const megas = (n: number) => (n / 1_000_000).toFixed(1);
+
+// Barre de lieux : les workspaces avec leurs projets, puis les projets hors workspace (maquette workspaces.html).
+export function WorkspaceSidebar({ workspaces, projects, selected, onPickWorkspace, onPickProject }: { workspaces: WorkspaceView[]; projects: ProjectView[]; selected: string | null; onPickWorkspace: (id: string) => void; onPickProject: (id: string) => void }) {
+  const names = new Map(projects.map((p) => [p.id, p.name]));
+  const grouped = new Set(workspaces.flatMap((w) => w.projects));
+  const standalone = projects.filter((p) => !grouped.has(p.id));
+  return (
+    <aside className="sidebar">
+      <h3>{t("workspace.side.workspaces")}</h3>
+      {workspaces.map((w) => (
+        <div key={w.id}>
+          <button className={`item${w.id === selected ? " selected" : ""}`} onClick={() => onPickWorkspace(w.id)}>
+            <div className="item-text">
+              <strong>{w.name}</strong>
+              <small>{t(w.epics.length === 1 ? "workspace.side.epics.one" : "workspace.side.epics.other", { n: w.epics.length })}</small>
+            </div>
+          </button>
+          {w.projects.map((p) => (
+            <button key={p} className="item sub" onClick={() => onPickProject(p)}>
+              <div className="item-text">{names.get(p) ?? p}</div>
+            </button>
+          ))}
+        </div>
+      ))}
+      {standalone.length > 0 && <h3>{t("workspace.side.standalone")}</h3>}
+      {standalone.map((p) => (
+        <button key={p.id} className="item" onClick={() => onPickProject(p.id)}>
+          <div className="item-text">{p.name}</div>
+        </button>
+      ))}
+    </aside>
+  );
+}
+
 // Création et ajout passent tous par la même forme : un appel, l'erreur du service montrée dans le dialogue.
 function useSubmit(run: () => Promise<unknown>, onDone: () => void) {
   const [pending, setPending] = useState(false);
@@ -176,6 +211,8 @@ function AddStoryDialog({ api, workspace, epic, names, onClose, onDone }: { api:
 function EpicCard({ epic, workspace, names, onAdd }: { epic: EpicView; workspace: WorkspaceView; names: Map<string, string>; onAdd: () => void }) {
   const total = epic.stories.length;
   const lanes = [...new Set(epic.stories.map((s) => s.project))];
+  const measured = epic.stories.flatMap((s) => (s.metrics ? [s.metrics] : []));
+  const sum = (k: "duration_min" | "interventions" | "cache_read") => measured.reduce((a, m) => a + m[k], 0);
   return (
     <section className="card epic">
       <header className="epic-head">
@@ -207,11 +244,13 @@ function EpicCard({ epic, workspace, names, onAdd }: { epic: EpicView; workspace
                     {stateLabel(s.state)}
                     {s.waiting_for.length > 0 && ` · ${t("workspace.story.waiting", { refs: s.waiting_for.map((d) => `${names.get(d.project) ?? d.project}/${d.story}`).join(", ")})}`}
                   </small>
+                  {s.metrics && <small>{t("workspace.metrics.story", { min: s.metrics.duration_min, n: s.metrics.interventions, cache: megas(s.metrics.cache_read) })}</small>}
                 </div>
               ))}
           </div>
         ))}
       </div>
+      {measured.length > 0 && <p className="muted">{t("workspace.metrics.epic", { min: sum("duration_min"), n: sum("interventions"), cache: megas(sum("cache_read")) })}</p>}
       <div className="actions">
         <button className="btn small" onClick={onAdd} disabled={workspace.projects.length === 0}>
           {t("workspace.story.add")}

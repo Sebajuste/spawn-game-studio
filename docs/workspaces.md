@@ -2,7 +2,7 @@
 
 Stockage retenu : JSON versionné par git (pas SQLite). Par défaut `~/.spawn/workspaces.json` ; `SPAWN_WORKSPACES=<chemin>` le place dans un dépôt git d'équipe pour le partager (commit et pull à la main pour l'instant). Écriture atomique.
 
-Statut : **validé**. Codé : registre `workspaces.json`, module de service `workspaces`, règle `blocked_by` dans `spawn next`. Pas encore codés : l'interface, le champ `epic` dans l'état des stories, l'interface de plugins de suivi. Elle étend `modele.md` (qui reste vrai pour un projet seul) et respecte sa règle : aucun concept absent des outils de suivi courants (Jira, GitLab, GitHub), pour qu'un adaptateur de suivi reste possible.
+Statut : **validé**. Codé : registre `workspaces.json`, module de service `workspaces`, règle `blocked_by` dans `spawn next`, interface (barre de lieux par workspace, vue epic en voies avec les métriques du pilote : durée, interventions, cache lu ; lien `#workspace=<id>`). Pas encore codés : onglets Backlog et Activité par workspace, dialogue de cadrage avec l'agent, le champ `epic` dans l'état des stories, l'interface de plugins de suivi. Elle étend `modele.md` (qui reste vrai pour un projet seul) et respecte sa règle : aucun concept absent des outils de suivi courants (Jira, GitLab, GitHub), pour qu'un adaptateur de suivi reste possible.
 
 ## 1. Le besoin
 

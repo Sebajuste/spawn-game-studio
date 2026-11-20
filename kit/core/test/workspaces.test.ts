@@ -28,4 +28,11 @@ test("workspace, epic et dépendances", () => {
   assert.equal(view[0]?.state, "not-started");
   assert.deepEqual(ws.unmetDependencies(root("api"), "routes"), [{ project: "db", story: "schema" }]);
   assert.deepEqual(ws.unmetDependencies(root("db"), "schema"), []);
+  assert.equal(view[0]?.metrics, null);
+  mkdirSync(join(root("db"), ".spawn", "pilot", "schema"), { recursive: true });
+  writeFileSync(
+    join(root("db"), ".spawn", "pilot", "schema", "report.json"),
+    JSON.stringify({ verdict: "merged", duration_min: 9, interventions: [{}, {}], metrics: { tokens: { cache_read: 2100000 } } }),
+  );
+  assert.deepEqual(ws.epicStories(out)[0]?.metrics, { verdict: "merged", duration_min: 9, interventions: 2, cache_read: 2100000 });
 });

@@ -50,6 +50,7 @@ export interface EpicStoryView {
   state: string;
   merged: boolean;
   waiting_for: { project: string; story: string }[];
+  metrics: { verdict: string; duration_min: number; interventions: number; cache_read: number } | null;
 }
 
 export interface EpicView {

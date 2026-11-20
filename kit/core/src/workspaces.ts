@@ -160,14 +160,45 @@ export function addEpicStory(workspaceId: string, epicId: string, ref: StoryRef,
 // État d'une story d'epic : « absente » tant que le projet n'a pas démarré le fil.
 export type EpicStoryState = "not-started" | Story["status"] | "unreadable";
 
+export interface EpicStoryMetrics {
+  verdict: string;
+  duration_min: number;
+  interventions: number;
+  cache_read: number;
+}
+
 export interface EpicStoryView extends EpicStory {
   state: EpicStoryState;
   merged: boolean;
   // Dépendances pas encore fusionnées : la story n'est pas proposée tant qu'il en reste.
   waiting_for: StoryRef[];
+  // Bilan du dernier pilote (`.spawn/pilot/<story>/report.json`) ; null si la story n'a pas été pilotée.
+  metrics: EpicStoryMetrics | null;
 }
 
 const MERGED: readonly string[] = ["done", "cleaned"];
+
+function metricsOf(projects: Map<string, RegisteredProject>, ref: StoryRef): EpicStoryMetrics | null {
+  const p = projects.get(ref.project);
+  if (!p) return null;
+  try {
+    const r = JSON.parse(readFileSync(join(p.root, ".spawn", "pilot", ref.story, "report.json"), "utf8")) as {
+      verdict?: unknown;
+      duration_min?: unknown;
+      interventions?: unknown;
+      metrics?: { tokens?: { cache_read?: unknown } };
+    };
+    if (typeof r.verdict !== "string" || typeof r.duration_min !== "number") return null;
+    return {
+      verdict: r.verdict,
+      duration_min: r.duration_min,
+      interventions: Array.isArray(r.interventions) ? r.interventions.length : 0,
+      cache_read: typeof r.metrics?.tokens?.cache_read === "number" ? r.metrics.tokens.cache_read : 0,
+    };
+  } catch {
+    return null;
+  }
+}
 
 function stateOf(projects: Map<string, RegisteredProject>, ref: StoryRef): EpicStoryState {
   const p = projects.get(ref.project);
@@ -188,6 +219,7 @@ export function epicStories(epic: Epic): EpicStoryView[] {
     state: states.get(`${s.project}/${s.story}`) ?? "not-started",
     merged: merged(s),
     waiting_for: s.blocked_by.filter((d) => !merged(d)),
+    metrics: metricsOf(projects, s),
   }));
 }
 

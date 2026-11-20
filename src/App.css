@@ -120,6 +120,7 @@ details > summary { cursor: pointer; color: var(--muted); margin: 4px 0 10px; }
 .item { display: flex; gap: 9px; align-items: flex-start; width: 100%; border: 0; background: none; text-align: left; padding: 6px 8px; border-radius: 6px; }
 .item:hover { background: var(--hover); }
 .item.selected { background: var(--card); box-shadow: 0 0 0 1px var(--border); }
+.item.sub { padding: 3px 8px 3px 24px; font-size: 13px; }
 .item-text { min-width: 0; overflow: hidden; }
 .item small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .game-home strong { font-size: 15px; }
@@ -129,6 +130,7 @@ details > summary { cursor: pointer; color: var(--muted); margin: 4px 0 10px; }
 .dot.green { background: var(--active); }
 .dot.pulsing { animation: pulse 1.2s ease-in-out infinite; }
 .main-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.main-pane > .workspace { flex: 1; margin-left: auto; margin-right: auto; }
 .game-header { display: flex; align-items: center; gap: 12px; padding: 9px 18px; border-bottom: 1px solid var(--border); background: var(--card); }
 .game-header strong { font-size: 16px; }
 .game-header .muted { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
