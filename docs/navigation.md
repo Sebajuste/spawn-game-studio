@@ -106,11 +106,11 @@ Toute la navigation tient dans une seule valeur, écrite dans l'URL :
 
 | Niveau | Où | Actions |
 |---|---|---|
-| Application | menu Fichier, sélecteur de portée | nouveau, ouvrir un projet ; nouveau workspace ; changer de portée |
-| Portée | bloc de portée, menu Projet | ▶ Lancer, ouvrir le dossier, réglages |
+| Application | menu Fichier, sélecteur de portée | nouveau projet, ajouter un projet existant ; nouveau workspace ; changer de portée ; Réglages (`reglages.md`) |
+| Portée | bloc de portée (menu ▾), menu Workspace ou Projet | ▶ Lancer, ouvrir le dossier, réglages de la portée |
 | Portée | Accueil | dire : la conversation (une story, un fix, un epic ou rien) |
-| Lieu | en-tête du lieu | + Epic (Epics), + Ajouter un projet et supprimer le workspace (Projets) |
-| Objet | en-tête de la story ou de l'epic | gestes de la story (inchangés), + Story (epic) |
+| Lieu | en-tête du lieu | + Epic (Epics) ; la composition d'un workspace et sa suppression sont dans les Réglages |
+| Objet | en-tête de la story ou de l'epic, menu ⋯ | gestes de la story, + Story (epic) ; renommer, abandonner ou supprimer dans le menu ⋯ |
 | Activité | barre d'état | ouvrir la story au travail |
 
 Le champ « Que veux-tu ? » permanent disparaît, et « + Nouvelle feature » aussi : dire passe par la conversation de l'Accueil (Ctrl+J y mène de partout dans la portée).
@@ -126,6 +126,8 @@ Le champ « Que veux-tu ? » permanent disparaît, et « + Nouvelle feature » a
 | Ctrl+J | la conversation de la portée, curseur dans le champ |
 | F5 | lancer le projet, ou la version de la story ouverte |
 | Ctrl+W | fermer la portée : revient au parent (workspace) ou au sélecteur |
+| Ctrl+, | Réglages (`reglages.md`) |
+| Ctrl+O | ajouter un projet existant (`adoption.md`) |
 
 ## 11. Ce qui ne change pas
 

@@ -126,14 +126,9 @@ Mise à jour : un `git pull` de Spawn Game Studio puis `claude plugin update` ; 
 | 6 | Premier import Godot et premier test vide | Sortie de Godot relue : 0 erreur, 1 test vert |
 | 7 | Enregistrer le projet dans l'app | Le projet apparaît, sans fil |
 
-### 4.2 Adopter un projet existant (Deep Front) : `/adopter`
+### 4.2 Adopter un projet existant : « Ajouter un projet existant » de l'app
 
-| # | Étape |
-|---|---|
-| 1 | Inventaire en lecture seule : réglages, hooks, agents, outillage, worktrees, branches ; diff avec le kit |
-| 2 | Proposer, sans rien écrire : réglages remplacés, outils du kit qui remplacent les outils locaux, ce qui reste local |
-| 3 | Après accord : création de `.spawn/` et de `knowledge/`, migration de la mémoire globale vers `knowledge/`, réglages du kit |
-| 4 | Ménage des worktrees et branches déjà fusionnés (§5), liste montrée avant suppression |
+Décrit dans `docs/adoption.md` (2026-11-21) : diagnostic en lecture seule, puis, après accord, le commun par le cœur (git, `spawn.json`, hooks, plugin, un commit sur `develop`) et le gabarit du moteur par son adaptateur (`detect`, `adopt`). La migration de la mémoire d'un gros projet vers `knowledge/` et le ménage de ses worktrees (Deep Front) restent à faire à la main.
 
 ## 5. Règles git
 
