@@ -105,6 +105,62 @@ export function addProject(workspaceId: string, project: string): Workspace {
   return w;
 }
 
+// L'identifiant ne change pas : les liens et le suivi partagé restent valides.
+export function renameWorkspace(id: string, name: string): Workspace {
+  if (!name.trim()) throw new Error("nom de workspace requis");
+  const all = readWorkspaces();
+  const w = workspaceById(all, id);
+  w.name = name.trim();
+  writeWorkspaces(all);
+  return w;
+}
+
+export function removeProject(workspaceId: string, project: string): Workspace {
+  const all = readWorkspaces();
+  const w = workspaceById(all, workspaceId);
+  const carrying = w.epics.filter((e) => e.stories.some((s) => s.project === project)).map((e) => e.id);
+  if (carrying.length > 0) throw new Error(`le projet « ${project} » porte des stories de ${carrying.join(", ")} : les retirer d'abord de l'epic`);
+  w.projects = w.projects.filter((p) => p !== project);
+  writeWorkspaces(all);
+  return w;
+}
+
+// Un projet qui quitte Spawn sort de tous les workspaces, avec ses stories d'epic et les dépendances vers elles.
+export function forgetProject(project: string): void {
+  const all = readWorkspaces();
+  let changed = false;
+  for (const w of all) {
+    if (w.projects.includes(project)) changed = true;
+    w.projects = w.projects.filter((p) => p !== project);
+    for (const e of w.epics) {
+      const kept = e.stories.filter((s) => s.project !== project);
+      if (kept.length !== e.stories.length) changed = true;
+      e.stories = kept.map((s) => ({ ...s, blocked_by: s.blocked_by.filter((b) => b.project !== project) }));
+    }
+  }
+  if (changed) writeWorkspaces(all);
+}
+
+export function renameEpic(workspaceId: string, epicId: string, title: string): Epic {
+  if (!title.trim()) throw new Error("titre d'epic requis");
+  const all = readWorkspaces();
+  const epic = epicById(workspaceById(all, workspaceId), epicId);
+  epic.title = title.trim();
+  writeWorkspaces(all);
+  return epic;
+}
+
+// Les stories restent dans leurs projets : seul le regroupement disparaît.
+export function removeEpic(workspaceId: string, epicId: string): boolean {
+  const all = readWorkspaces();
+  const w = workspaceById(all, workspaceId);
+  const rest = w.epics.filter((e) => e.id !== epicId);
+  if (rest.length === w.epics.length) return false;
+  w.epics = rest;
+  writeWorkspaces(all);
+  return true;
+}
+
 export function createEpic(workspaceId: string, title: string, acceptance: string[]): Epic {
   if (!title.trim()) throw new Error("titre d'epic requis");
   const all = readWorkspaces();
