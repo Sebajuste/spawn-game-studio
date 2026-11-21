@@ -291,6 +291,11 @@ function activationSteps(version: string, deps: RuntimeDeps, root: string, probl
         }
         const r = claude(args);
         if (r.code !== 0) {
+          // Claude Code absent de la machine (Copilot, OpenCode seuls) : rien à désigner, ce n'est pas un échec.
+          if (!claudePresent(claude)) {
+            deps.log("  Claude Code absent : pas de plugin à mettre à jour");
+            return;
+          }
           problems.push(`Claude Code : « ${shown(args)} » a échoué (${(r.stderr || r.stdout).trim().split(/\r?\n/)[0] ?? `code ${r.code}`}) ; taper : ${commands.map(shown).join(" ; ")}`);
           return;
         }
@@ -302,6 +307,10 @@ function activationSteps(version: string, deps: RuntimeDeps, root: string, probl
   steps.push({ description: `commande spawn : ${bin} (spawn.cmd, spawn), vers ${version}`, run: () => writeFiles(launchers(version, root)) });
   steps.push({ description: `app : ${versionExe(version, root)} (elle démarre ${join(versionDir(version, root), "service", "src", "main.ts")})`, run: () => {} });
   return steps;
+}
+
+function claudePresent(claude: (args: readonly string[]) => Output): boolean {
+  return claude(["--version"]).code === 0;
 }
 
 function installedPlugin(claude: (args: readonly string[]) => Output): boolean {
@@ -558,7 +567,8 @@ export function status(o: { root?: string; claude: ((args: readonly string[]) =>
     const markets = json<{ name: string; path?: string; installLocation?: string }[]>(o.claude(["plugin", "marketplace", "list", "--json"]));
     const plugins = json<ClaudePluginEntry[]>(o.claude(["plugin", "list", "--json"]));
     if (markets === null || plugins === null) {
-      add({ name: "Claude Code", executes: "?", ok: false, detail: "claude plugin list --json illisible ou Claude Code absent" });
+      const present = claudePresent(o.claude);
+      add({ name: "Claude Code", executes: "?", ok: !present, detail: present ? "claude plugin list --json illisible" : "absent de cette machine : pas de plugin à mettre à jour" });
     } else {
       const market = markets.find((m) => m.name === MARKETPLACE);
       const marketPath = market?.path ?? market?.installLocation ?? null;

@@ -240,6 +240,18 @@ test("status flags what points to the repository, to another version or to a sta
   assert.equal(by("app")?.ok, false);
 });
 
+test("Claude Code absent: install succeeds and status says there is nothing to update", () => {
+  const repo = fakeRepo();
+  const calls: string[] = [];
+  const absent: FakeClaude = { calls, market: null, run: (args) => (calls.push(args.join(" ")), { code: -1, stdout: "", stderr: "spawnSync claude ENOENT" }) };
+  const log: string[] = [];
+  assert.equal(install({ repo }, deps({ claude: absent, log })), 0, log.join("\n"));
+  assert.ok(log.some((l) => l.includes("Claude Code absent")), log.join("\n"));
+  const c = status({ claude: absent.run }).components.find((x) => x.name === "Claude Code");
+  assert.ok(c?.ok, c?.detail);
+  assert.match(c?.detail ?? "", /absent/);
+});
+
 test("three versions kept; use switches back with the same updates; unknown version refused", () => {
   const repo = fakeRepo();
   const claude = fakeClaude();
