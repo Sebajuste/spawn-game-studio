@@ -179,7 +179,8 @@ const APP = `<h3>Application</h3><p>Pour toute l'app, sur cette machine.</p>
   <h4 style="margin:16px 0 4px">Moteurs</h4>
   <p style="margin:0 0 4px">Proposés par Nouveau projet et Ajouter un projet existant. Les projets déjà inscrits continuent de fonctionner.</p>
   <div class="module"><input type="checkbox"><span><strong>Godot</strong><small>jeu · aucun projet</small></span></div>
-  <div class="module"><input type="checkbox" checked disabled><span><strong>Node (web, services)</strong><small>app · 3 projets · dernier moteur coché</small></span></div>
+  <div class="module"><input type="checkbox" checked><span><strong>Node (web, services)</strong><small>app · 3 projets</small></span></div>
+  <div class="module"><input type="checkbox" checked><span><strong>Conteneur (Maven, Gradle)</strong><small>service · aucun projet · demande Docker</small></span></div>
   <h4 style="margin:16px 0 4px">Fonctions facultatives</h4>
   <div class="module"><input type="checkbox" checked><span><strong>Conversation de portée</strong><small>L'Accueil de chaque portée : parler avec un agent qui crée les stories et les epics.</small></span></div>
   <div class="module"><input type="checkbox" checked><span><strong>Activité</strong><small>Ce que fait l'agent, en direct, sous la conversation.</small></span></div>
@@ -239,12 +240,42 @@ inscrit dans l'app, ajouté à Arena</div>
   <div class="point-a"><span class="s-warn">⚠</span><span>Lancement sans <code>SPAWN-URL</code> (voir le diagnostic)</span></div>
   </div><footer><button class="btn fort">Ouvrir arena-admin</button></footer></div>`;
 
+const DIAG_C = `<div class="voile"></div><div class="adopter"><header><h3>Ajouter un projet existant : arena-ledger</h3><p>C:\\Dev\\arena-ledger · rien n'est écrit avant « Adopter »</p></header>
+  <div class="choix"><label>Moteur <select><option>Conteneur (Maven, Gradle)</option><option>Node (web, services)</option></select></label><label>Image <input value="maven:3.9-eclipse-temurin-21" size="26"></label><label>Préfixe <input value="LDG" size="5"></label><span style="color:var(--discret)">reconnu par <code>pom.xml</code> (Java 21)</span></div>
+  <div class="liste">
+    <h4>Git</h4>
+    <div class="point-a"><span class="s-ok">✓</span><span>Dépôt git, arbre propre, sur <code>develop</code></span></div>
+    <h4>Spawn</h4>
+    <div class="point-a"><span class="s-add">+</span><span><code>spawn.json</code> : conteneur, image ci-dessus, préfixe LDG</span></div>
+    <div class="point-a"><span class="s-add">~</span><span><code>.gitignore</code> : 2 lignes ajoutées à la fin<small>.spawn/ · .claude/worktrees/</small></span></div>
+    <h4>Conteneur (Maven)</h4>
+    <div class="point-a"><span class="s-ok">✓</span><span>Docker répond ; image présente sur la machine</span></div>
+    <div class="point-a"><span class="s-add">~</span><span>Section <code>container</code> de <code>spawn.json</code><small>compile : mvn -B -q -DskipTests test-compile · test : mvn -B test · rapports : target/surefire-reports · cache : dépôt Maven, partagé par les worktrees</small></span></div>
+    <div class="point-a"><span class="s-warn">⚠</span><span><code>~/.m2/settings.xml</code> existe sur cette machine mais n'est pas monté<small>Si le projet dépend d'un dépôt Maven privé, ajouter à <code>~/.spawn/container.json</code> : <code>{"mounts":[{"source":"~/.m2/settings.xml","target":"/root/.m2/settings.xml"}]}</code>. Monté en lecture seule, jamais copié dans le projet.</small></span></div>
+    <div class="point-a"><span class="s-ok">✓</span><span>Sur l'hôte : ni JDK ni Maven nécessaires</span></div>
+  </div>
+  <footer><span class="gauche">Puis : suite de départ dans l'image, un commit « spawn : adoption » sur develop, ajout à Arena.</span><button class="btn">Annuler</button><button class="btn fort" data-aller="fait-c">Adopter</button></footer></div>`;
+
+const FAIT_C = `<div class="voile"></div><div class="adopter"><header><h3>arena-ledger est adopté</h3><p>Ajouté à Arena</p></header>
+  <div class="liste"><div class="journal">spawn.json écrit (conteneur maven:3.9-eclipse-temurin-21, LDG)
+container : section déclarée (compile, test, cache)
+.gitignore : 2 lignes ajoutées
+hooks git du kit réglés
+image récupérée ; cache Maven du projet créé
+suite de départ (dans l'image) : 52 tests, 52 verts
+commit 8c41d07 « spawn : adoption » sur develop
+inscrit dans l'app, ajouté à Arena</div>
+  <h4>À savoir</h4>
+  <div class="point-a"><span class="s-ok">✓</span><span>Le verdict vient des rapports JUnit de cet appel<small>Un rapport resté d'une exécution précédente n'est jamais jugé.</small></span></div>
+  <div class="point-a"><span class="s-warn">⚠</span><span>Ni lancement ni capture pour ce moteur<small>▶ reste grisé ; le smoke test est la commande déclarée, s'il y en a une.</small></span></div>
+  </div><footer><button class="btn fort">Ouvrir arena-ledger</button></footer></div>`;
+
 const MENU_STORY = `<div class="menu-objet" style="top:128px; right:22px"><button class="sel">Renommer<kbd>F2</kbd></button><hr><button class="rouge" data-aller="confirmer-story">Abandonner…</button></div>`;
 const MENU_PORTEE = `<div class="menu-objet" style="top:62px; left:10px"><button>Changer de portée<kbd>Ctrl+P</kbd></button><hr><button class="sel" data-aller="ws">Réglages du workspace…</button></div>`;
 const story = (flottant) => fenetre(MENUS_P, barreP("backlog"), ariane(["Arena", "ar-api", "Backlog", "equipment-routes"]) + `<div class="entete"><div><h2>equipment-routes</h2><p>ARN-2 · Claude Code · depuis 12 min</p></div><button class="btn" data-aller="menu-story">⋯</button></div><div class="onglets"><span class="actif">Avancement</span><span>Conversation</span><span>Fichiers</span><span>Journal</span></div><div class="defile"><div class="decision"><strong>Question de l'agent</strong><p>Format de la date ?</p></div></div>`, flottant);
 
 const ECRANS = {
-  "app": { nom: "1. Réglages : Application", note: "Ctrl+, ou Fichier > Réglages. Une seule fenêtre, une section par portée. La langue et les modules quittent le menu Affichage. Les moteurs se choisissent par machine (Godot décoché ici, Node seul coché donc grisé). Un changement s'enregistre aussitôt.", rendu: () => fondWs(reglages("app", APP)) },
+  "app": { nom: "1. Réglages : Application", note: "Ctrl+, ou Fichier > Réglages. Une seule fenêtre, une section par portée. La langue et les modules quittent le menu Affichage. Les moteurs se choisissent par machine (Godot décoché ici ; le dernier moteur coché serait grisé). Un changement s'enregistre aussitôt.", rendu: () => fondWs(reglages("app", APP)) },
   "ws": { nom: "2. Réglages : Workspace", note: "Nom, composition (ajouter un projet connu, ajouter un projet existant qui sera adopté, nouveau projet ; retirer) et zone dangereuse. Le lieu Projets ne gère plus rien, il montre (« Gérer les projets… » ouvre ici).", rendu: () => fondWs(reglages("ws", WS)) },
   "projet": { nom: "3. Réglages : Projet", note: "Les réglages machine du projet (ceux d'aujourd'hui), ce que dit spawn.json en lecture, et « Retirer de Spawn » (le dossier reste).", rendu: () => fenetre(MENUS_P, barreP("home"), ariane(["Arena", "ar-api", "Accueil"]), reglages("projet", PROJET)) },
   "confirmer": { nom: "4. Confirmation partagée", note: "Une seule confirmation pour toute suppression ou abandon : elle nomme l'objet et dit la conséquence. Entrée ne confirme pas : il faut cliquer (ou Tab puis Entrée) ; Échap annule.", rendu: () => fondWs(reglages("ws", WS) + `<div class="confirmer"><h3>Supprimer le workspace « Arena » ?</h3><p>Ses 3 projets restent dans Spawn et sur le disque. Ses 2 epics disparaissent ; leurs stories restent dans leurs projets.</p><div class="actions"><button class="btn">Annuler</button><button class="btn rouge fort">Supprimer</button></div></div>`) },
@@ -253,6 +284,8 @@ const ECRANS = {
   "confirmer-story": { nom: "7. Abandonner une story", note: "La même confirmation.", rendu: () => story(`<div class="voile"></div><div class="confirmer"><h3>Abandonner « equipment-routes » ?</h3><p>Son worktree et sa branche sont supprimés ; elle reste dans l'historique du Backlog. Le travail non fusionné est perdu.</p><div class="actions"><button class="btn">Annuler</button><button class="btn rouge fort">Abandonner</button></div></div>`) },
   "diagnostic": { nom: "8. Ajouter un projet existant : diagnostic", note: "Lecture seule. ✓ déjà là, + à ajouter, ~ à compléter, ⚠ à savoir, ⛔ bloquant (Adopter grisé). Moteur, version et préfixe proposés et modifiables ; les lignes du moteur viennent de son adaptateur (adopt --dry-run).", rendu: () => fondWs(DIAG) },
   "fait": { nom: "9. Ajouter un projet existant : adopté", note: "Les étapes s'affichent pendant qu'elles se font. Le résultat dit la suite de départ (même rouge), le commit et ce qui reste à faire.", rendu: () => fondWs(FAIT) },
+  "diagnostic-c": { nom: "10. Projet Maven : moteur Conteneur", note: "La recette Maven reconnaît pom.xml et y lit Java 21 ; l'image proposée en découle, modifiable. Rien n'est demandé à l'hôte que Docker. Les secrets de la machine se montent en lecture seule par ~/.spawn/container.json, jamais par le dépôt.", rendu: () => fondWs(DIAG_C) },
+  "fait-c": { nom: "11. Projet Maven : adopté", note: "La suite de départ tourne dans l'image ; le verdict vient des rapports JUnit écrits pendant l'appel. Pas de lancement ni de capture en v1.", rendu: () => fondWs(FAIT_C) },
 };
 
 function montrer(id) {
