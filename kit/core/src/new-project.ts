@@ -112,9 +112,10 @@ export async function newProject(d: NewProjectRequest): Promise<CreatedProject> 
     gitOk(root, ["config", "core.hooksPath", GIT_HOOKS]);
     // Le plugin s'installe et s'active pour ce projet seulement ; ses réglages entrent dans le commit initial,
     // sinon les worktrees des fils ne l'auraient pas.
-    const failures = apply(installPlan(root, ex), ex);
+    const plan = installPlan(root, ex);
+    const failures = apply(plan, ex);
     if (failures.length > 0) throw new Error(`installation du plugin : ${failures.join(" ; ")}`);
-    log("plugin spawnstudio activé pour ce projet");
+    log(plan.length > 0 ? "plugin spawnstudio activé pour ce projet" : "Claude Code absent : pas de plugin à installer");
 
     // Import et premier test avant le commit initial : l'import écrit des fichiers à versionner (`.uid` sous Godot).
     await requireOk(adapter, "prepare-worktree", { project: root });

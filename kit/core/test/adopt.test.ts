@@ -144,6 +144,20 @@ test("adoption: a refused folder brings the new diagnosis; a failure before the 
   await assert.rejects(adoptProject({ ...request(repo), tag: "ms" }), /préfixe d'exigences invalide/);
 });
 
+test("adoption: without Claude Code, no plugin step and no Claude settings; the adoption goes through", async () => {
+  const repo = existing();
+  const commands: string[] = [];
+  const noClaude: Runner = (program, args, cwd) => {
+    commands.push(`${program} ${args.join(" ")}`);
+    if (program === "git") return git(cwd, args);
+    return { code: -1, stdout: "", stderr: "spawnSync claude ENOENT" };
+  };
+  const a = await adoptProject({ ...request(repo), run: noClaude });
+  assert.ok(a.commit);
+  assert.deepEqual(commands.filter((c) => c.startsWith("claude")), ["claude --version"]);
+  assert.ok(!existsSync(join(repo, ".claude", "settings.json")));
+});
+
 test("adapters listed with their title; requirement prefix proposed from the folder", () => {
   assert.deepEqual(listAdapters(ENGINES), [{ engine: "fake", title: "fake" }], "un dossier qui ne porte pas le nom de son moteur est ignoré");
   const real = listAdapters(ENGINES_DIR);

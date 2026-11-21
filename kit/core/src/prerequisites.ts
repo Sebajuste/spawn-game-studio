@@ -157,6 +157,8 @@ export interface Action {
 
 export function installPlan(cwd: string, ex: Runner = run): Action[] {
   const actions: Action[] = [];
+  // Sans Claude Code, ni plugin ni réglages Claude : Copilot et OpenCode s'en passent, et l'adoption ne doit pas échouer.
+  if (ex("claude", ["--version"], cwd).code !== 0) return actions;
   const r = ex("claude", ["plugin", "marketplace", "list", "--json"], cwd);
   const known = r.code === 0 ? (JSON.parse(r.stdout || "[]") as { name: string }[]) : [];
   if (!known.some((m) => m.name === MARKETPLACE)) {

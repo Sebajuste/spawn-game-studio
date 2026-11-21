@@ -118,9 +118,10 @@ export async function adoptProject(d: AdoptRequest): Promise<Adoption> {
     gitOk(root, ["config", "core.hooksPath", GIT_HOOKS]);
     log("hooks git du kit réglés");
 
-    const failures = apply(installPlan(root, ex), ex);
+    const plan = installPlan(root, ex);
+    const failures = apply(plan, ex);
     if (failures.length > 0) throw new Error(`installation du plugin : ${failures.join(" ; ")}`);
-    log("plugin spawnstudio activé pour ce projet");
+    log(plan.length > 0 ? "plugin spawnstudio activé pour ce projet" : "Claude Code absent : pas de plugin à installer");
 
     gitOk(root, ["add", "-A"]);
     gitOk(root, ["commit", "--quiet", "-m", ADOPTION_COMMIT]);

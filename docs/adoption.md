@@ -58,7 +58,7 @@ Le service liste les adaptateurs présents (`kit/engines/*/adapter.json`, qui ga
 
 ## 7. Décisions (2026-11-21)
 
-1. Le cœur fait ce qui est commun (git, `spawn.json`, hooks, plugin, commit) ; le gabarit est celui du moteur, posé par son adaptateur. Deux sous-commandes au contrat : `detect`, `adopt`.
+1. Le cœur fait ce qui est commun (git, `spawn.json`, hooks, plugin, commit) ; le gabarit est celui du moteur, posé par son adaptateur. Deux sous-commandes au contrat : `detect`, `adopt`. Le plugin et les réglages Claude ne sont posés que si Claude Code est installé : sans lui (Copilot, OpenCode), l'étape est sautée et dite.
 2. L'adaptateur node lit Vitest et Jest en plus du lanceur de Node.
 3. Pas de commande `spawn adopt` dans la CLI (cœur) : l'adoption se fait depuis l'app.
 4. Restent à décider : la liste des adaptateurs copiés dans le runtime, écrite en dur dans `kit/core/src/runtime.ts` (cœur) ; plusieurs gabarits par moteur (`templates[]`, `new-project --template`).
