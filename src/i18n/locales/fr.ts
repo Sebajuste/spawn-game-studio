@@ -5,6 +5,8 @@ import { misc } from "./zones/misc.ts";
 import { workspace } from "./zones/workspace.ts";
 import { navigation } from "./zones/navigation.ts";
 import { talk } from "./zones/talk.ts";
+import { settings } from "./zones/settings.ts";
+import { adopt } from "./zones/adopt.ts";
 
 export const fr: Messages = {
   "app.connecting": "Connexion au service…",
@@ -12,7 +14,7 @@ export const fr: Messages = {
 
   "menu.file": "Fichier",
   "menu.file.new": "Nouveau projet…",
-  "menu.file.open": "Ouvrir un projet…",
+  "menu.file.open": "Ajouter un projet existant?",
   "menu.file.recent": "Projets récents",
   "menu.project": "Projet",
   "menu.project.launch": "Lancer le projet",
@@ -20,7 +22,6 @@ export const fr: Messages = {
   "menu.project.settings": "Réglages du projet…",
   "menu.view": "Affichage",
   "menu.view.goto": "Aller à…",
-  "menu.view.language": "Langue",
   "menu.help": "Aide",
   "menu.help.journey": "Parcours de l'app : docs/ux-parcours.md",
 
@@ -29,9 +30,6 @@ export const fr: Messages = {
   "dialog.close": "Fermer",
   "dialog.edit": "Modifier",
   "dialog.browse": "Parcourir…",
-  "open.title": "Ouvrir un projet",
-  "open.folder": "Dossier du projet (celui qui contient spawn.json)",
-  "open.action": "Ouvrir",
   "new.title": "Nouveau projet",
   "new.creating": "Création de « {name} »",
   "new.name": "Nom",
@@ -54,4 +52,6 @@ export const fr: Messages = {
   ...workspace.fr,
   ...navigation.fr,
   ...talk.fr,
+  ...settings.fr,
+  ...adopt.fr,
 };

@@ -14,6 +14,7 @@ import { Answer } from "./Answer.tsx";
 import { Acceptance } from "./Acceptance.tsx";
 import { Log } from "./Log.tsx";
 import { Technical } from "./Technical.tsx";
+import { StoryMenu } from "./StoryMenu.tsx";
 import { since } from "../shared/time.ts";
 import { AGENT_NAMES } from "../project/agents.ts";
 import { subtitle } from "../project/storyText.ts";
@@ -38,7 +39,6 @@ export function StoryPage({ api, events, project, story, active, onLaunch, onErr
   const [tab, setTab] = useState<Tab>("progress");
   const [now, setNow] = useState<string | null>(null);
   const [rename, setRename] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState(false);
   const act = useAction();
   // Durée de l'action longue : recalculée chaque seconde depuis `since`, tant qu'il y en a une.
   const [tick, setTick] = useState(0);
@@ -164,23 +164,16 @@ export function StoryPage({ api, events, project, story, active, onLaunch, onErr
             </button>
           )}
           <Refusal action={act} k="pause" />
-          {!closed &&
-            (confirm ? (
-              <>
-                <span className="muted small-text">{t("story.abandonConfirm")}</span>
-                <button className="btn small danger" disabled={act.pending !== null} onClick={() => void action("abandon", "abandon").then((ok) => ok && onClosed())}>
-                  {label(act, "abandon", t("story.abandon"), t("story.abandoning"))}
-                </button>
-                <button className="btn small" disabled={act.pending !== null} onClick={() => setConfirm(false)}>
-                  {t("story.no")}
-                </button>
-                <Refusal action={act} k="abandon" />
-              </>
-            ) : (
-              <button className="btn small" disabled={act.pending !== null} onClick={() => setConfirm(true)}>
-                {t("story.abandon")}
-              </button>
-            ))}
+          <StoryMenu
+            title={detail.title}
+            closed={closed}
+            onRename={() => setRename(detail.title)}
+            onAbandon={async () => {
+              await api.call("POST", `${base}/abandon`);
+              onError(null);
+              onClosed();
+            }}
+          />
         </div>
         {detail.request && <p className="original-request">« {detail.request} »</p>}
         <nav className="tabs">

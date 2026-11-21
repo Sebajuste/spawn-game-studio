@@ -1,10 +1,13 @@
 // Les gestes de la coque, partagés par les menus et les raccourcis : un même geste fait la même chose des deux côtés.
 import type { Place, Route } from "../navigation/route.ts";
+import type { SettingsSection } from "../settings/sections.ts";
 import type { DialogKind } from "./dialogs.ts";
 
 export interface ShellActions {
   navigate: (route: Route) => void;
   open: (dialog: DialogKind) => void;
+  // Ctrl+, : la fenêtre Réglages, sur la section demandée si la portée l'a (l'Application sinon).
+  settings: (section: SettingsSection) => void;
   closeDialog: () => void;
   // Ctrl+J : l'Accueil de la portée, curseur dans la conversation.
   talk: () => void;

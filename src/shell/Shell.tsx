@@ -16,6 +16,7 @@ import { resolveRoute } from "../navigation/resolve.ts";
 import { projectRoute, sameRoute, workspaceRoute, type Route } from "../navigation/route.ts";
 import { useRoute } from "../navigation/useRoute.ts";
 import { launch, openFolder } from "../project/launch.ts";
+import { openingSection, settingsScope, type SettingsSection } from "../settings/sections.ts";
 import type { ShellActions } from "./actions.ts";
 import { appMenus } from "./appMenus.ts";
 import type { DialogKind } from "./dialogs.ts";
@@ -44,6 +45,7 @@ export function Shell({ api }: { api: Api }) {
   const { modules, active, toggle } = useModules(api, events, onError);
   const { route: asked, navigate } = useRoute();
   const [dialog, setDialog] = useState<DialogKind>(null);
+  const [section, setSection] = useState<SettingsSection>("app");
   const [notice, setNotice] = useState<string | null>(null);
   // Compteur des Ctrl+J : chaque appui remet le curseur dans la conversation, même si l'Accueil est déjà ouvert.
   const [talkFocus, setTalkFocus] = useState(0);
@@ -91,25 +93,14 @@ export function Shell({ api }: { api: Api }) {
     [api, route, onError],
   );
 
-  const addProject = useCallback(
-    async (dir: string) => {
-      try {
-        const p = await api.call<ProjectView>("POST", "/api/projects", { dir });
-        setError(null);
-        await reloadProjects();
-        setDialog(null);
-        go(projectRoute(p.id));
-      } catch (e) {
-        onError((e as Error).message);
-      }
-    },
-    [api, reloadProjects, go, onError],
-  );
-
   const actions = useMemo<ShellActions>(
     () => ({
       navigate: go,
       open: setDialog,
+      settings: (asked) => {
+        setSection(openingSection(asked, settingsScope(route)));
+        setDialog("settings");
+      },
       closeDialog: () => setDialog(null),
       talk: () => {
         if (route.kind === "picker") return;
@@ -130,7 +121,7 @@ export function Shell({ api }: { api: Api }) {
 
   if (!projects || !workspaces) return <main className="empty">{error ?? t("app.connecting")}</main>;
 
-  const menus = <Menus menus={appMenus(route, allProjects, allWorkspaces, modules, actions)} />;
+  const menus = <Menus menus={appMenus(route, allProjects, allWorkspaces, actions)} />;
   const banner = error && (
     <div className="error-banner" onClick={() => setError(null)} title={t("app.dismiss")}>
       {error}
@@ -139,18 +130,20 @@ export function Shell({ api }: { api: Api }) {
   const dialogs = (
     <ShellDialogs
       dialog={dialog}
+      section={section}
       api={api}
       events={events}
       route={route}
       projects={allProjects}
       workspaces={allWorkspaces}
+      modules={modules}
       scope={scope}
       backlogs={backlogs}
       projectName={projectName}
       open={setDialog}
       close={() => setDialog(null)}
       navigate={go}
-      addProject={(dir) => void addProject(dir)}
+      toggleModule={actions.toggleModule}
       reloadProjects={reloadProjects}
       reloadWorkspaces={reloadWorkspaces}
       onError={onError}
@@ -172,7 +165,7 @@ export function Shell({ api }: { api: Api }) {
       <div className="window">
         {menus}
         {banner}
-        <FirstRun onNew={() => setDialog("new")} onOpen={() => setDialog("open")} />
+        <FirstRun onNew={() => setDialog("new")} onOpen={() => setDialog("adopt")} />
         {status}
         {dialogs}
       </div>
@@ -194,6 +187,7 @@ export function Shell({ api }: { api: Api }) {
           current={currentPlace(route)}
           badge={waiting}
           onScope={() => setDialog("picker")}
+          onSettings={() => actions.settings(route.kind === "workspace" ? "workspace" : "project")}
           onLaunch={route.kind === "project" ? () => run(null) : null}
           onPlace={actions.place}
         />
@@ -202,12 +196,12 @@ export function Shell({ api }: { api: Api }) {
           {route.kind === "picker" ? (
             <div className="scroll picker-page">
               <p className="muted">{t("nav.picker.choose")}</p>
-              <ScopePicker projects={allProjects} workspaces={allWorkspaces} inline notice={gone ? t("nav.picker.gone") : null} onPick={go} onNewProject={() => setDialog("new")} onOpenProject={() => setDialog("open")} onNewWorkspace={() => setDialog("workspace")} onClose={() => undefined} />
+              <ScopePicker projects={allProjects} workspaces={allWorkspaces} inline notice={gone ? t("nav.picker.gone") : null} onPick={go} onNewProject={() => setDialog("new")} onOpenProject={() => setDialog("adopt")} onNewWorkspace={() => setDialog("workspace")} onClose={() => undefined} />
             </div>
           ) : route.kind === "project" && project ? (
             <ProjectContent api={api} events={events} route={route} project={project} backlogs={backlogs} active={active} focus={talkFocus} onTalk={() => actions.talk()} navigate={go} onLaunch={run} onError={onError} />
           ) : route.kind === "workspace" && workspace ? (
-            <WorkspaceContent api={api} events={events} route={route} workspace={workspace} projects={allProjects} backlogs={backlogs} active={active} projectName={projectName} focus={talkFocus} navigate={go} onNewEpic={() => setDialog("epic")} onChanged={() => void reloadWorkspaces()} onError={onError} />
+            <WorkspaceContent api={api} events={events} route={route} workspace={workspace} projects={allProjects} backlogs={backlogs} active={active} projectName={projectName} focus={talkFocus} navigate={go} onNewEpic={() => setDialog("epic")} onManage={() => actions.settings("workspace")} onChanged={() => void reloadWorkspaces()} />
           ) : null}
         </section>
       </div>

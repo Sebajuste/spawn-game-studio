@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAction } from "../shared/action.ts";
 import type { Api, KnownEngine, ProjectView } from "../shared/api.ts";
 import { Dialog } from "../shared/Dialog.tsx";
+import { useAdapters } from "../data/useAdapters.ts";
 import { t } from "../i18n/i18n.ts";
 import { FolderField } from "./FolderField.tsx";
 import "./project.css";
@@ -11,7 +12,8 @@ import "./project.css";
 export function NewProjectDialog({ api, events, onClose, onCreated }: { api: Api; events: EventSource | null; onClose: () => void; onCreated: (p: ProjectView) => void }) {
   const [name, setName] = useState("");
   const [parent, setParent] = useState("C:\\Dev");
-  const [engines, setEngines] = useState<KnownEngine[] | null>(null);
+  const adapters = useAdapters(api);
+  const [known, setKnown] = useState<KnownEngine[]>([]);
   const [engine, setEngine] = useState("");
   const [version, setVersion] = useState("");
   const [tag, setTag] = useState("");
@@ -21,15 +23,21 @@ export function NewProjectDialog({ api, events, onClose, onCreated }: { api: Api
   const error = act.refusal?.text ?? null;
 
   useEffect(() => {
-    api
-      .call<KnownEngine[]>("GET", "/api/engines")
-      .then((m) => {
-        setEngines(m);
-        const first = m[0];
-        if (first) setEngine(`${first.engine} ${first.version}`);
-      })
-      .catch(() => setEngines([]));
+    api.call<KnownEngine[]>("GET", "/api/engines").then(setKnown, () => setKnown([]));
   }, [api]);
+  // Le premier moteur du kit par défaut, avec sa version déjà configurée sur la machine s'il y en a une.
+  const pick = (e: string) => {
+    setEngine(e);
+    setVersion(known.find((k) => k.engine === e)?.version ?? "");
+  };
+  const first = adapters?.[0]?.engine ?? "";
+  useEffect(() => {
+    if (!engine && first) setEngine(first);
+  }, [first, engine]);
+  // Les moteurs de la machine arrivent parfois après les adaptateurs : la version se propose à leur arrivée.
+  useEffect(() => {
+    setVersion((v) => v || (known.find((k) => k.engine === engine)?.version ?? ""));
+  }, [known, engine]);
 
   const creating = steps !== null;
   useEffect(() => {
@@ -42,8 +50,8 @@ export function NewProjectDialog({ api, events, onClose, onCreated }: { api: Api
     return () => events.removeEventListener("creation", onLine);
   }, [events, creating]);
 
-  const choice = engines?.find((m) => `${m.engine} ${m.version}` === engine);
-  const ready = name.trim() && parent.trim() && (choice || /^\d+(\.\d+)*$/.test(version.trim()));
+  const versions = known.filter((k) => k.engine === engine).map((k) => k.version);
+  const ready = name.trim() && parent.trim() && engine && /^\d+(\.\d+)*$/.test(version.trim());
 
   const create = async () => {
     setSteps([]);
@@ -52,8 +60,8 @@ export function NewProjectDialog({ api, events, onClose, onCreated }: { api: Api
       made.p = await api.call<ProjectView>("POST", "/api/projects/new", {
         name: name.trim(),
         parent: parent.trim(),
-        engine: choice?.engine ?? "godot",
-        version: choice?.version ?? version.trim(),
+        engine,
+        version: version.trim(),
         ...(tag.trim() ? { tag: tag.trim() } : {}),
         remote,
       });
@@ -107,17 +115,21 @@ export function NewProjectDialog({ api, events, onClose, onCreated }: { api: Api
         </label>
         <label className="field">
           <span>{t("new.engine")}</span>
-          {engines && engines.length > 0 ? (
-            <select value={engine} onChange={(e) => setEngine(e.target.value)}>
-              {engines.map((m) => (
-                <option key={`${m.engine} ${m.version}`} value={`${m.engine} ${m.version}`} title={m.executable}>
-                  {m.engine === "godot" ? "Godot" : m.engine} {m.version}
+          <div className="field-row">
+            <select value={engine} onChange={(e) => pick(e.target.value)} aria-label={t("new.engine")}>
+              {(adapters ?? []).map((a) => (
+                <option key={a.engine} value={a.engine}>
+                  {a.title}
                 </option>
               ))}
             </select>
-          ) : (
-            <input value={version} onChange={(e) => setVersion(e.target.value)} placeholder={t("new.engineVersion")} />
-          )}
+            <input value={version} onChange={(e) => setVersion(e.target.value)} placeholder={t("new.engineVersion")} list="new-versions" aria-label={t("new.engineVersion")} size={8} />
+            <datalist id="new-versions">
+              {versions.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+          </div>
         </label>
         <details>
           <summary>{t("new.advanced")}</summary>

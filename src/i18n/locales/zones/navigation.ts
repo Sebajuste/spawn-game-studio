@@ -10,7 +10,7 @@ export const navigation = {
     "nav.breadcrumb": "Breadcrumb",
     "nav.history": "Alt+← Alt+→",
 
-    "nav.scope.change": "Change workspace or project (Ctrl+P)",
+    "nav.scope.change": "Change scope",
     "nav.scope.workspace.one": "workspace · {n} project",
     "nav.scope.workspace.other": "workspace · {n} projects",
     "nav.scope.in": "in {name}",
@@ -26,7 +26,7 @@ export const navigation = {
     "nav.picker.open.one": "{n} open",
     "nav.picker.open.other": "{n} open",
     "nav.picker.newProject": "+ New project",
-    "nav.picker.openProject": "Open project…",
+    "nav.picker.openProject": "Add existing project?",
     "nav.picker.newWorkspace": "+ New workspace",
     "nav.picker.choose": "Choose a workspace or a project to start.",
     "nav.picker.gone": "This project or workspace no longer exists. Choose another one.",
@@ -37,8 +37,8 @@ export const navigation = {
 
     "nav.firstRun.tagline": "Complete projects, built by agents, verified by the tool.",
     "nav.firstRun.new": "New project",
-    "nav.firstRun.open": "Open project…",
-    "nav.firstRun.openHint": "a folder with spawn.json",
+    "nav.firstRun.open": "Add existing project?",
+    "nav.firstRun.openHint": "a folder already under git, Spawn or not",
 
 
     "nav.home.judge": "To judge ({n})",
@@ -68,7 +68,6 @@ export const navigation = {
 
     "nav.projects.subtitle.one": "1 project in {name}",
     "nav.projects.subtitle.other": "{n} projects in {name}",
-    "nav.projects.add": "+ Add a project",
     "nav.projects.open": "Open",
     "nav.projects.none": "No project in this workspace yet.",
     "nav.projects.state.nothing": "nothing in progress",
@@ -93,7 +92,7 @@ export const navigation = {
     "nav.breadcrumb": "Fil d'Ariane",
     "nav.history": "Alt+← Alt+→",
 
-    "nav.scope.change": "Changer de workspace ou de projet (Ctrl+P)",
+    "nav.scope.change": "Changer de port?e",
     "nav.scope.workspace.one": "workspace · {n} projet",
     "nav.scope.workspace.other": "workspace · {n} projets",
     "nav.scope.in": "dans {name}",
@@ -109,7 +108,7 @@ export const navigation = {
     "nav.picker.open.one": "{n} en cours",
     "nav.picker.open.other": "{n} en cours",
     "nav.picker.newProject": "+ Nouveau projet",
-    "nav.picker.openProject": "Ouvrir un projet…",
+    "nav.picker.openProject": "Ajouter un projet existant?",
     "nav.picker.newWorkspace": "+ Nouveau workspace",
     "nav.picker.choose": "Choisis un workspace ou un projet pour commencer.",
     "nav.picker.gone": "Ce projet ou ce workspace n'existe plus. Choisis-en un autre.",
@@ -120,8 +119,8 @@ export const navigation = {
 
     "nav.firstRun.tagline": "Des projets complets, faits par des agents, vérifiés par l'outil.",
     "nav.firstRun.new": "Nouveau projet",
-    "nav.firstRun.open": "Ouvrir un projet…",
-    "nav.firstRun.openHint": "un dossier avec spawn.json",
+    "nav.firstRun.open": "Ajouter un projet existant?",
+    "nav.firstRun.openHint": "un dossier d?j? sous git, Spawn ou non",
 
 
     "nav.home.judge": "À juger ({n})",
@@ -151,7 +150,6 @@ export const navigation = {
 
     "nav.projects.subtitle.one": "1 projet dans {name}",
     "nav.projects.subtitle.other": "{n} projets dans {name}",
-    "nav.projects.add": "+ Ajouter un projet",
     "nav.projects.open": "Ouvrir",
     "nav.projects.none": "Aucun projet dans ce workspace pour l'instant.",
     "nav.projects.state.nothing": "rien en cours",

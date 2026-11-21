@@ -1,8 +1,17 @@
 // Connexion au service de l'app : fournie par Tauri (commande « service »), ou par l'URL en développement
 // (`http://localhost:1420/?port=…&token=…`, valeurs imprimées par `node service/src/main.ts`).
 import type {
+  AdapterInfo,
+  AdoptGap,
+  AdoptionRefusal,
+  AdoptionView,
   AgentEvent,
   AgentName,
+  Baseline,
+  Diagnosis,
+  DiagnosisPoint,
+  PointGroup,
+  PointStatus,
   ConversationEnd,
   ConversationEvent,
   ConversationTurn,
@@ -32,8 +41,17 @@ import type {
 import { t } from "../i18n/i18n.ts";
 
 export type {
+  AdapterInfo,
+  AdoptGap,
+  AdoptionRefusal,
+  AdoptionView,
   AgentEvent,
   AgentName,
+  Baseline,
+  Diagnosis,
+  DiagnosisPoint,
+  PointGroup,
+  PointStatus,
   ConversationEnd,
   ConversationEvent,
   ConversationTurn,
@@ -71,6 +89,17 @@ export async function pickFolder(title: string): Promise<string | null> {
   return typeof choice === "string" ? choice : null;
 }
 
+// Refus du service : le message, et le corps entier pour ce qu'il porte en plus (ex. le diagnostic refait d'un 409).
+export class ApiError extends Error {
+  readonly status: number;
+  readonly data: unknown;
+  constructor(message: string, status: number, data: unknown) {
+    super(message);
+    this.status = status;
+    this.data = data;
+  }
+}
+
 export interface Connection {
   port: number;
   token: string;
@@ -104,7 +133,7 @@ export class Api {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const data = (await r.json()) as T & { error?: string };
-    if (!r.ok) throw new Error(data.error ?? t("api.error", { status: r.status }));
+    if (!r.ok) throw new ApiError(data.error ?? t("api.error", { status: r.status }), r.status, data);
     return data;
   }
 

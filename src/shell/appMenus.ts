@@ -1,13 +1,40 @@
-// Menus Fichier, Projet, Affichage, Aide (docs/navigation.md §9) : chaque entrée est un geste de la coque.
-import { getLang, LANGS, setLang, t } from "../i18n/i18n.ts";
-import type { ModuleState, ProjectView, WorkspaceView } from "../shared/api.ts";
+// Menus Fichier, Workspace ou Projet, Affichage, Aide (docs/navigation.md §9, docs/reglages.md §4) : chaque entrée est un
+// geste de la coque. Le menu de la portée n'existe que si une portée est ouverte ; la langue et les fonctions facultatives
+// sont dans Réglages, plus dans Affichage.
+import { t } from "../i18n/i18n.ts";
+import type { ProjectView, WorkspaceView } from "../shared/api.ts";
 import { projectRoute, workspaceRoute, type Route } from "../navigation/route.ts";
 import type { ShellActions } from "./actions.ts";
 import type { Menu } from "./Menus.tsx";
 import { placeLabel } from "./placeLabel.ts";
 import { placesOf } from "./places.ts";
 
-export function appMenus(route: Route, projects: ProjectView[], workspaces: WorkspaceView[], modules: ModuleState[], act: ShellActions): Menu[] {
+function scopeMenu(route: Route, act: ShellActions): Menu[] {
+  if (route.kind === "picker") return [];
+  if (route.kind === "workspace") {
+    return [
+      {
+        title: t("menu.workspace"),
+        entries: [{ title: t("menu.project.talk"), shortcut: "Ctrl+J", action: act.talk }, "-", { title: t("menu.workspace.settings"), action: () => act.settings("workspace") }],
+      },
+    ];
+  }
+  return [
+    {
+      title: t("menu.project"),
+      entries: [
+        { title: t("menu.project.talk"), shortcut: "Ctrl+J", action: act.talk },
+        { title: t("menu.project.launch"), shortcut: "F5", action: act.launch },
+        "-",
+        { title: t("menu.project.folder"), action: act.folder },
+        "-",
+        { title: t("menu.project.settings"), action: () => act.settings("project") },
+      ],
+    },
+  ];
+}
+
+export function appMenus(route: Route, projects: ProjectView[], workspaces: WorkspaceView[], act: ShellActions): Menu[] {
   const inScope = route.kind !== "picker";
   const project = route.kind === "project" ? route.project : null;
   const workspace = route.kind === "workspace" ? route.workspace : null;
@@ -16,7 +43,7 @@ export function appMenus(route: Route, projects: ProjectView[], workspaces: Work
       title: t("menu.file"),
       entries: [
         { title: t("menu.file.new"), shortcut: "Ctrl+N", action: () => act.open("new") },
-        { title: t("menu.file.open"), shortcut: "Ctrl+O", action: () => act.open("open") },
+        { title: t("menu.file.open"), shortcut: "Ctrl+O", action: () => act.open("adopt") },
         { title: t("menu.file.scope"), shortcut: "Ctrl+P", action: () => act.open("picker") },
         {
           title: t("menu.file.recent"),
@@ -29,30 +56,18 @@ export function appMenus(route: Route, projects: ProjectView[], workspaces: Work
           sub: workspaces.map((w) => ({ title: w.name, action: () => act.navigate(workspaceRoute(w.id)), checked: w.id === workspace })),
         },
         "-",
+        { title: t("menu.file.settings"), shortcut: "Ctrl+,", action: () => act.settings("app") },
+        "-",
         { title: t("menu.file.closeScope"), shortcut: "Ctrl+W", action: act.closeScope, disabled: !inScope },
       ],
     },
-    {
-      title: t("menu.project"),
-      entries: [
-        { title: t("menu.project.talk"), shortcut: "Ctrl+J", action: act.talk, disabled: !inScope },
-        { title: t("menu.project.launch"), shortcut: "F5", action: act.launch, disabled: !project },
-        "-",
-        { title: t("menu.project.folder"), action: act.folder, disabled: !project },
-        "-",
-        { title: t("menu.project.settings"), action: () => act.open("settings"), disabled: !project },
-      ],
-    },
+    ...scopeMenu(route, act),
     {
       title: t("menu.view"),
       entries: [
         { title: t("menu.view.goto"), shortcut: "Ctrl+K", action: () => act.open("goto"), disabled: !inScope },
         ...(placesOf(route).length > 0 ? (["-"] as const) : []),
         ...placesOf(route).map((p, i) => ({ title: t("menu.view.place", { place: placeLabel(p) }), shortcut: `Ctrl+${i + 1}`, action: () => act.place(p) })),
-        "-",
-        { title: t("menu.view.language"), sub: LANGS.map((l) => ({ title: l.label, action: () => setLang(l.id), checked: getLang() === l.id })) },
-        "-",
-        ...modules.filter((m) => !m.core).map((m) => ({ title: m.title, detail: m.reason ?? m.description, checked: m.active, action: () => act.toggleModule(m.id, !m.active) })),
       ],
     },
     {

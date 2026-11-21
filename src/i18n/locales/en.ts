@@ -5,6 +5,8 @@ import { misc } from "./zones/misc.ts";
 import { workspace } from "./zones/workspace.ts";
 import { navigation } from "./zones/navigation.ts";
 import { talk } from "./zones/talk.ts";
+import { settings } from "./zones/settings.ts";
+import { adopt } from "./zones/adopt.ts";
 
 export const en = {
   "app.connecting": "Connecting to the service…",
@@ -12,7 +14,7 @@ export const en = {
 
   "menu.file": "File",
   "menu.file.new": "New project…",
-  "menu.file.open": "Open project…",
+  "menu.file.open": "Add existing project?",
   "menu.file.recent": "Recent projects",
   "menu.project": "Project",
   "menu.project.launch": "Run project",
@@ -20,7 +22,6 @@ export const en = {
   "menu.project.settings": "Project settings…",
   "menu.view": "View",
   "menu.view.goto": "Go to…",
-  "menu.view.language": "Language",
   "menu.help": "Help",
   "menu.help.journey": "App walkthrough: docs/ux-parcours.md",
 
@@ -29,9 +30,6 @@ export const en = {
   "dialog.close": "Close",
   "dialog.edit": "Edit",
   "dialog.browse": "Browse…",
-  "open.title": "Open project",
-  "open.folder": "Project folder (the one containing spawn.json)",
-  "open.action": "Open",
   "new.title": "New project",
   "new.creating": "Creating “{name}”",
   "new.name": "Name",
@@ -54,4 +52,6 @@ export const en = {
   ...workspace.en,
   ...navigation.en,
   ...talk.en,
+  ...settings.en,
+  ...adopt.en,
 };

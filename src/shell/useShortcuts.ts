@@ -15,7 +15,8 @@ export function useShortcuts(route: Route, dialog: DialogKind, act: ShellActions
       if (ctrl && k === "j") {
         if (inScope) act.talk();
       } else if (ctrl && k === "n") act.open("new");
-      else if (ctrl && k === "o") act.open("open");
+      else if (ctrl && k === "o") act.open("adopt");
+      else if (ctrl && k === ",") act.settings("app");
       else if (ctrl && k === "p") act.open("picker");
       else if (ctrl && k === "k" && inScope) act.open("goto");
       else if (ctrl && k === "w" && inScope) act.closeScope();

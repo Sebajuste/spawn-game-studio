@@ -20,35 +20,24 @@ interface Props {
   focus: number;
   navigate: (route: Route, replace?: boolean) => void;
   onNewEpic: () => void;
+  onManage: () => void;
   onChanged: () => void;
-  onError: (e: string) => void;
 }
 
-export function WorkspaceContent({ api, events, route, workspace, projects, backlogs, active, projectName, focus, navigate, onNewEpic, onChanged, onError }: Props) {
+export function WorkspaceContent({ api, events, route, workspace, projects, backlogs, active, projectName, focus, navigate, onNewEpic, onManage, onChanged }: Props) {
   const ws = workspace.id;
   if (route.place === "epics") {
     const epic = route.epic ? workspace.epics.find((e) => e.id === route.epic) : undefined;
     if (epic) {
-      return <EpicPage api={api} workspace={ws} projects={workspace.projects} epic={epic} projectName={projectName} onChanged={onChanged} onOpenStory={(s) => navigate(projectRoute(s.project, ws, "backlog", s.story))} />;
+      return <EpicPage api={api} workspace={ws} projects={workspace.projects} epic={epic} projectName={projectName} onChanged={onChanged} onDeleted={() => {
+            onChanged();
+            navigate(workspaceRoute(ws, "epics"), true);
+          }} onOpenStory={(s) => navigate(projectRoute(s.project, ws, "backlog", s.story))} />;
     }
     return <WorkspaceEpics workspace={workspace} onNew={onNewEpic} onOpen={(id) => navigate(workspaceRoute(ws, "epics", id))} />;
   }
   if (route.place === "projects") {
-    return (
-      <WorkspaceProjects
-        api={api}
-        workspace={workspace}
-        projects={projects}
-        backlogs={backlogs}
-        onOpen={(p) => navigate(projectRoute(p, ws))}
-        onChanged={onChanged}
-        onDeleted={() => {
-          onChanged();
-          navigate({ kind: "picker" }, true);
-        }}
-        onError={onError}
-      />
-    );
+    return <WorkspaceProjects workspace={workspace} projects={projects} backlogs={backlogs} onOpen={(p) => navigate(projectRoute(p, ws))} onManage={onManage} />;
   }
   const ids = workspace.projects;
   const loading = ids.some((p) => (backlogs.get(p) ?? null) === null);
