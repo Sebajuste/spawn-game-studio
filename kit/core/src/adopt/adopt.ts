@@ -3,10 +3,10 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { callAdapter, loadAdapter, type Adapter } from "../adapter/call.ts";
+import { enginesDir } from "../adapters.ts";
 import type { AdoptData, AdoptGap } from "../adapter/types.ts";
 import { git, gitOk } from "../git.ts";
 import { apply, installPlan, run, type Runner } from "../prerequisites.ts";
-import { ENGINES_DIR } from "../project.ts";
 import { register, type RegisteredProject } from "../registry.ts";
 import { addProject } from "../workspaces.ts";
 import { diagnose, EXCLUDED, type Diagnosis } from "./diagnose.ts";
@@ -95,7 +95,7 @@ export async function adoptProject(d: AdoptRequest): Promise<Adoption> {
 
   const diagnosis = await diagnose(root, { engine: d.engine, ...(d.engines ? { engines: d.engines } : {}) });
   if (!diagnosis.ready) throw new AdoptionRefused(diagnosis);
-  const adapter = loadAdapter(join(d.engines ?? ENGINES_DIR, d.engine));
+  const adapter = loadAdapter(join(d.engines ?? enginesDir(), d.engine));
   const before = readGitState(root);
   const branch = before.branch as string;
 

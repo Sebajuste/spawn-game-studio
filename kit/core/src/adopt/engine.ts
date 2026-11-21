@@ -1,8 +1,7 @@
 // Quel adaptateur reconnaît le dossier : le premier dont `detect` répond oui (ordre alphabétique des moteurs).
 import { callAdapter, type Adapter } from "../adapter/call.ts";
 import type { DetectData } from "../adapter/types.ts";
-import { loadAdapters } from "../adapters.ts";
-import { ENGINES_DIR } from "../project.ts";
+import { enginesDir, loadAdapters } from "../adapters.ts";
 
 export interface DetectedEngine {
   engine: string;
@@ -25,7 +24,7 @@ export async function detectWith(adapter: Adapter, dir: string): Promise<Detecte
   };
 }
 
-export async function detectEngine(dir: string, engines: string = ENGINES_DIR): Promise<DetectedEngine | null> {
+export async function detectEngine(dir: string, engines: string = enginesDir()): Promise<DetectedEngine | null> {
   for (const adapter of loadAdapters(engines)) {
     const found = await detectWith(adapter, dir);
     if (found) return found;

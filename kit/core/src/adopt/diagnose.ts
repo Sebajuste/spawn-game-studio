@@ -4,8 +4,7 @@ import { existsSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { callAdapter, loadAdapter, type Adapter } from "../adapter/call.ts";
 import type { AdoptData, AdoptGap } from "../adapter/types.ts";
-import { loadAdapters } from "../adapters.ts";
-import { ENGINES_DIR } from "../project.ts";
+import { enginesDir, loadAdapters } from "../adapters.ts";
 import { detectWith, type DetectedEngine } from "./engine.ts";
 import { KIT_GITIGNORE, missingGitignore, proposeTag } from "./files.ts";
 import { isRepoRoot, readGitState, type GitState } from "./git.ts";
@@ -84,7 +83,7 @@ function hooksPoint(state: GitState): Point {
 }
 
 async function chooseEngine(dir: string, o: DiagnoseOptions): Promise<{ adapter: Adapter; found: DetectedEngine | null } | null> {
-  const engines = o.engines ?? ENGINES_DIR;
+  const engines = o.engines ?? enginesDir();
   if (o.engine) {
     const adapter = loadAdapter(join(engines, o.engine));
     return { adapter, found: await detectWith(adapter, dir) };

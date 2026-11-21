@@ -4,13 +4,18 @@ import { join } from "node:path";
 import { DESCRIPTOR_FILE, loadAdapter, type Adapter } from "./adapter/call.ts";
 import { ENGINES_DIR } from "./project.ts";
 
+// SPAWN_ENGINES remplace le dossier des adaptateurs (tests, adaptateur en développement), comme pour projectAdapter.
+export function enginesDir(): string {
+  return process.env.SPAWN_ENGINES ?? ENGINES_DIR;
+}
+
 export interface AdapterInfo {
   engine: string;
   title: string;
 }
 
 // Un descripteur illisible est ignoré : un adaptateur en cours d'écriture ne doit pas masquer les autres.
-export function loadAdapters(dir: string = ENGINES_DIR): Adapter[] {
+export function loadAdapters(dir: string = enginesDir()): Adapter[] {
   if (!existsSync(dir)) return [];
   const found: Adapter[] = [];
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -26,6 +31,6 @@ export function loadAdapters(dir: string = ENGINES_DIR): Adapter[] {
   return found.sort((a, b) => (a.descriptor.engine < b.descriptor.engine ? -1 : 1));
 }
 
-export function listAdapters(dir: string = ENGINES_DIR): AdapterInfo[] {
+export function listAdapters(dir: string = enginesDir()): AdapterInfo[] {
   return loadAdapters(dir).map((a) => ({ engine: a.descriptor.engine, title: a.descriptor.title ?? a.descriptor.engine }));
 }

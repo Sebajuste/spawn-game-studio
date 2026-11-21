@@ -1,6 +1,20 @@
 // Workspaces : projets regroupés et epics qui traversent plusieurs projets (docs/workspaces.md). Le suivi local est la
 // source de vérité ; l'état réel de chaque story est lu dans son projet.
-import { addEpicStory, addProject, createEpic, createWorkspace, epicStories, readWorkspaces, removeWorkspace, type Epic, type Workspace } from "../../../kit/core/src/workspaces.ts";
+import {
+  addEpicStory,
+  addProject,
+  createEpic,
+  createWorkspace,
+  epicStories,
+  readWorkspaces,
+  removeEpic,
+  removeProject,
+  removeWorkspace,
+  renameEpic,
+  renameWorkspace,
+  type Epic,
+  type Workspace,
+} from "../../../kit/core/src/workspaces.ts";
 import type { EpicView, WorkspaceView } from "../contract.ts";
 import type { ServiceModule } from "../module.ts";
 import { HttpError } from "../router.ts";
@@ -47,6 +61,30 @@ export const workspacesModule: ServiceModule = {
       if (!removeWorkspace(params.id ?? "")) throw new HttpError(404, `workspace inconnu : ${params.id}`);
       changed();
       return { removed: params.id };
+    });
+    routes.add("PATCH", "/api/workspaces/:id", ({ params, body }) => {
+      const name = (body as { name?: unknown } | null)?.name;
+      if (typeof name !== "string") throw new HttpError(400, '{ "name" } attendu');
+      const w = guard(() => renameWorkspace(params.id ?? "", name));
+      changed();
+      return workspaceView(w);
+    });
+    routes.add("DELETE", "/api/workspaces/:id/projects/:project", ({ params }) => {
+      const w = guard(() => removeProject(params.id ?? "", params.project ?? ""));
+      changed();
+      return workspaceView(w);
+    });
+    routes.add("PATCH", "/api/workspaces/:id/epics/:epic", ({ params, body }) => {
+      const title = (body as { title?: unknown } | null)?.title;
+      if (typeof title !== "string") throw new HttpError(400, '{ "title" } attendu');
+      const e = guard(() => renameEpic(params.id ?? "", params.epic ?? "", title));
+      changed();
+      return epicView(e);
+    });
+    routes.add("DELETE", "/api/workspaces/:id/epics/:epic", ({ params }) => {
+      if (!guard(() => removeEpic(params.id ?? "", params.epic ?? ""))) throw new HttpError(404, `epic inconnu : ${params.epic}`);
+      changed();
+      return { removed: params.epic };
     });
     routes.add("POST", "/api/workspaces/:id/projects", ({ params, body }) => {
       const project = (body as { project?: unknown } | null)?.project;

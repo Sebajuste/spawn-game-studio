@@ -6,9 +6,12 @@ export type Handler = (request: { params: Params; body: unknown; url: URL; raw: 
 
 export class HttpError extends Error {
   readonly status: number;
-  constructor(status: number, message: string) {
+  // Champs ajoutés à la réponse d'erreur (ex. le diagnostic refait d'une adoption refusée).
+  readonly extra: Record<string, unknown>;
+  constructor(status: number, message: string, extra: Record<string, unknown> = {}) {
     super(message);
     this.status = status;
+    this.extra = extra;
   }
 }
 

@@ -280,3 +280,61 @@ export interface KnownEngine {
   version: string;
   executable: string;
 }
+
+// Moteur proposé par « Nouveau projet » et « Ajouter un projet existant » : un adaptateur présent dans le kit.
+export interface AdapterInfo {
+  engine: string;
+  title: string;
+}
+
+// Diagnostic d'adoption (docs/adoption.md §3) : ✓ ok, + add, ~ complete, ⚠ warn, ⛔ stop.
+export type PointStatus = "ok" | "add" | "complete" | "warn" | "stop";
+export type PointGroup = "git" | "engine" | "files" | "hooks" | "plugin";
+
+export interface DiagnosisPoint {
+  status: PointStatus;
+  group: PointGroup;
+  label: string;
+  detail?: string;
+}
+
+export interface AdoptGap {
+  code: string;
+  message: string;
+}
+
+export interface Diagnosis {
+  dir: string;
+  name: string;
+  spawn: boolean;
+  engine: string | null;
+  title: string | null;
+  version: string | null;
+  tag: string;
+  points: DiagnosisPoint[];
+  gaps: AdoptGap[];
+  gitignore: string[];
+  ready: boolean;
+}
+
+export interface Baseline {
+  ok: boolean;
+  total: number;
+  passed: number;
+  failed: number;
+  message: string | null;
+}
+
+export interface AdoptionView {
+  project: ProjectView;
+  commit: string | null;
+  baseline: Baseline | null;
+  gaps: AdoptGap[];
+  leftovers: string[];
+}
+
+// Refus d'adoption (409) : le diagnostic refait, à montrer à la place de l'ancien.
+export interface AdoptionRefusal {
+  error: string;
+  diagnosis: Diagnosis;
+}

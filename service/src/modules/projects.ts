@@ -6,8 +6,10 @@ import { newProject, slug } from "../../../kit/core/src/new-project.ts";
 import { findProject } from "../../../kit/core/src/project.ts";
 import { unregister, register, readRegistry, type RegisteredProject } from "../../../kit/core/src/registry.ts";
 import type { KnownEngine, ProjectView } from "../contract.ts";
+import { forgetProject } from "../../../kit/core/src/workspaces.ts";
 import type { ServiceModule } from "../module.ts";
 import { HttpError } from "../router.ts";
+import { adoptionRoutes } from "./adopt.ts";
 
 // Champs à null si le dossier n'est plus un projet Spawn (déplacé, supprimé) : l'app le dit au lieu de le cacher.
 export function projectView(p: RegisteredProject): ProjectView {
@@ -30,7 +32,7 @@ export function projectById(id: string): RegisteredProject {
 export const projectsModule: ServiceModule = {
   id: "projects",
   title: "Projets",
-  description: "Les projets de la machine, groupes de la barre latérale.",
+  description: "Les projets de la machine : inscription, création, adoption d'un projet existant.",
   core: true,
   defaultOn: true,
   dependencies: [],
@@ -61,7 +63,8 @@ export const projectsModule: ServiceModule = {
       const name = typeof c.name === "string" ? c.name.trim() : "";
       const parent = typeof c.parent === "string" ? c.parent.trim() : "";
       const version = typeof c.version === "string" ? c.version.trim() : "";
-      if (!name || !parent || !version) throw new HttpError(400, 'corps attendu : { "name", "parent" (dossier absolu), "version", "engine"?, "tag"?, "remote"? }');
+      const engine = typeof c.engine === "string" ? c.engine.trim() : "";
+      if (!name || !parent || !version || !engine) throw new HttpError(400, 'corps attendu : { "name", "parent" (dossier absolu), "engine", "version", "tag"?, "remote"? }');
       if (!isAbsolute(parent)) throw new HttpError(400, `dossier parent absolu attendu : ${parent}`);
       if (creating) throw new HttpError(409, "une création de projet est déjà en cours");
       creating = true;
@@ -70,7 +73,7 @@ export const projectsModule: ServiceModule = {
         const created = await newProject({
           name,
           parent: resolve(parent),
-          engine: typeof c.engine === "string" && c.engine ? c.engine : "godot",
+          engine,
           version,
           tag,
           remote: typeof c.remote === "string" && c.remote ? c.remote : "local",
@@ -88,8 +91,12 @@ export const projectsModule: ServiceModule = {
       }
     });
 
+    adoptionRoutes({ routes, emit, remount });
+
     routes.add("DELETE", "/api/projects/:id", async ({ params }) => {
       if (!unregister(params.id ?? "")) throw new HttpError(404, `projet inconnu : ${params.id}`);
+      forgetProject(params.id ?? "");
+      emit("workspaces", {});
       await remount();
       return { removed: params.id };
     });
