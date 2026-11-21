@@ -151,6 +151,21 @@ export function versionOf(repo: string, commit = "HEAD"): { version: string; com
   return { version: `${version}+${short}`, commit: full };
 }
 
+// Sous Windows, un antivirus ou l'indexeur tient parfois un instant les exécutables tout juste copiés : le renommage
+// du dossier échoue alors en EPERM, EBUSY ou EACCES. On réessaie quelques fois avant d'abandonner.
+function renameWithRetry(from: string, to: string, attempts = 10): void {
+  for (let i = 1; ; i++) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code ?? "";
+      if (i >= attempts || !["EPERM", "EBUSY", "EACCES"].includes(code)) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200 * i);
+    }
+  }
+}
+
 // Plugin Claude Code mince de la version (SGS-04) : manifeste, hooks, skills et agents dont chaque commande est un
 // chemin absolu dans le runtime. Claude Code peut le copier où il veut : il ne contient aucun code à exécuter.
 // `core` : les sources lues ; `written` : le kit que désignent les chemins écrits (par défaut le même).
@@ -177,7 +192,8 @@ export function generateClaudePlugin(core: string, version: string, dest: string
         ) + "\n",
     },
     { path: join(plugin, ".claude-plugin", "plugin.json"), content: JSON.stringify({ ...manifest, version }, null, 2) + "\n" },
-    { path: join(plugin, "hooks", "hooks.json"), content: node ? hooks.replaceAll('"command": "node"', `"command": ${JSON.stringify(toSlash(node))}`) : hooks },
+    // Les hooks sont des lignes de commande `node "<script>" …` : on remplace `node` par le Node embarqué, entre guillemets.
+    { path: join(plugin, "hooks", "hooks.json"), content: node ? hooks.replaceAll('"command": "node ', `"command": ${JSON.stringify(`"${toSlash(node)}" `).slice(0, -1)}`) : hooks },
   ];
   for (const name of readdirSync(join(core, "skills"))) {
     const source = join(core, "skills", name, "SKILL.md");
@@ -399,7 +415,7 @@ export function install(o: InstallOptions, deps: RuntimeDeps): number {
         const info: RuntimeInfo = { version, commit, installed: new Date().toISOString(), repo: o.repo };
         writeFileSync(join(partial, "runtime.json"), JSON.stringify(info, null, 2) + "\n");
         rmSync(dir, { recursive: true, force: true, maxRetries: 5 });
-        renameSync(partial, dir);
+        renameWithRetry(partial, dir);
       },
     });
   }
@@ -510,7 +526,8 @@ function json<T>(r: Output | null): T | null {
 function pluginTargets(folder: string): { hook: string | null; cli: string | null } {
   const root = toSlash(folder).replace(/\/$/, "");
   const read = (p: string) => (existsSync(p) ? readFileSync(p, "utf8").replaceAll("${CLAUDE_PLUGIN_ROOT}", root) : "");
-  const hook = /"([^"]*pre-tool-use\.ts)"/.exec(read(join(folder, "hooks", "hooks.json")))?.[1] ?? null;
+  // Dans hooks.json, le script est entre guillemets échappés (`node \"…ts\"`) : on les déséchappe avant de chercher.
+  const hook = /"([^"]*pre-tool-use\.ts)"/.exec(read(join(folder, "hooks", "hooks.json")).replaceAll('\\"', '"'))?.[1] ?? null;
   const cli = /node "([^"]*cli\.ts)"/.exec(read(join(folder, "skills", "story", "SKILL.md")))?.[1] ?? null;
   return { hook, cli };
 }

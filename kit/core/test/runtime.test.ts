@@ -155,9 +155,10 @@ test("install: layout, version name, tag, current.json, thin Claude plugin and O
   // Node embarqué : copié dans la version, et c'est lui que lancent les hooks (aucun Node installé n'est requis).
   const node = slash(join(dir, "node", NODE_EXE));
   assert.equal(readFileSync(node, "utf8"), "node");
-  const commands = [...hooks.matchAll(/"command": "([^"]+)"/g)].map((m) => m[1]);
-  assert.ok(commands.length >= 5 && commands.every((cmd) => cmd === node), commands.join(", "));
-  const targets = [...hooks.matchAll(/"([^"]+\.ts)"/g)].map((m) => m[1] ?? "");
+  // Chaque hook est une ligne de commande : `"<node embarqué>" "<script>" [args]`.
+  const commands = [...hooks.matchAll(/"command": ("(?:[^"\\]|\\.)*")/g)].map((m) => JSON.parse(m[1] ?? '""') as string);
+  assert.ok(commands.length >= 5 && commands.every((cmd) => cmd.startsWith(`"${node}" "`)), commands.join(", "));
+  const targets = commands.map((cmd) => /"([^"]+\.ts)"/.exec(cmd)?.[1] ?? "");
   assert.ok(targets.length >= 5);
   for (const t of targets) {
     assert.ok(t.startsWith(`${core}/src/hooks/`), t);
