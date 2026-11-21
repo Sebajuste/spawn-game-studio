@@ -1,12 +1,13 @@
-// Les moteurs que le kit sait mener (`GET /api/adapters`) : leur nom pour les choix, leur titre pour l'affichage.
-import { useEffect, useState } from "react";
-import type { AdapterInfo, Api } from "../shared/api.ts";
+// Les moteurs que le kit sait mener (`GET /api/adapters`). `useAdapterChoices` : tous, cochés ou non, pour les Réglages
+// et les titres ; `useAdapters` : les seuls cochés sur cette machine, pour les choix de Nouveau projet et d'adoption.
+import { useEffect, useMemo, useState } from "react";
+import type { AdapterChoice, AdapterInfo, Api } from "../shared/api.ts";
 
-export function useAdapters(api: Api): AdapterInfo[] | null {
-  const [adapters, setAdapters] = useState<AdapterInfo[] | null>(null);
+export function useAdapterChoices(api: Api): [AdapterChoice[] | null, (a: AdapterChoice[]) => void] {
+  const [adapters, setAdapters] = useState<AdapterChoice[] | null>(null);
   useEffect(() => {
     let live = true;
-    api.call<AdapterInfo[]>("GET", "/api/adapters").then(
+    api.call<AdapterChoice[]>("GET", "/api/adapters").then(
       (a) => live && setAdapters(a),
       () => live && setAdapters([]),
     );
@@ -14,7 +15,12 @@ export function useAdapters(api: Api): AdapterInfo[] | null {
       live = false;
     };
   }, [api]);
-  return adapters;
+  return [adapters, setAdapters];
+}
+
+export function useAdapters(api: Api): AdapterChoice[] | null {
+  const [adapters] = useAdapterChoices(api);
+  return useMemo(() => adapters && adapters.filter((a) => a.active), [adapters]);
 }
 
 export const engineTitle = (adapters: readonly AdapterInfo[] | null, engine: string | null): string => (engine ? (adapters?.find((a) => a.engine === engine)?.title ?? engine) : "");

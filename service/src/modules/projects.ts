@@ -9,6 +9,7 @@ import type { KnownEngine, ProjectView } from "../contract.ts";
 import { forgetProject } from "../../../kit/core/src/workspaces.ts";
 import type { ServiceModule } from "../module.ts";
 import { HttpError } from "../router.ts";
+import { adapterRoutes, requireActive } from "./adapters.ts";
 import { adoptionRoutes } from "./adopt.ts";
 
 // Champs à null si le dossier n'est plus un projet Spawn (déplacé, supprimé) : l'app le dit au lieu de le cacher.
@@ -66,6 +67,7 @@ export const projectsModule: ServiceModule = {
       const engine = typeof c.engine === "string" ? c.engine.trim() : "";
       if (!name || !parent || !version || !engine) throw new HttpError(400, 'corps attendu : { "name", "parent" (dossier absolu), "engine", "version", "tag"?, "remote"? }');
       if (!isAbsolute(parent)) throw new HttpError(400, `dossier parent absolu attendu : ${parent}`);
+      requireActive(engine);
       if (creating) throw new HttpError(409, "une création de projet est déjà en cours");
       creating = true;
       try {
@@ -91,6 +93,7 @@ export const projectsModule: ServiceModule = {
       }
     });
 
+    adapterRoutes({ routes });
     adoptionRoutes({ routes, emit, remount });
 
     routes.add("DELETE", "/api/projects/:id", async ({ params }) => {

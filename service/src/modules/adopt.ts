@@ -1,12 +1,12 @@
-// Ajouter un projet existant (docs/adoption.md) : les moteurs présents, le diagnostic en lecture seule, l'adoption
-// dont chaque étape est poussée à l'interface (événement « adoption »).
+// Ajouter un projet existant (docs/adoption.md) : le diagnostic en lecture seule, l'adoption dont chaque étape est
+// poussée à l'interface (événement « adoption »). Les moteurs proposés : adapters.ts.
 import { isAbsolute, resolve } from "node:path";
-import { listAdapters } from "../../../kit/core/src/adapters.ts";
 import { adoptProject, AdoptionRefused } from "../../../kit/core/src/adopt/adopt.ts";
 import { diagnose } from "../../../kit/core/src/adopt/diagnose.ts";
-import type { AdapterInfo, AdoptionView, Diagnosis } from "../contract.ts";
+import type { AdoptionView, Diagnosis } from "../contract.ts";
 import type { ModuleContext } from "../module.ts";
 import { HttpError } from "../router.ts";
+import { activeEngines, requireActive } from "./adapters.ts";
 import { projectView } from "./projects.ts";
 
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
@@ -18,13 +18,12 @@ function folder(body: unknown): string {
 }
 
 export function adoptionRoutes({ routes, emit, remount }: Pick<ModuleContext, "routes" | "emit" | "remount">): void {
-  routes.add("GET", "/api/adapters", (): AdapterInfo[] => listAdapters());
-
   routes.add("POST", "/api/projects/diagnose", async ({ body }): Promise<Diagnosis> => {
     const dir = folder(body);
     const engine = text((body as { engine?: unknown }).engine);
+    if (engine) requireActive(engine);
     try {
-      return await diagnose(dir, engine ? { engine } : {});
+      return await diagnose(dir, engine ? { engine } : { only: activeEngines() });
     } catch (e) {
       throw new HttpError(400, (e as Error).message);
     }
@@ -39,6 +38,7 @@ export function adoptionRoutes({ routes, emit, remount }: Pick<ModuleContext, "r
     const tag = text(b.tag).toUpperCase();
     const workspace = text(b.workspace);
     if (!engine || !version || !tag) throw new HttpError(400, 'corps attendu : { "dir", "engine", "version", "tag", "workspace"? }');
+    requireActive(engine);
     if (adopting) throw new HttpError(409, "une adoption est déjà en cours");
     adopting = true;
     try {

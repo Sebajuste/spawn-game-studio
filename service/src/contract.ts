@@ -285,6 +285,14 @@ export interface KnownEngine {
 export interface AdapterInfo {
   engine: string;
   title: string;
+  product: string;
+}
+
+// Un adaptateur vu par Réglages > Application (docs/reglages.md §3.1) : coché ou non sur cette machine, et combien de
+// projets inscrits l'utilisent (ils continuent de fonctionner s'il est décoché).
+export interface AdapterChoice extends AdapterInfo {
+  active: boolean;
+  projects: number;
 }
 
 // Diagnostic d'adoption (docs/adoption.md §3) : ✓ ok, + add, ~ complete, ⚠ warn, ⛔ stop.

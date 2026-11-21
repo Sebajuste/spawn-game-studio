@@ -9,6 +9,7 @@ import { detectWith, type DetectedEngine } from "./engine.ts";
 import { KIT_GITIGNORE, missingGitignore, proposeTag } from "./files.ts";
 import { isRepoRoot, readGitState, type GitState } from "./git.ts";
 import { hooksStatus } from "./hooks.ts";
+import { run, type Runner } from "../prerequisites.ts";
 
 export type PointStatus = "ok" | "add" | "complete" | "warn" | "stop";
 export type PointGroup = "git" | "engine" | "files" | "hooks" | "plugin";
@@ -41,6 +42,9 @@ export interface DiagnoseOptions {
   engines?: string;
   // Moteur choisi par la personne à la place de celui qui est reconnu.
   engine?: string;
+  // Moteurs proposés sur cette machine (Réglages > Application) : seuls ceux-là sont essayés à la reconnaissance.
+  only?: readonly string[];
+  run?: Runner;
 }
 
 export const EXCLUDED = [".spawn", ".claude"];
@@ -89,6 +93,7 @@ async function chooseEngine(dir: string, o: DiagnoseOptions): Promise<{ adapter:
     return { adapter, found: await detectWith(adapter, dir) };
   }
   for (const adapter of loadAdapters(engines)) {
+    if (o.only && !o.only.includes(adapter.descriptor.engine)) continue;
     const found = await detectWith(adapter, dir);
     if (found) return { adapter, found };
   }
@@ -159,7 +164,11 @@ export async function diagnose(dir: string, o: DiagnoseOptions = {}): Promise<Di
   if (missing.length > 0) points.push({ status: hasGitignore ? "complete" : "add", group: "files", label: ".gitignore", detail: missing.join(" ") });
   else points.push({ status: "ok", group: "files", label: ".gitignore" });
   if (state.repo) points.push(hooksPoint(state));
-  points.push({ status: "add", group: "plugin", label: "plugin spawnstudio pour ce projet", detail: "seuil de compactage dans .claude/settings.json" });
+  if ((o.run ?? run)("claude", ["--version"], root).code === 0) {
+    points.push({ status: "add", group: "plugin", label: "plugin spawnstudio pour ce projet", detail: "seuil de compactage dans .claude/settings.json" });
+  } else {
+    points.push({ status: "ok", group: "plugin", label: "Claude Code absent : pas de plugin à installer" });
+  }
 
   return { ...base, spawn: false, engine, title, version, points, gaps, gitignore: missing, ready: !points.some((p) => p.status === "stop") };
 }

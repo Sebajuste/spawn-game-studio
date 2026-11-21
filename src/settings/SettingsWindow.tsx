@@ -2,7 +2,7 @@
 // changement s'enregistre aussitôt : pas de bouton Enregistrer. Échap ou ✕ ferme.
 import { useState } from "react";
 import type { Api, ModuleState, ProjectView, WorkspaceView } from "../shared/api.ts";
-import { useAdapters } from "../data/useAdapters.ts";
+import { useAdapterChoices } from "../data/useAdapters.ts";
 import { t } from "../i18n/i18n.ts";
 import { AppSection } from "./AppSection.tsx";
 import { ProjectSection } from "./ProjectSection.tsx";
@@ -29,7 +29,7 @@ interface Props {
 
 export function SettingsWindow(p: Props) {
   const [section, setSection] = useState<SettingsSection>(p.section);
-  const adapters = useAdapters(p.api);
+  const [adapters, setAdapters] = useAdapterChoices(p.api);
   const shown = section === "workspace" && !p.workspace ? "app" : section === "project" && !p.project ? "app" : section;
   const tab = (id: SettingsSection, title: string) => (
     <button key={id} className={shown === id ? "chosen" : ""} aria-current={shown === id} onClick={() => setSection(id)}>
@@ -47,7 +47,7 @@ export function SettingsWindow(p: Props) {
           {p.project && tab("project", t("settings.project.title", { name: p.project.name }))}
         </nav>
         <div className="settings-content">
-          {shown === "app" && <AppSection modules={p.modules} onToggle={p.onToggleModule} />}
+          {shown === "app" && <AppSection api={p.api} modules={p.modules} onToggle={p.onToggleModule} adapters={adapters} onAdapters={setAdapters} onError={p.onError} />}
           {shown === "workspace" && p.workspace && (
             <WorkspaceSection api={p.api} workspace={p.workspace} projects={p.projects} onChanged={p.onWorkspacesChanged} onDeleted={p.onWorkspaceDeleted} onAdopt={p.onAdopt} onNewProject={p.onNewProject} />
           )}

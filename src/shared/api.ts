@@ -1,6 +1,7 @@
 // Connexion au service de l'app : fournie par Tauri (commande « service »), ou par l'URL en développement
 // (`http://localhost:1420/?port=…&token=…`, valeurs imprimées par `node service/src/main.ts`).
 import type {
+  AdapterChoice,
   AdapterInfo,
   AdoptGap,
   AdoptionRefusal,
@@ -41,6 +42,7 @@ import type {
 import { t } from "../i18n/i18n.ts";
 
 export type {
+  AdapterChoice,
   AdapterInfo,
   AdoptGap,
   AdoptionRefusal,

@@ -49,7 +49,7 @@ const request = (dir: string, commands: string[] = []) => ({ dir, engine: "fake"
 
 test("diagnosis: every point said, nothing written", async () => {
   const repo = existing();
-  const d = await diagnose(repo, { engines: ENGINES });
+  const d = await diagnose(repo, { engines: ENGINES, run: fake() });
   assert.equal(d.ready, true);
   assert.equal(d.engine, "fake");
   assert.equal(d.tag, "MS");
@@ -67,6 +67,11 @@ test("diagnosis: every point said, nothing written", async () => {
   assert.deepEqual(d.gitignore, [".claude/worktrees/", ".claude/settings.local.json", ".fake-cache/"], "/.spawn couvre déjà .spawn/");
   assert.equal(git(repo, ["status", "--porcelain"]).stdout, "");
   assert.ok(!existsSync(join(repo, "spawn.json")));
+
+  const none = await diagnose(repo, { engines: ENGINES, only: [], run: () => ({ code: -1, stdout: "", stderr: "ENOENT" }) });
+  assert.equal(none.engine, null, "un moteur décoché n'est pas reconnu");
+  assert.equal(statuses(none)["aucun moteur reconnu"], "stop");
+  assert.equal(statuses(none)["Claude Code absent : pas de plugin à installer"], "ok");
 });
 
 test("diagnosis stops: not a repo, sub-folder, dirty tree, other hooks, Husky, no engine", async () => {
@@ -154,16 +159,16 @@ test("adoption: without Claude Code, no plugin step and no Claude settings; the 
   };
   const a = await adoptProject({ ...request(repo), run: noClaude });
   assert.ok(a.commit);
-  assert.deepEqual(commands.filter((c) => c.startsWith("claude")), ["claude --version"]);
+  assert.ok(commands.filter((c) => c.startsWith("claude")).every((c) => c === "claude --version"), "rien d'autre que la détection");
   assert.ok(!existsSync(join(repo, ".claude", "settings.json")));
 });
 
-test("adapters listed with their title; requirement prefix proposed from the folder", () => {
-  assert.deepEqual(listAdapters(ENGINES), [{ engine: "fake", title: "fake" }], "un dossier qui ne porte pas le nom de son moteur est ignoré");
+test("adapters listed with their title and product; requirement prefix proposed from the folder", () => {
+  assert.deepEqual(listAdapters(ENGINES), [{ engine: "fake", title: "fake", product: "jeu" }], "un dossier qui ne porte pas le nom de son moteur est ignoré");
   const real = listAdapters(ENGINES_DIR);
   assert.deepEqual(real.filter((a) => ["godot", "node"].includes(a.engine)), [
-    { engine: "godot", title: "Godot" },
-    { engine: "node", title: "Node (web, services)" },
+    { engine: "godot", title: "Godot", product: "jeu" },
+    { engine: "node", title: "Node (web, services)", product: "app" },
   ]);
   assert.equal(proposeTag("C:/x/mon-site"), "MS");
   assert.equal(proposeTag("/x/morpion"), "MOR");

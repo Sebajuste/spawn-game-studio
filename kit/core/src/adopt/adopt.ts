@@ -93,7 +93,7 @@ export async function adoptProject(d: AdoptRequest): Promise<Adoption> {
   if (!/^[A-Z][A-Z0-9]{1,5}$/.test(d.tag)) throw new Error(`préfixe d'exigences invalide : « ${d.tag} » (2 à 6 majuscules, ex. MRP)`);
   if (!/^\d+(\.\d+)*$/.test(d.version)) throw new Error(`version du moteur invalide : « ${d.version} »`);
 
-  const diagnosis = await diagnose(root, { engine: d.engine, ...(d.engines ? { engines: d.engines } : {}) });
+  const diagnosis = await diagnose(root, { engine: d.engine, run: ex, ...(d.engines ? { engines: d.engines } : {}) });
   if (!diagnosis.ready) throw new AdoptionRefused(diagnosis);
   const adapter = loadAdapter(join(d.engines ?? enginesDir(), d.engine));
   const before = readGitState(root);

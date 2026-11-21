@@ -1,10 +1,20 @@
-// Réglages > Application : pour toute l'app, sur cette machine. La langue, et les fonctions facultatives (les modules
-// hors socle) avec ce qu'elles font, ou pourquoi l'une est éteinte malgré le choix.
+// Réglages > Application : pour toute l'app, sur cette machine. La langue, les moteurs proposés, et les fonctions
+// facultatives (les modules hors socle) avec ce qu'elles font, ou pourquoi l'une est éteinte malgré le choix.
 import { getLang, LANGS, setLang, t, type Lang } from "../i18n/i18n.ts";
-import type { ModuleState } from "../shared/api.ts";
+import type { AdapterChoice, Api, ModuleState } from "../shared/api.ts";
+import { EnginesSettings } from "./EnginesSettings.tsx";
 import { SettingRow } from "./SettingRow.tsx";
 
-export function AppSection({ modules, onToggle }: { modules: ModuleState[]; onToggle: (id: string, active: boolean) => void }) {
+interface Props {
+  api: Api;
+  modules: ModuleState[];
+  onToggle: (id: string, active: boolean) => void;
+  adapters: AdapterChoice[] | null;
+  onAdapters: (a: AdapterChoice[]) => void;
+  onError: (e: string) => void;
+}
+
+export function AppSection({ api, modules, onToggle, adapters, onAdapters, onError }: Props) {
   const optional = modules.filter((m) => !m.core);
   return (
     <>
@@ -19,6 +29,7 @@ export function AppSection({ modules, onToggle }: { modules: ModuleState[]; onTo
           ))}
         </select>
       </SettingRow>
+      <EnginesSettings api={api} adapters={adapters} onChanged={onAdapters} onError={onError} />
       <h4>{t("settings.app.modules")}</h4>
       {optional.length === 0 && <p className="muted">{t("settings.app.noModules")}</p>}
       {optional.map((m) => (

@@ -12,6 +12,8 @@ export function enginesDir(): string {
 export interface AdapterInfo {
   engine: string;
   title: string;
+  // Ce que le moteur produit (« jeu », « app ») : le domaine de son descripteur.
+  product: string;
 }
 
 // Un descripteur illisible est ignoré : un adaptateur en cours d'écriture ne doit pas masquer les autres.
@@ -32,5 +34,5 @@ export function loadAdapters(dir: string = enginesDir()): Adapter[] {
 }
 
 export function listAdapters(dir: string = enginesDir()): AdapterInfo[] {
-  return loadAdapters(dir).map((a) => ({ engine: a.descriptor.engine, title: a.descriptor.title ?? a.descriptor.engine }));
+  return loadAdapters(dir).map((a) => ({ engine: a.descriptor.engine, title: a.descriptor.title ?? a.descriptor.engine, product: a.descriptor.domain?.product ?? "" }));
 }
