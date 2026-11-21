@@ -46,7 +46,12 @@
 
 ## Statut
 
-À faire.
+Fait : contrat et adaptateurs (`ce3ccc2`), adoption du kit (`8ac14db`), service (`8834574`), interface (`d42914d`).
+Vérifié : typecheck, lint, tests de l'app ; captures des Réglages (application, workspace, projet), des menus ▾ et ⋯,
+de la confirmation d'abandon et du diagnostic d'un projet Node existant.
+
+Non vérifié : une adoption réelle de bout en bout par le service (elle lance l'agent), l'adoption d'un projet Godot avec
+téléchargement de GUT, l'installation réelle du plugin.
 
 ## Hors de ce plan
 
