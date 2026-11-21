@@ -1,8 +1,10 @@
 // Relecture de la sortie des outils de la pile : tsc, eslint (format stylish), cargo, erreurs non rattrapées de
-// Node, et résumé du lanceur de tests de Node (reporter spec, ou TAP).
+// Node, et résumé des tests : lanceur de Node (reporter spec, ou TAP), Vitest, Jest.
 import { existsSync } from "node:fs";
 import { isAbsolute, join, normalize, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseJest } from "./parse-jest.ts";
+import { parseVitest } from "./parse-vitest.ts";
 import { diagnostic } from "./result.ts";
 import type { Diagnostic } from "../../../core/src/adapter/types.ts";
 
@@ -186,8 +188,16 @@ const FAILING_AT = /^test at (.+):(\d+):(\d+)$/;
 const FAILING_NAME = /^\s*✖ (.+?)(?: \([\d.]+m?s\))?$/;
 const TAP_NOT_OK = /^\s*not ok \d+ - (.+?)(?: #.*)?$/;
 
-// Résumé du lanceur de tests de Node. Les suites successives (espaces de travail) s'additionnent.
+// Résumé des tests : celui du lanceur de Node d'abord, sinon Vitest, sinon Jest. Les suites successives (espaces de
+// travail) s'additionnent.
 export function parseTestOutput(text: string, paths: Paths): TestSummary {
+  const s = parseNodeTests(text, paths);
+  if (s.suites > 0) return s;
+  const all = lines(text);
+  return parseVitest(all, paths) ?? parseJest(all, paths) ?? s;
+}
+
+function parseNodeTests(text: string, paths: Paths): TestSummary {
   const s: TestSummary = { suites: 0, total: 0, passed: 0, failed: 0, skipped: 0, failures: [] };
   let inFailing = false;
   let location: { file: string | undefined; line: number } | undefined;

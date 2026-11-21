@@ -4,7 +4,9 @@
 import type { Subcommand } from "../../../core/src/adapter/types.ts";
 import { parseOptions, type Options, type Specification } from "./arguments.ts";
 import { capture } from "./commands/capture.ts";
+import { adopt } from "./commands/adopt.ts";
 import { compile } from "./commands/compile.ts";
+import { detect } from "./commands/detect.ts";
 import { example } from "./commands/example.ts";
 import { launchApp } from "./commands/launch.ts";
 import { prepareWorktree } from "./commands/prepare-worktree.ts";
@@ -49,6 +51,11 @@ const COMMANDS: Record<Subcommand, Command> = {
   "file-types": { spec: { required: [], optional: [] }, run: fileTypes },
   "git-patterns": { spec: { required: [], optional: [] }, run: gitPatterns },
   example: { spec: { required: ["project", "scenario"], optional: [], paths: ["project"] }, run: example },
+  detect: { spec: { required: ["project"], optional: [], paths: ["project"] }, run: detect },
+  adopt: {
+    spec: { required: ["project"], optional: ["dry-run", "exclude"], flags: ["dry-run"], repeatable: ["exclude"], paths: ["project"] },
+    run: adopt,
+  },
 };
 
 function isSubcommand(name: string): name is Subcommand {

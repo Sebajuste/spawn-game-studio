@@ -57,6 +57,7 @@ export function loadAdapter(dir: string): Adapter {
     descriptor: {
       contract: 1,
       engine: d.engine,
+      ...(typeof d.title === "string" && d.title.trim() !== "" ? { title: d.title } : {}),
       command: d.command,
       ...(domain ? { domain } : {}),
       ...(notApplicable !== undefined ? { not_applicable: [...(notApplicable as NotApplicable[])] } : {}),

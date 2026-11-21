@@ -1,6 +1,7 @@
 {
   "contract": 1,
   "engine": "godot",
+  "title": "Godot",
   "command": ["node", "src/cli.ts"],
   "domain": {
     "product": "jeu",

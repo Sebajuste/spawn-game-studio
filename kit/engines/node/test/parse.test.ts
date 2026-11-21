@@ -134,3 +134,64 @@ test("spawn.json node section: declarations checked, unknown keys refused", () =
     assert.throws(() => parseNodeSection(bad), (e: unknown) => e instanceof Failure && e.code === "spawn-json-invalid", JSON.stringify(bad));
   }
 });
+
+test("Vitest: counts, failing tests with file and line, a file that does not load", () => {
+  const out = [
+    " ✓ src/a.test.ts (2 tests) 3ms",
+    " ❯ src/b.test.ts (3 tests | 1 failed | 1 skipped) 5ms",
+    "   × b > fails 3ms",
+    "",
+    "⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯",
+    "",
+    " FAIL  src/c.test.ts [ src/c.test.ts ]",
+    "Error: Cannot find module './missing'",
+    "",
+    "⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯",
+    "",
+    " FAIL  src/b.test.ts > b > fails",
+    "AssertionError: expected 1 to be 2",
+    " ❯ src/b.test.ts:5:15",
+    "",
+    " Test Files  2 failed | 1 passed (3)",
+    "      Tests  1 failed | 3 passed | 1 skipped (5)",
+    "   Start at  10:00:00",
+    "   Duration  500ms",
+  ].join("\n");
+  const s = parseTestOutput(out, new Paths(undefined));
+  assert.deepEqual({ suites: s.suites, total: s.total, passed: s.passed, failed: s.failed, skipped: s.skipped }, { suites: 1, total: 5, passed: 3, failed: 1, skipped: 1 });
+  assert.deepEqual(s.failures, [
+    { name: "src/c.test.ts ne se charge pas", file: "src/c.test.ts" },
+    { name: "b > fails", file: "src/b.test.ts", line: 5 },
+  ]);
+  const green = parseTestOutput(" Test Files  1 passed (1)\n      Tests  4 passed (4)\n", new Paths(undefined));
+  assert.deepEqual({ total: green.total, passed: green.passed, failed: green.failed }, { total: 4, passed: 4, failed: 0 });
+});
+
+test("Jest: counts, failing tests with file and line, console blocks ignored", () => {
+  const out = [
+    " PASS  src/a.test.js",
+    " FAIL  src/b.test.js",
+    "  b",
+    "    ✕ fails (3 ms)",
+    "    ✓ ok (1 ms)",
+    "",
+    "  ● Console",
+    "",
+    "    console.log",
+    "      hello",
+    "",
+    "  ● b › fails",
+    "",
+    "    expect(received).toBe(expected) // Object.is equality",
+    "",
+    "      at Object.<anonymous> (src/b.test.js:5:13)",
+    "",
+    "Test Suites: 1 failed, 1 passed, 2 total",
+    "Tests:       1 failed, 1 skipped, 3 passed, 5 total",
+    "Snapshots:   0 total",
+    "Time:        0.5 s",
+  ].join("\n");
+  const s = parseTestOutput(out, new Paths(undefined));
+  assert.deepEqual({ suites: s.suites, total: s.total, passed: s.passed, failed: s.failed, skipped: s.skipped }, { suites: 1, total: 5, passed: 3, failed: 1, skipped: 1 });
+  assert.deepEqual(s.failures, [{ name: "b › fails", file: "src/b.test.js", line: 5 }]);
+});

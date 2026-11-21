@@ -1,6 +1,7 @@
 {
   "contract": 1,
   "engine": "node",
+  "title": "Node (web, services)",
   "command": ["node", "src/cli.ts"],
   "domain": {
     "product": "app",

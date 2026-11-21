@@ -34,7 +34,7 @@ export function gutconfig(dirs: readonly string[]): string {
 }
 export const GUTCONFIG = gutconfig(["res://test"]);
 
-function checkExcluded(rel: string): string {
+export function checkExcluded(rel: string): string {
   const clean = toSlash(normalize(rel)).replace(/\/+$/, "");
   if (rel === "" || isAbsolute(rel) || clean === "." || clean.split("/").includes("..")) {
     throw new UsageError(`--exclude attend un chemin relatif au projet, sans « .. » : ${rel}`);
@@ -69,19 +69,22 @@ export async function createProject(
 }
 
 // Premier test d'un projet neuf : la configuration chargée est celle de ce jeu, et la scène principale se charge
-// (un autre nom ou une scène absente le feraient échouer).
-export function firstTest(name: string): string {
-  const escaped = name.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-  return [
-    "extends GutTest",
-    "",
-    "",
-    "func test_project_configuration() -> void:",
-    `\tassert_eq(ProjectSettings.get_setting("application/config/name"), "${escaped}")`,
-    `\tassert_eq(ProjectSettings.get_setting("application/run/main_scene"), "${MAIN_SCENE}")`,
-    `\tassert_not_null(load("${MAIN_SCENE}"))`,
-    "",
-  ].join("\n");
+// (un autre nom ou une scène absente le feraient échouer). Un projet adopté peut n'avoir ni nom ni scène principale :
+// le test vérifie alors seulement que le projet chargé est bien celui-ci.
+export function firstTest(name: string | null, mainScene: string | null = MAIN_SCENE): string {
+  const checks: string[] = [];
+  if (name !== null) {
+    const escaped = name.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+    checks.push(`\tassert_eq(ProjectSettings.get_setting("application/config/name"), "${escaped}")`);
+  }
+  if (mainScene !== null) {
+    checks.push(
+      `\tassert_eq(ProjectSettings.get_setting("application/run/main_scene"), "${mainScene}")`,
+      `\tassert_not_null(load("${mainScene}"))`,
+    );
+  }
+  if (checks.length === 0) checks.push('\tassert_true(FileAccess.file_exists("res://project.godot"))');
+  return ["extends GutTest", "", "", "func test_project_configuration() -> void:", ...checks, ""].join("\n");
 }
 
 const MAIN_SCENE_CONTENT = `[gd_scene format=3]

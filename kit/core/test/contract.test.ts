@@ -52,6 +52,7 @@ test("liar adapter: caught on every expected failure", async () => {
   const rules = new Set(findings.map((c) => c.rule));
   for (const expected of [
     "launch",
+    "adopt",
     "new-project",
     "scenario code-error",
     "scenario runtime-error",

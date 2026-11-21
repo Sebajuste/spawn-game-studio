@@ -7,6 +7,8 @@ export interface Specification {
   repeatable?: readonly string[];
   paths?: readonly string[];
   integers?: readonly string[];
+  // Options sans valeur (`--dry-run`) : présentes ou absentes, lues par `has`.
+  flags?: readonly string[];
 }
 
 // Options acceptées par toutes les sous-commandes. `--engine` n'est pas dans le contrat :
@@ -48,7 +50,8 @@ export class Options {
 }
 
 export function parseOptions(args: readonly string[], spec: Specification): Options {
-  const allowed = new Set<string>([...spec.required, ...spec.optional, ...COMMON]);
+  const flags = new Set(spec.flags ?? []);
+  const allowed = new Set<string>([...spec.required, ...spec.optional, ...flags, ...COMMON]);
   const repeatable = new Set(spec.repeatable ?? []);
   const options = new Options();
 
@@ -63,7 +66,10 @@ export function parseOptions(args: readonly string[], spec: Specification): Opti
       name = name.slice(0, equals);
     }
     if (!allowed.has(name)) throw new UsageError(`option inconnue : --${name}`);
-    if (value === undefined) {
+    if (flags.has(name)) {
+      if (value !== undefined) throw new UsageError(`option --${name} sans valeur attendue`);
+      value = "";
+    } else if (value === undefined) {
       value = args[i + 1];
       if (value === undefined || value.startsWith("--")) throw new UsageError(`option --${name} sans valeur`);
       i++;

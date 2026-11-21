@@ -146,6 +146,33 @@ export function main(argv: string[], { liar = false } = {}): number {
         data = { scene: "game.fx" };
         break;
       }
+      case "detect": {
+        const project = resolve(option(o, "project"));
+        if (!existsSync(project)) {
+          error({ code: "project-not-found", message: `dossier absent : ${project}` });
+          break;
+        }
+        const match = existsSync(join(project, PROJECT_FILE));
+        data = { match, version: null, evidence: match ? PROJECT_FILE : null };
+        break;
+      }
+      case "adopt": {
+        const project = resolve(option(o, "project"));
+        if (!existsSync(join(project, PROJECT_FILE))) {
+          error({ code: "not-a-project", message: `aucun ${PROJECT_FILE} dans ${project}` });
+          break;
+        }
+        // Gabarit factice : un premier test s'il n'y en a aucun.
+        const files = fxFiles(join(project, "test"), join(project, "test")).length === 0 ? [{ path: "test/test_project.fx", change: "add" }] : [];
+        if (!o.has("dry-run")) {
+          for (const f of files) {
+            mkdirSync(join(project, "test"), { recursive: true });
+            writeFileSync(join(project, f.path), "PASS\n");
+          }
+        }
+        data = { files, declared: null, gaps: [] };
+        break;
+      }
       case "prepare-worktree": {
         const project = resolve(option(o, "project"));
         mkdirSync(join(project, ".fake-cache"), { recursive: true });
