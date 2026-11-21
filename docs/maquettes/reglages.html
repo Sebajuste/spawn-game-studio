@@ -176,6 +176,10 @@ const reglages = (choisi, contenu) => `<div class="voile"></div><div class="regl
 
 const APP = `<h3>Application</h3><p>Pour toute l'app, sur cette machine.</p>
   <div class="champ"><label>Langue</label><select><option>Français</option><option>English</option></select></div>
+  <h4 style="margin:16px 0 4px">Moteurs</h4>
+  <p style="margin:0 0 4px">Proposés par Nouveau projet et Ajouter un projet existant. Les projets déjà inscrits continuent de fonctionner.</p>
+  <div class="module"><input type="checkbox"><span><strong>Godot</strong><small>jeu · aucun projet</small></span></div>
+  <div class="module"><input type="checkbox" checked disabled><span><strong>Node (web, services)</strong><small>app · 3 projets · dernier moteur coché</small></span></div>
   <h4 style="margin:16px 0 4px">Fonctions facultatives</h4>
   <div class="module"><input type="checkbox" checked><span><strong>Conversation de portée</strong><small>L'Accueil de chaque portée : parler avec un agent qui crée les stories et les epics.</small></span></div>
   <div class="module"><input type="checkbox" checked><span><strong>Activité</strong><small>Ce que fait l'agent, en direct, sous la conversation.</small></span></div>
@@ -240,7 +244,7 @@ const MENU_PORTEE = `<div class="menu-objet" style="top:62px; left:10px"><button
 const story = (flottant) => fenetre(MENUS_P, barreP("backlog"), ariane(["Arena", "ar-api", "Backlog", "equipment-routes"]) + `<div class="entete"><div><h2>equipment-routes</h2><p>ARN-2 · Claude Code · depuis 12 min</p></div><button class="btn" data-aller="menu-story">⋯</button></div><div class="onglets"><span class="actif">Avancement</span><span>Conversation</span><span>Fichiers</span><span>Journal</span></div><div class="defile"><div class="decision"><strong>Question de l'agent</strong><p>Format de la date ?</p></div></div>`, flottant);
 
 const ECRANS = {
-  "app": { nom: "1. Réglages : Application", note: "Ctrl+, ou Fichier > Réglages. Une seule fenêtre, une section par portée. La langue et les modules quittent le menu Affichage. Un changement s'enregistre aussitôt.", rendu: () => fondWs(reglages("app", APP)) },
+  "app": { nom: "1. Réglages : Application", note: "Ctrl+, ou Fichier > Réglages. Une seule fenêtre, une section par portée. La langue et les modules quittent le menu Affichage. Les moteurs se choisissent par machine (Godot décoché ici, Node seul coché donc grisé). Un changement s'enregistre aussitôt.", rendu: () => fondWs(reglages("app", APP)) },
   "ws": { nom: "2. Réglages : Workspace", note: "Nom, composition (ajouter un projet connu, ajouter un projet existant qui sera adopté, nouveau projet ; retirer) et zone dangereuse. Le lieu Projets ne gère plus rien, il montre (« Gérer les projets… » ouvre ici).", rendu: () => fondWs(reglages("ws", WS)) },
   "projet": { nom: "3. Réglages : Projet", note: "Les réglages machine du projet (ceux d'aujourd'hui), ce que dit spawn.json en lecture, et « Retirer de Spawn » (le dossier reste).", rendu: () => fenetre(MENUS_P, barreP("home"), ariane(["Arena", "ar-api", "Accueil"]), reglages("projet", PROJET)) },
   "confirmer": { nom: "4. Confirmation partagée", note: "Une seule confirmation pour toute suppression ou abandon : elle nomme l'objet et dit la conséquence. Entrée ne confirme pas : il faut cliquer (ou Tab puis Entrée) ; Échap annule.", rendu: () => fondWs(reglages("ws", WS) + `<div class="confirmer"><h3>Supprimer le workspace « Arena » ?</h3><p>Ses 3 projets restent dans Spawn et sur le disque. Ses 2 epics disparaissent ; leurs stories restent dans leurs projets.</p><div class="actions"><button class="btn">Annuler</button><button class="btn rouge fort">Supprimer</button></div></div>`) },
