@@ -27,7 +27,7 @@ export function repetition(root: string, session: string, command: string): stri
   }
   // `spawn next` n'est jamais refusé : c'est lui qui donne l'action à faire ; le bloquer enfermait l'orchestrateur
   // (essai 5 de la nuit). Il compte quand même comme un appel, qui interrompt une autre boucle.
-  const isNext = /cli\.ts"?\s+next\s*$/.test(c);
+  const isNext = /(cli\.ts|(^|[;&|]\s*|[\\/])spawn(\.cmd)?)"?\s+next(\s+2>&1)?$/.test(c);
   const streak = state.latest === c && !isNext ? state.streak + 1 : 1;
   try {
     mkdirSync(sessionsDir(root), { recursive: true });

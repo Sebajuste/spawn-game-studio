@@ -17,6 +17,7 @@ import type { AgentEvent } from "../../../kit/core/src/agent/events.ts";
 import { opencodeAdapter } from "../../../kit/core/src/agent/opencode.ts";
 import type { AgentAdapter } from "../../../kit/core/src/agent/type.ts";
 import { readStory, updateStory } from "../../../kit/core/src/stories.ts";
+import { releaseTurn } from "../../../kit/core/src/agents.ts";
 import { git } from "../../../kit/core/src/git.ts";
 import { readProjectSettings } from "../../../kit/core/src/settings.ts";
 import { readRegistry } from "../../../kit/core/src/registry.ts";
@@ -104,6 +105,10 @@ interface StoredTurn {
   // Relances arrêtées après ce tour : le constat de l'outil, montré à l'utilisateur à la place du dernier message de
   // l'agent (essai du 19/11 : fil resté « actif » sur un « tout est fait » de l'agent, preuve refusée).
   halted?: string;
+  // L'enchaîneur tourne depuis ce tour : écrit avant qu'il parte, pour qu'un arrêt du PC le montre coupé.
+  chaining?: boolean;
+  // Message après un Stop : la pause tient tant que l'agent n'a rien fait avancer (une question n'est pas une reprise).
+  paused?: boolean;
 }
 
 interface ConversationState {
@@ -185,13 +190,25 @@ export class Tail {
 // toutes, pour que la story le montre.
 function markInterrupted(root: string, story: string): void {
   const state = readState(root, story);
-  if (!state?.turns.some((t) => t.end === null)) return;
+  if (!state?.turns.some((t) => t.end === null || t.chaining)) return;
   for (const t of state.turns) {
-    if (t.end !== null) continue;
-    t.end = new Date().toISOString();
+    if (t.end !== null && !t.chaining) continue;
+    t.end ??= new Date().toISOString();
+    delete t.chaining;
     t.interrupted = true;
   }
   writeState(root, story, state);
+}
+
+function releasePlaces(root: string, story: string, session: string | null, turns: readonly StoredTurn[]): void {
+  for (const t of turns) {
+    if (t.end === null) continue;
+    try {
+      releaseTurn(root, story, { session, start: t.start, end: t.end });
+    } catch {
+      // État du fil illisible : la place expirera d'elle-même.
+    }
+  }
 }
 
 // Le dernier tour de la story a-t-il été coupé ? (lu par le module stories pour la barre latérale)
@@ -237,7 +254,7 @@ export interface ConversationSummary {
   turnStart: string | null;
   // Dernier tour fini normalement (ni coupé, ni arrêté, ni refusé) : l'agent s'est arrêté de lui-même.
   stoppedOnItsOwn: boolean;
-  // Dernier tour arrêté par Stop (pas par la fermeture de l'app) : la story est en pause.
+  // Dernier tour arrêté par Stop (pas par la fermeture de l'app), ou question posée depuis : la story est en pause.
   paused: boolean;
   interrupted: boolean;
   // Constat de l'outil quand il a cessé de relancer l'agent après le dernier tour, sinon null.
@@ -296,7 +313,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
   };
 
   // `manual` : tour sans l'enchaîneur (après un échec de celui-ci), l'orchestrateur fait lui-même l'étape qui a échoué.
-  const launch = async (projectId: string, project: Project, story: string, message: string, agent: AgentName, auto = false, manual = false): Promise<number> => {
+  const launch = async (projectId: string, project: Project, story: string, message: string, agent: AgentName, auto = false, manual = false, resuming = false): Promise<number> => {
     const key = `${projectId}/${story}`;
     if (!auto) restarts.delete(key);
     // La file part avec ce tour (après le message donné), dans l'ordre : un seul tour, jamais deux files en concurrence.
@@ -308,6 +325,8 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
     const state: ConversationState = previous && previous.agent === agent ? previous : { agent, session: null, turns: previous?.turns ?? [] };
     const n = (state.turns.at(-1)?.n ?? 0) + 1;
     const turn: StoredTurn = { n, agent, message, start: new Date().toISOString(), end: null, code: null, stopped: false, interrupted: false, refused: [] };
+    const last = state.turns.at(-1);
+    if (!resuming && (last?.stopped || last?.paused)) turn.paused = true;
     state.turns.push(turn);
     writeState(project.root, story, state);
     const controller = new AbortController();
@@ -338,7 +357,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
         if (state.session === null) turn.refused = await adapter.check(project.root);
         if (turn.refused.length === 0) {
           dir = await storyDir(project, story);
-          const env = chaining && !manual ? { [RUNNER_ENV]: "service" } : undefined;
+          const env = chaining && !manual && !turn.paused ? { [RUNNER_ENV]: "service" } : undefined;
           const r = await adapter.turn({ dir, message, session: state.session, output, timeoutMs: turnTimeoutMs, signal: controller.signal, ...(env ? { env } : {}) });
           turn.code = r.code;
           state.session = r.session;
@@ -353,7 +372,9 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
         turn.interrupted = closing;
         turn.stopped = controller.signal.aborted && !closing;
         if (!controller.signal.aborted && Date.parse(turn.end) - Date.parse(turn.start) >= turnTimeoutMs) turn.timedOut = true;
+        if (turn.paused && fingerprint(project.root, story) !== before) delete turn.paused;
         writeState(project.root, story, state);
+        releasePlaces(project.root, story, state.session, [turn]);
         running.delete(key);
         recordActivity("service", [...running.keys()]);
         // Fusionné pendant le tour : le worktree se range maintenant que l'agent n'y est plus.
@@ -369,14 +390,14 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
         // Étapes que l'outil fait seul (implémenteur, relecteur, ledger) : l'enchaîneur passe avant toute relance.
         // Un tour sans enchaîneur (après son échec) qui n'a rien fait avancer ne le relance pas : sinon échec, tour, échec…
         let chained = false;
-        if (chaining && dir !== null && !(manual && fingerprint(project.root, story) === before) && !closing && !turn.stopped && turn.refused.length === 0 && readQueue(project.root, story).length === 0 && !held.has(key)) {
+        if (chaining && dir !== null && !turn.paused && !(manual && fingerprint(project.root, story) === before) && !closing && !turn.stopped && turn.refused.length === 0 && readQueue(project.root, story).length === 0 && !held.has(key)) {
           const ctx = existsSync(dir) ? contextOf(dir) : null;
           if (ctx?.story && nextAction(ctx).run) {
             chained = true;
             chain(projectId, project, story, agent, ctx);
           }
         }
-        if (autoRestart && !chained && !closing && !turn.stopped && turn.refused.length === 0 && needsRestart(project.root, story)) {
+        if (autoRestart && !chained && !turn.paused && !closing && !turn.stopped && turn.refused.length === 0 && needsRestart(project.root, story)) {
           const count = restarts.get(key) ?? { n: 0, withoutProgress: 0 };
           const withoutProgress = fingerprint(project.root, story) === before ? count.withoutProgress + 1 : 0;
           if (count.n < MAX_RESTARTS && withoutProgress < MAX_WITHOUT_PROGRESS) {
@@ -410,6 +431,14 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
   const chain = (projectId: string, project: Project, story: string, agent: AgentName, ctx: Context): void => {
     const key = `${projectId}/${story}`;
     const controller = new AbortController();
+    const markTurn = (change: (t: StoredTurn) => void): void => {
+      const state = readState(project.root, story);
+      const last = state?.turns.at(-1);
+      if (!state || !last) return;
+      change(last);
+      writeState(project.root, story, state);
+    };
+    markTurn((t) => (t.chaining = true));
     running.set(key, controller);
     recordActivity("service", [...running.keys()]);
     emit("conversation", { project: projectId, story, turn: readState(project.root, story)?.turns.at(-1)?.n ?? 0, events: [] });
@@ -423,6 +452,12 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
       } catch (e) {
         text = `enchaîneur en échec : ${(e as Error).message}\n\n${RESTART_MESSAGE}`;
       } finally {
+        // Coupé par la fermeture : repris au démarrage ; par Stop : en pause.
+        markTurn((t) => {
+          delete t.chaining;
+          if (closing) t.interrupted = true;
+          else if (controller.signal.aborted) t.stopped = true;
+        });
         running.delete(key);
         recordActivity("service", [...running.keys()]);
       }
@@ -489,7 +524,9 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
     // Reprenable : coupé (app fermée), arrêté par Stop, ou fini sans point d'arrêt. Un tour refusé par l'adaptateur ou
     // sans fin n'a rien à reprendre : le message suffit.
     if (!state || !last || last.end === null || (last.refused.length > 0 && !last.interrupted)) throw new HttpError(409, "rien à reprendre : aucun tour de ce fil n'a été coupé, arrêté ou fini sans point d'arrêt");
-    return launch(projectId, project, story, last.interrupted ? resumeMessage(last.message, state.session !== null) : RESTART_MESSAGE, state.agent);
+    const message = last.interrupted ? resumeMessage(last.message, state.session !== null) : RESTART_MESSAGE;
+    // Reprendre lève la pause ; une question coupée par la fermeture, reprise au démarrage, la garde.
+    return launch(projectId, project, story, message, state.agent, false, false, !(last.interrupted && last.paused));
   };
 
   return {
@@ -510,8 +547,8 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
         turns: state?.turns.length ?? 0,
         start: state?.turns[0]?.start ?? null,
         turnStart: busy && last ? last.start : null,
-        stoppedOnItsOwn: !busy && last !== undefined && last.end !== null && !last.interrupted && !last.stopped && last.refused.length === 0,
-        paused: !busy && last?.stopped === true,
+        stoppedOnItsOwn: !busy && last !== undefined && last.end !== null && !last.interrupted && !last.stopped && !last.paused && last.refused.length === 0,
+        paused: !busy && (last?.stopped === true || (last?.paused === true && !last.interrupted)),
         halted: !busy ? (last?.halted ?? null) : null,
         interrupted: !busy && last?.interrupted === true,
       };
@@ -531,6 +568,8 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
           if (!existsSync(dir)) continue;
           for (const story of readdirSync(dir)) {
             markInterrupted(p.root, story);
+            const state = readState(p.root, story);
+            if (state) releasePlaces(p.root, story, state.session, state.turns);
             // Reprise sans l'utilisateur ; si elle échoue, la story reste coupée et l'app propose « Reprendre ».
             if (autoResume && conversationInterrupted(p.root, story)) setTimeout(() => void resume(p.id, story).catch(() => {}), 0);
           }

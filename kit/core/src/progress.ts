@@ -37,9 +37,9 @@ const IDS: ProgressStep["id"][] = ["understand", "breakdown", "tasks", "proof", 
 export function stepIndex(step: string): ProgressStep["id"] | "none" | "finished" | null {
   if (step === "spec" || step === "spec à revoir" || step === "spec proposée, fil à mettre en attente") return "understand";
   if (step === "plan" || step === "plan introuvable" || step === "plan illisible") return "breakdown";
-  if (step.startsWith("tâche ") || step === "correction demandée") return "tasks";
+  if (step.startsWith("tâche ") || step === "correction demandée" || step === "corrections à planifier") return "tasks";
   if (
-    ["relecture finale", "corrections de la relecture finale", "relecture finale approuvée", "worktree à commiter", "preuve et captures", "compte rendu à juger"].includes(step)
+    ["relecture finale", "corrections de la relecture finale", "plafond de la relecture finale", "relecture finale approuvée", "worktree à commiter", "preuve et captures", "compte rendu à juger"].includes(step)
   ) return "proof";
   if (step === "à juger") return "acceptance";
   if (step === "fusion" || step === "après fusion" || step.startsWith("fusion refusée")) return "merge";

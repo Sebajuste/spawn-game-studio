@@ -150,7 +150,11 @@ export function singleTaskReview(root: string, story: string, evs: readonly Ledg
 // Un finding Critique ou Important : « 3. [Important] … », « 1. Important : … », « - **Critique** … ». « Non critique » n'en est pas un.
 const BLOCKING_FINDING = /\[\s*(critique|important)\s*\]|(^|\s)(\d+[.)]|[-*])\s*\**\s*(critique|important)\b/im;
 
-export function needsChanges(text: string): boolean {
+// « 1. Critique : aucun. » dit qu'il n'y en a pas ; « [Important] aucun contrôle pour X » est bien un finding.
+const NO_FINDING = /(\[\s*)?\b(critiques?|importante?s?)\b[\s\]*:—–-]*(aucune?|néant)(\s+(finding|problème|écart)s?)?[\s*]*(?=[.;,!)]+[ \t]*(\r?\n|\d+[.)]|$)|\r?\n|$)/gi;
+
+export function needsChanges(verdict: string): boolean {
+  const text = verdict.replace(NO_FINDING, "");
   const line = /VERDICT\s*:\s*([^\n]+)/i.exec(text)?.[1] ?? "";
   // Approuvé mais avec un finding Important : le verdict se contredit, le finding prime (essai du 19/11, tâche 1).
   if (/approuv/i.test(line)) return BLOCKING_FINDING.test(text);
@@ -309,7 +313,7 @@ function stepAction(ctx: Context, agent?: Agent): Action {
     const report = join(work, `${n}-report.md`);
     // Le lancement de l'implémenteur est un geste d'outil (sous-agent), pas une commande : il est écrit en toutes
     // lettres, avec son prompt exact. Essai de nuit du 18/11 : le modèle a noté « lancée » sans lancer, puis attendu.
-    const prompt = `Tâche ${n} du fil ${story.story}. Le ${dom.product} est dans le dossier courant (le worktree du fil) : tous ses fichiers s'écrivent là, chemins relatifs à ce dossier. Lis d'abord ${brief} et fais exactement ce qu'il demande (test d'abord s'il en prévoit un), commite, puis écris ton rapport dans ${report} : statut DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT ou BLOCKED, ce qui a été fait, les commits.`;
+    const prompt = `Tâche ${n} du fil ${story.story}. Le ${dom.product} est dans le dossier courant (le worktree du fil) : tous ses fichiers s'écrivent là, chemins relatifs à ce dossier. Lis d'abord ${brief} et fais exactement ce qu'il demande (test d'abord s'il en prévoit un), commite, puis écris ton rapport dans ${report} : en première ligne « statut : » suivi de DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT ou BLOCKED, puis ce qui a été fait, les commits.`;
     const run = `lance UN agent ${v.subagent("implementer")}${v.model(limits.model)}, par ${v.subagentTool}, avec exactement ce prompt : « ${prompt} » Aucun historique collé. Tu reprends la main quand il a fini.`;
     const implement: RunStep = { kind: "agent", agent: "implementer", model: limits.model, prompt };
     if (!started) {
@@ -351,7 +355,9 @@ function stepAction(ctx: Context, agent?: Agent): Action {
     const reviewed = existsSync(review) && statSync(review).mtimeMs >= statSync(report).mtimeMs;
     // NEEDS_CONTEXT ou BLOCKED : il faut répondre à l'implémenteur, ce que seul l'orchestrateur sait faire.
     const status = reportStatus(readFileSync(report, "utf8"));
-    const answerable = status === "DONE" || status === "DONE_WITH_CONCERNS";
+    // Sans statut mais avec des commits, le relecteur juge sur pièces (22/11 : l'enchaîneur rendait la main pour une ligne oubliée).
+    const committed = () => Number(git(ctx.dir, ["rev-list", "--count", `${started.base}..HEAD`]).stdout) > 0;
+    const answerable = status === "DONE" || status === "DONE_WITH_CONCERNS" || (status === null && committed());
     if (!reviewed) {
       const reviewPrompt = `Relis la tâche ${n} du fil ${story.story} ; le ${dom.product} est dans le dossier courant (le worktree du fil). Brief : ${brief}. Rapport de l'implémenteur : ${report}. Paquet (diff et commits) : ${pkg}. Vérifie la conformité au brief et à la spec ${spec.path}, puis la qualité. Écris ton verdict dans ${review}, en commençant par une ligne exacte « VERDICT : APPROUVÉ » (aucun finding Critique ni Important) ou « VERDICT : À CORRIGER », puis « spec OK » ou les écarts, puis les findings numérotés (Critique, Important, Mineur).`;
       return {
@@ -386,7 +392,7 @@ function stepAction(ctx: Context, agent?: Agent): Action {
     // milliseconde que la relecture paraît plus ancien qu'elle.
     const roundNote = evs.some((e) => e.type === "round" && e.task === n && Date.parse(e.date) >= Math.floor(statSync(review).mtimeMs));
     const fixModel = escalation ? limits.escalation_model : limits.model;
-    const fixPrompt = `Round ${roundNote ? rounds : upcoming} de la tâche ${n} du fil ${story.story}. Le ${dom.product} est dans le dossier courant (le worktree du fil) : tous ses fichiers s'écrivent là. Lis ${brief}, puis les findings de ${review}. Corrige chaque finding Critique et Important (test d'abord si la spec prévoit un test pour l'exigence en cause), commite, puis réécris ton rapport ${report}.`;
+    const fixPrompt = `Round ${roundNote ? rounds : upcoming} de la tâche ${n} du fil ${story.story}. Le ${dom.product} est dans le dossier courant (le worktree du fil) : tous ses fichiers s'écrivent là. Lis ${brief}, puis les findings de ${review}. Corrige chaque finding Critique et Important (test d'abord si la spec prévoit un test pour l'exigence en cause), commite, puis, avec sa première ligne « statut : » à jour, réécris ton rapport ${report}.`;
     const fix = `lance UN agent ${v.subagent("implementer")}${v.model(fixModel)}, par ${v.subagentTool}, avec exactement ce prompt : « ${fixPrompt} » Jamais de correction faite par toi.`;
     const fixing: RunStep = { kind: "agent", agent: "implementer", model: fixModel, prompt: fixPrompt };
     if (roundNote) {
@@ -453,6 +459,26 @@ function stepAction(ctx: Context, agent?: Agent): Action {
     }
     const finalFix = `Corrections finales du fil ${story.story} ; le ${dom.product} est dans le dossier courant (le worktree du fil) : tous ses fichiers s'écrivent là. Corrige chaque finding Critique et Important de ${final} (test d'abord si la spec prévoit un test pour l'exigence en cause), commite, et résume ce que tu as fait.`;
     if (needsChanges(readFileSync(final, "utf8"))) {
+      // Une correction, une re-relecture (skill review) : au-delà l'utilisateur tranche, puis c'est une tâche comme les
+      // autres (constat du 22/11 : relecture et correction finales en boucle, sur le modèle le plus cher).
+      const since = [lastTask, changesRequested?.date ?? ""].sort().at(-1) ?? "";
+      if (evs.some((e) => e.type === "final-review" && e.verdict === "changes" && e.date > since)) {
+        const question = `trancher les findings de la relecture finale (${tasks.length} tâche(s) au plan)`;
+        if (story.task === question) {
+          return {
+            step: "corrections à planifier",
+            instruction: `L'utilisateur a tranché les findings de ${final} : sa réponse est son dernier message. Ajoute à la fin de ${plan.path} une tâche « ## Tâche ${(tasks.at(-1)?.number ?? 0) + 1} : <titre de la correction> » qui applique sa décision, commite le plan, puis mène-la comme les autres.`,
+            commands: [`${SPAWN} next`],
+            proof: "tâche de correction ajoutée au plan et commitée",
+          };
+        }
+        return {
+          step: "plafond de la relecture finale",
+          instruction: `La relecture finale refuse encore après sa correction (${final}) : la feature n'est pas prête. Ne corrige plus. Mets le fil en attente par la commande, dis à l'utilisateur en mots simples chaque finding Critique ou Important qui reste et ce que tu proposes, puis arrête-toi.`,
+          commands: [`${SPAWN} story update --status blocked:decision --task "${question}"`],
+          proof: "fil en attente de la décision de l'utilisateur",
+        };
+      }
       return {
         step: "corrections de la relecture finale",
         instruction: `La relecture finale demande des corrections (${final}). 1) Lance UN agent ${v.subagent("implementer")}${v.model(limits.escalation_model)}, par ${v.subagentTool}, avec exactement ce prompt : « ${finalFix} » 2) Puis note les corrections par la commande : le relecteur relira.`,

@@ -36,7 +36,8 @@ export function compactionInstructions(cwd: string): string | null {
 export function resumeContext(cwd: string, source: string): string | null {
   const ctx = contextOf(cwd);
   if (ctx === null || ctx.story === null) return null;
-  if (source === "compact") setStatus(ctx, "active");
+  // Seul un fil en compactage redevient actif : en attente de l'utilisateur, à juger ou terminé, il le reste.
+  if (source === "compact" && readStory(ctx.project.root, ctx.story)?.status === "compacting") setStatus(ctx, "active");
   const story = readStory(ctx.project.root, ctx.story);
   if (story === null) return null;
   const ledger = ledgerPath(ctx.project.root, ctx.story);

@@ -28,6 +28,8 @@ export interface RunOptions {
   log?: (line: string) => void;
 }
 
+const REWRITE = "Ta relecture précédente n'a pas écrit ce fichier : un verdict dit dans ta réponse ne compte pas, écris-le avec ton outil d'écriture de fichiers.";
+
 const head = (dir: string) => git(dir, ["rev-parse", "--short", "HEAD"]).stdout;
 
 // Une commande du ledger passe par la CLI, comme si l'orchestrateur la tapait : mêmes vérifications, mêmes refus.
@@ -56,7 +58,10 @@ export async function runTasks(o: RunOptions): Promise<RunOutcome> {
     // La même étape juste après l'avoir exécutée : l'agent n'a pas produit ce qu'elle attend (rapport, verdict). Pas de
     // boucle ; l'implémenteur a quand même sa seconde chance (« lancer » puis « implémenteur à lancer »).
     repeats = action.step === previous ? repeats + 1 : 0;
-    if (repeats >= 1) return { reason: "stuck", action, detail: `l'étape « ${action.step} » n'a pas avancé après exécution`, executed };
+    // Le relecteur a la sienne : un verdict dit dans sa réponse sans être écrit (22/11) lui est redemandé une fois.
+    const last = action.run.at(-1);
+    const rewrite = repeats === 1 && last?.kind === "agent" && last.agent === "task-reviewer";
+    if (repeats >= 1 && !rewrite) return { reason: "stuck", action, detail: `l'étape « ${action.step} » n'a pas avancé après exécution`, executed };
     previous = action.step;
     log(`étape : ${action.step}`);
     executed.push(action.step);
@@ -69,7 +74,10 @@ export async function runTasks(o: RunOptions): Promise<RunOutcome> {
 
     async function execute(step: RunStep, index: number): Promise<Pick<RunOutcome, "reason" | "detail"> | null> {
       if (step.kind === "ledger") {
-        const args = step.args.map((a) => a.replace("{commits}", range || "aucun"));
+        if (!range && step.args.some((a) => a.includes("{commits}"))) {
+          return { reason: "stuck", detail: "les corrections n'ont laissé aucun commit : elles ne sont pas notées" };
+        }
+        const args = step.args.map((a) => a.replace("{commits}", range));
         const r = ledger(ctx.dir, args);
         log(`  ledger ${args[0]} : ${r.ok ? "noté" : "refusé"}`);
         return r.ok ? null : { reason: "ledger-refused", detail: r.output };
@@ -88,7 +96,7 @@ export async function runTasks(o: RunOptions): Promise<RunOutcome> {
         dir: ctx.dir,
         agent: step.agent,
         model: step.model,
-        prompt: step.prompt,
+        prompt: rewrite ? `${step.prompt} ${REWRITE}` : step.prompt,
         output,
         timeoutMs: o.agentTimeoutMs ?? 45 * 60_000,
         ...(o.signal ? { signal: o.signal } : {}),

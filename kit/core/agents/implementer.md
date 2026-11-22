@@ -15,5 +15,5 @@ Tu implémentes UNE tâche, décrite par le brief dont le dispatch te donne le c
 - BLOCKED si la seule sortie serait désactiver un test, relâcher une tolérance ou une assertion, ou sortir du périmètre du brief.
 - Commit : uniquement tes fichiers ; un commit par étape testée ; message court en français, sans aucune mention d'outil, de modèle ni d'IA.
 - Pas de sous-agent, pas de push, pas de fusion, pas de modification de la spec ni du plan.
-- Rapport complet dans le fichier indiqué : ce qui est fait, tests rouge puis vert, commits, doutes.
+- Rapport complet dans le fichier indiqué, qui commence par la ligne « statut : » suivie de `DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT` ou `BLOCKED` : ce qui est fait, tests rouge puis vert, commits, doutes.
 - Réponse finale de 15 lignes au plus : statut `DONE` / `DONE_WITH_CONCERNS` / `NEEDS_CONTEXT` / `BLOCKED`, commits, bilan des tests, doutes ou ce qui manque, chemin du rapport.

@@ -11,7 +11,7 @@ function exit(message: string, code: number): never {
 
 try {
   const { readInput } = await import("./input.ts");
-  const input = await readInput<{ cwd: string; tool_use_id?: string; agent_id?: string; agent_type?: string }>();
+  const input = await readInput<{ cwd: string; session_id?: string; tool_use_id?: string; agent_id?: string; agent_type?: string }>();
   const { contextOf } = await import("../context.ts");
   const ctx = contextOf(input.cwd);
   if (ctx !== null) {
@@ -22,7 +22,7 @@ try {
       if (!d.allowed) exit(d.reason, 2);
     } else if (action === "start") {
       // Les agents internes de Claude Code (suggestions, /btw) arrivent sans type : ils ne comptent pas.
-      if (input.agent_id && input.agent_type) registry.start(root, { agent_id: input.agent_id, agent_type: input.agent_type, story: ctx.story });
+      if (input.agent_id && input.agent_type) registry.start(root, { agent_id: input.agent_id, agent_type: input.agent_type, story: ctx.story, ...(input.session_id ? { session: input.session_id } : {}) });
     } else if (action === "stop") {
       if (input.agent_id) registry.stop(root, input.agent_id);
     } else exit(`action inconnue : ${String(action)}`, action === "reserve" ? 2 : 1);

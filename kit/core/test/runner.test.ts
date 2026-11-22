@@ -9,6 +9,8 @@ import { gitOk } from "../src/git.ts";
 import { createWorktree } from "../src/hooks/worktree.ts";
 import { readLedger, write, type LedgerEvent } from "../src/ledger.ts";
 import { runTasks } from "../src/runner.ts";
+import { nextAction } from "../src/next.ts";
+import { updateStory } from "../src/stories.ts";
 import type { AgentAdapter } from "../src/agent/type.ts";
 import { cleanDirs, spawnProject } from "./git-helper.ts";
 
@@ -132,4 +134,94 @@ test("run: an agent that fails stops the run with its output", async () => {
   const r = await runTasks({ ctx, agent: fakeAgent(() => 1) });
   assert.equal(r.reason, "agent-failed");
   assert.match(r.detail ?? "", /implementer sorti avec le code 1 ; sortie : .*01-implementer\.jsonl/);
+});
+
+test("run: a report without a status line but with commits goes to the reviewer", async () => {
+  const ctx = await readyStory();
+  const agent = fakeAgent((c) => {
+    if (c.agent !== "implementer") return 1;
+    commit(c.dir, "grille.txt");
+    writeFileSync(pathAfter(c.dir, c.prompt, /écris ton rapport dans (\S+) :/), "La grille est faite, tests verts.");
+    return 0;
+  });
+  await runTasks({ ctx, agent });
+  assert.deepEqual(agent.calls.map((c) => c.agent), ["implementer", "task-reviewer"]);
+});
+
+test("run: a report without a status and without a commit is left to the orchestrator", async () => {
+  const ctx = await readyStory();
+  const agent = fakeAgent((c) => {
+    writeFileSync(pathAfter(c.dir, c.prompt, /écris ton rapport dans (\S+) :/), "Je ne vois pas comment faire.");
+    return 0;
+  });
+  const r = await runTasks({ ctx, agent });
+  assert.equal(r.reason, "handed-back");
+  assert.equal(agent.calls.length, 1);
+});
+
+test("run: a reviewer who wrote no verdict file is asked once more, then it is stuck", async () => {
+  for (const writesSecond of [true, false]) {
+    const ctx = await readyStory();
+    let reviews = 0;
+    const agent = fakeAgent((c) => {
+      if (c.agent === "implementer") {
+        // Tâche 2 : l'implémenteur s'arrête, le cas est jugé.
+        if (reviews > 0) return 1;
+        commit(c.dir, "grille.txt");
+        writeFileSync(pathAfter(c.dir, c.prompt, /écris ton rapport dans (\S+) :/), "statut : DONE");
+        return 0;
+      }
+      if (++reviews === 2) {
+        assert.match(c.prompt, /outil d'écriture/);
+        if (writesSecond) writeFileSync(pathAfter(c.dir, c.prompt, /verdict dans (\S+?),/), "VERDICT : APPROUVÉ");
+      }
+      return 0;
+    });
+    const r = await runTasks({ ctx, agent });
+    assert.equal(reviews, 2);
+    assert.equal(r.reason, writesSecond ? "agent-failed" : "stuck");
+  }
+});
+
+// Fil dont toutes les tâches sont parquées : il reste la relecture finale.
+async function storyAtFinalReview(): Promise<Context> {
+  const ctx = await readyStory();
+  const date = new Date(Date.now() - 10_000).toISOString();
+  for (const task of [1, 2]) write(ledgerPath(ctx.project.root, "saut"), { date, type: "task-parked", task, detail: "x", ruling: "y" });
+  return ctx;
+}
+
+test("run: a final review that keeps refusing is bounded to one correction, then asks the user", async () => {
+  const ctx = await storyAtFinalReview();
+  const agent = fakeAgent((c) => {
+    if (c.agent === "implementer") commit(c.dir, `correction${agent.calls.length}.txt`);
+    else writeFileSync(pathAfter(c.dir, c.prompt, /verdict dans (\S+?),/), "VERDICT : À CORRIGER\n1. Important : x");
+    return 0;
+  });
+  const r = await runTasks({ ctx, agent, maxSteps: 12 });
+  assert.deepEqual(agent.calls.map((c) => c.agent), ["task-reviewer", "implementer", "task-reviewer"]);
+  assert.equal(r.reason, "handed-back");
+  assert.equal(r.action.step, "plafond de la relecture finale");
+  assert.match(r.action.commands.join(" "), /blocked:decision/);
+
+  // L'utilisateur a répondu : la suite est une tâche de correction, pas une seconde question ni une nouvelle boucle.
+  const task = /--task "([^"]+)"/.exec(r.action.commands[0] ?? "")?.[1] ?? assert.fail("tâche du fil absente");
+  updateStory(ctx.project.root, "saut", { status: "blocked:decision", task });
+  updateStory(ctx.project.root, "saut", { status: "active" });
+  const answered = nextAction(ctx);
+  assert.equal(answered.step, "corrections à planifier");
+  assert.match(answered.instruction, /## Tâche 3/);
+  assert.equal(answered.run, undefined);
+});
+
+test("run: final corrections without a commit are not recorded as corrections", async () => {
+  const ctx = await storyAtFinalReview();
+  const agent = fakeAgent((c) => {
+    if (c.agent !== "implementer") writeFileSync(pathAfter(c.dir, c.prompt, /verdict dans (\S+?),/), "VERDICT : À CORRIGER\n1. Important : x");
+    return 0;
+  });
+  const r = await runTasks({ ctx, agent, maxSteps: 12 });
+  assert.equal(r.reason, "stuck");
+  assert.match(r.detail ?? "", /aucun commit/);
+  assert.equal(readLedger(ledgerPath(ctx.project.root, "saut")).some((e) => e.type === "final-review"), false);
 });

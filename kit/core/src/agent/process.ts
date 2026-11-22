@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { createWriteStream, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { binDir } from "../location.ts";
+import { killProcessTree } from "./kill-tree.ts";
 
 export type Launcher = (program: string, args: readonly string[], o: { cwd: string; output: string; timeoutMs: number; env?: NodeJS.ProcessEnv; signal?: AbortSignal }) => Promise<number | null>;
 
@@ -63,12 +64,19 @@ export const runProcess: Launcher = (program, args, o) =>
     const keepErrors = () => {
       if (errors.trim()) writeFileSync(`${o.output}.stderr`, errors.slice(0, 8000));
     };
-    // Par PID et ses descendants, jamais par nom d'image.
+    let release: ReturnType<typeof setTimeout> | undefined;
     const killTree = () => {
-      if (child.pid !== undefined) {
-        if (process.platform === "win32") spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+      // Déjà fini, son PID peut être à un autre : il ne reste que ses sorties à lâcher.
+      if (child.pid !== undefined && child.exitCode === null && child.signalCode === null) {
+        if (process.platform === "win32") void killProcessTree(child.pid, env);
         else child.kill("SIGKILL");
       }
+      // Un descendant hors d'atteinte garde les sorties ouvertes : Stop rend la main quand même, avant les 5 s que la
+      // fermeture du service accorde pour écrire l'état des tours coupés.
+      release ??= setTimeout(() => {
+        child.stdout.destroy();
+        child.stderr.destroy();
+      }, 4000);
     };
     const timer = setTimeout(killTree, o.timeoutMs);
     if (o.signal?.aborted) killTree();
@@ -81,6 +89,7 @@ export const runProcess: Launcher = (program, args, o) =>
     });
     child.on("close", (code) => {
       clearTimeout(timer);
+      clearTimeout(release);
       keepErrors();
       stream.end(() => resolvePath(code));
     });

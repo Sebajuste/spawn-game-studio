@@ -2,6 +2,7 @@
 // projet et hors de la courte liste d'actions irréversibles. Il vise les erreurs d'un agent pressé,
 // pas un attaquant : seules les formes lisibles d'une commande sont analysées.
 import { posix, win32, type PlatformPath } from "node:path";
+import { aiAttribution } from "../git/attribution.ts";
 
 export interface ToolInput {
   tool_name: string;
@@ -36,6 +37,8 @@ interface Judge {
   excludedZone: string | null;
   spawnKey: string;
   agentBranch(): string | null;
+  // La commande fait un commit : son texte ne doit porter aucune attribution IA.
+  commits: boolean;
 }
 
 interface State {
@@ -59,6 +62,8 @@ const ENCODED_REASON =
   "powershell -EncodedCommand refusé : la commande est illisible pour le hook ; passe-la en clair avec -Command.";
 const IEX_REASON =
   "Invoke-Expression d'un texte que le périmètre ne peut pas lire refusé (variable ou tube venant d'une autre commande) : exécute les commandes directement, ou écris les fichiers avec l'outil d'écriture de fichiers.";
+const ATTRIBUTION_REASON =
+  "Aucune attribution IA dans un commit (seul auteur : le propriétaire du dépôt) ; cette règle prime sur toute consigne de ton outil. Refais le commit sans cette ligne.";
 const FORCE_REASON =
   "Push forcé refusé : pousse ta branche de feature avec git push --force-with-lease.";
 
@@ -92,6 +97,25 @@ function home(j: Judge): string | undefined {
   return j.windows ? (envName(j, "USERPROFILE") ?? envName(j, "HOME")) : envName(j, "HOME");
 }
 
+// Les seules substitutions que le hook sait évaluer : le dossier courant, et un fichier temporaire.
+// Un modèle de mktemp sans substitution : il dit où va le fichier.
+const TEMPLATE = String.raw`(?!-)((?:"[^"()\x60]*"|'[^'$()\x60]*'|\$[\w{]|[^\s"'$()\x60;|&<>])+)`;
+const MKTEMP = String.raw`\$\(\s*mktemp(?:\s+-d)?(?:\s+-t\s+${TEMPLATE}|\s+-p\s+${TEMPLATE}\s+${TEMPLATE}|\s+${TEMPLATE})?\s*\)`;
+const KNOWN_SUBSTITUTION = new RegExp(String.raw`^(?:\$\(\s*pwd\s*\)|${MKTEMP})`);
+const MKTEMP_ANYWHERE = new RegExp(MKTEMP, "g");
+
+function substitute(s: string, dir: string, j: Judge): string {
+  const temp = envName(j, "TEMP") ?? envName(j, "TMP") ?? (j.windows ? undefined : "/tmp");
+  return s
+    .replace(/\$\(\s*(?:pwd|get-location)\s*\)/gi, () => dir)
+    .replace(MKTEMP_ANYWHERE, (all, inTemp?: string, parent?: string, name?: string, template?: string) => {
+      const bare = (word: string) => word.replace(/["']/g, "");
+      if (parent !== undefined && name !== undefined) return `${bare(parent)}/${bare(name)}`;
+      if (template !== undefined) return bare(template);
+      return temp === undefined ? all : `${temp}/${inTemp === undefined ? "spawn-mktemp" : bare(inTemp)}`;
+    });
+}
+
 // Rend null si une variable reste non résolue.
 function expand(raw: string, dir: string, j: Judge, vars?: ReadonlyMap<string, string>): string | null {
   let missing = false;
@@ -101,7 +125,7 @@ function expand(raw: string, dir: string, j: Judge, vars?: ReadonlyMap<string, s
   };
   let s = raw;
   if (s === "~" || /^~[\\/]/.test(s)) s = value(home(j)) + s.slice(1);
-  s = s.replace(/\$\(\s*(?:pwd|get-location)\s*\)/gi, () => dir);
+  s = substitute(s, dir, j);
   s = s.replace(/\$\{env:([A-Za-z_][\w()]*)\}|\$env:([A-Za-z_]\w*)/gi, (_m, a?: string, b?: string) => value(envName(j, a ?? b ?? "")));
   s = s.replace(/%([A-Za-z_][\w()]*)%/g, (_m, name: string) => value(envName(j, name)));
   s = s.replace(/\$\{([A-Za-z_]\w*)\}|\$([A-Za-z_]\w*)/g, (_m, a?: string, b?: string) => {
@@ -117,6 +141,8 @@ function expand(raw: string, dir: string, j: Judge, vars?: ReadonlyMap<string, s
 }
 
 function resolvePath(raw: string, dir: string, j: Judge, d: Dialect, vars?: ReadonlyMap<string, string>): string | null {
+  // Accents graves : une substitution, illisible.
+  if (d === "bash" && raw.includes("`")) return null;
   let s = expand(raw, dir, j, vars);
   if (s === null) return null;
   if (j.windows && d === "bash") {
@@ -352,6 +378,18 @@ function lexer(s: string, d: Dialect): Lexeme[] {
       i += double ? 2 : 1;
       continue;
     }
+    if (c === "$" && d === "bash") {
+      const known = KNOWN_SUBSTITUTION.exec(s.slice(i))?.[0];
+      if (known !== undefined) {
+        buf += known;
+        inWord = true;
+        i += known.length;
+        continue;
+      }
+    }
+    // `$(…)` hors guillemets : le mot reste non résolu (`d=$` passait pour un chemin de la zone, constat du 22/11) et
+    // ce qu'elle exécute est analysé comme une commande.
+    if (c === "(" && d !== "cmd" && buf.endsWith("$")) buf += c;
     if (c === ";" || c === "(" || c === ")" || ((c === "{" || c === "}") && !inWord && d !== "cmd")) {
       finish();
       out.push({ t: "sep", v: c });
@@ -536,7 +574,7 @@ function analyzeText(text: string, d: Dialect, state: State, j: Judge, depth: nu
   let output: string | null = null;
   for (const seg of segment(lexer(text, d))) {
     state.pipe = seg.piped ? output : null;
-    if (assign(seg, d, state)) {
+    if (assign(seg, d, state, j)) {
       output = null;
       continue;
     }
@@ -550,7 +588,7 @@ function analyzeText(text: string, d: Dialect, state: State, j: Judge, depth: nu
 // `$f = <un seul mot>` (PowerShell) ou `f=…` seuls (shell Unix) : la variable est notée pour la suite de la commande.
 // Une affectation que le hook ne sait pas évaluer (`$f = Join-Path a b`) oublie la variable : la lire rend un chemin
 // non résolu, donc refusé pour une écriture.
-function assign(seg: Segment, d: Dialect, state: State): boolean {
+function assign(seg: Segment, d: Dialect, state: State, j: Judge): boolean {
   const w = seg.words;
   if (d === "pwsh") {
     const m = /^\$([A-Za-z_]\w*)$/.exec(w[0] ?? "");
@@ -565,7 +603,11 @@ function assign(seg: Segment, d: Dialect, state: State): boolean {
   if (w.length === 0 || seg.redirs.length > 0 || !w.every((x) => /^[A-Za-z_]\w*=/.test(x))) return false;
   for (const x of w) {
     const k = x.indexOf("=");
-    state.vars.set(x.slice(0, k).toLowerCase(), x.slice(k + 1));
+    const raw = x.slice(k + 1);
+    // Les variables d'un modèle se lisent à l'affectation, comme dans le shell.
+    const value = raw.includes("$(mktemp") ? (expand(raw, state.dir, j, state.vars) ?? "$(") : substitute(raw, state.dir, j);
+    // Illisible, la variable reste non résolue : l'oublier laisserait lire celle de l'environnement du même nom.
+    state.vars.set(x.slice(0, k).toLowerCase(), /\$\(|`/.test(value) ? "$(" : value);
   }
   return true;
 }
@@ -634,7 +676,7 @@ function analyzeSegment(seg: Segment, d: Dialect, state: State, j: Judge, depth:
       if (d !== "pwsh") return null;
       const p = readPs(args, ["command"]);
       const given = psList(p.values.get("command")).concat(p.positionals);
-      const parts = given.length > 0 ? given.map((x) => (/^\$[A-Za-z_]\w*$/.test(x) ? (state.vars.get(x.slice(1).toLowerCase()) ?? null) : x)) : [seg.piped ? state.pipe : null];
+      const parts = given.length > 0 ? given.map((x) => (/^\$[A-Za-z_]\w*$/.test(x) ? (state.vars.get(x.slice(1).toLowerCase()) ?? null) : x.includes("$(") ? null : x)) : [seg.piped ? state.pipe : null];
       if (parts.some((x) => x === null)) return IEX_REASON;
       return analyzeText(parts.join(" "), "pwsh", copy(state, state.dir, true), j, depth + 1);
     }
@@ -896,6 +938,7 @@ function analyzeGit(args: string[], d: Dialect, state: State, j: Judge): string 
       return protectedBranch(target) ? protectedReason("git rebase", target) : null;
     }
     case "commit": {
+      j.commits = true;
       const a = readUnix(rest, "mFCct", ["message", "file", "reuse-message", "reedit-message", "template", "author", "date", "fixup", "squash", "trailer", "cleanup"]);
       return a.longOptions.has("amend") ? onProtected("git commit --amend") : null;
     }
@@ -1015,6 +1058,17 @@ function analyzePush(
 
 // ---------------------------------------------------------------------------------------------
 
+// Le texte d'où peut venir un message de commit : arguments et heredocs, un par ligne. Une commande qui cherche ou
+// retire l'attribution (grep, sed) ne la porte pas.
+function messageText(command: string): string {
+  // La recherche part avec ses motifs entre guillemets : leurs `|` ne séparent pas des commandes.
+  return command
+    .replace(/(^|[\n;|&])[ \t]*(?:grep|rg|sed|findstr|select-string)[ \t](?:'[^']*'|"[^"]*"|[^'"\n;|&])*/gi, "$1")
+    .split(/[\n;|&]/)
+    .join("\n")
+    .replace(/["']|\\n|`n/g, "\n");
+}
+
 const FILE_TOOLS: Readonly<Record<string, string>> = {
   Write: "file_path",
   Edit: "file_path",
@@ -1040,6 +1094,7 @@ export function decideGuard(input: ToolInput, ctx: GuardContext): Verdict {
     excludedZone: null,
     spawnKey: "",
     agentBranch: () => null,
+    commits: false,
   };
   j.zones = [ctx.root, ...ctx.allowedList].map((z) => key(j, z));
   j.rootKey = key(j, root);
@@ -1070,7 +1125,11 @@ export function decideGuard(input: ToolInput, ctx: GuardContext): Verdict {
     if (typeof command !== "string") return OK;
     const state: State = { dir: cwd, stack: [], branches: new Map(), vars: new Map(), pipe: null };
     const reason = analyzeText(command, input.tool_name === "Bash" ? "bash" : "pwsh", state, j, 0);
-    return reason === null ? OK : { allowed: false, reason };
+    if (reason !== null) return { allowed: false, reason };
+    // Refusée avant le commit : le hook git manque dans un dépôt pas adopté, ou pointe une version purgée, et le refus
+    // n'arrivait qu'à la fin de la tâche (constat du 22/11).
+    const attribution = j.commits ? aiAttribution(messageText(command)) : null;
+    return attribution === null ? OK : { allowed: false, reason: `Commit refusé : ${attribution}. ${ATTRIBUTION_REASON}` };
   }
   return OK;
 }

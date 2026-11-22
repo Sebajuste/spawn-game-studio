@@ -65,6 +65,36 @@ const STASH = "pile de stash";
 const WORKTREE = "EnterWorktree";
 
 const TABLE: Record<string, Case[]> = {
+  "command substitutions": [
+    refused("Bash", 'd=$(echo C:/Windows); echo x > "$d/a"', "non résolu"),
+    refused("Bash", 'd="$(echo C:/Windows)"; echo x > "$d/a"', "non résolu"),
+    refused("Bash", 'd=`echo C:/Windows`; echo x > "$d/a"', "non résolu"),
+    refused("Bash", 'TEMP=$(echo C:/Windows); echo x > "$TEMP/a"', "non résolu"),
+    refused("Bash", "echo x > $(echo C:/Windows)/a", "non résolu"),
+    refused("Bash", "echo x > `echo C:/Windows`/a", "non résolu"),
+    refused("Bash", "cp a.txt $(echo C:/Windows)", "non résolu"),
+    refused("Bash", "rm -rf $(echo C:/Windows)", "non résolu"),
+    refused("Bash", "x=$(rm -rf C:/autre)", OUTSIDE),
+    refused("Bash", 'd=$(mktemp -d); echo x > "$d/../../../../../x"', OUTSIDE),
+    refused("PowerShell", "Set-Content $(Join-Path C:\\autre a) x", "non résolu"),
+    allowed("Bash", 'd=$(pwd); echo x > "$d/a"'),
+    allowed("Bash", "echo x > $(pwd)/a"),
+    allowed("Bash", 'd=$(mktemp -d); echo x > "$d/a"'),
+    allowed("Bash", 'f=$(mktemp); echo x > "$f"; rm "$f"'),
+    // Formes relevées au rejeu de l'historique : le modèle dit où va le dossier.
+    allowed("Bash", 'S=docs; d=$(mktemp -d "$S/mut.XXXXXX"); echo x > "$d/a"'),
+    allowed("Bash", 'S=docs; d=$(mktemp -d $S/probe.XXXX); echo x > "$d/a"'),
+    allowed("Bash", 'd=$(mktemp -d -t spawn-demo-XXXXXX); echo x > "$d/a"'),
+    allowed("Bash", 'd=$(mktemp -d -p . guard-XXXX); echo x > "$d/a"'),
+    refused("Bash", 'S=C:/Windows; d=$(mktemp -d "$S/x.XXXX"); echo x > "$d/a"', OUTSIDE),
+    refused("Bash", 'd=$(mktemp -d -p C:/autre x.XXXX); echo x > "$d/a"', OUTSIDE),
+    refused("Bash", 'd=$(mktemp -d -t ../../../../../../x.XXXX); echo x > "$d/a"', OUTSIDE),
+    refused("Bash", 'd=$(mktemp -d "$(echo C:/Windows)/x.XXXX"); echo x > "$d/a"', "non résolu"),
+    allowed("Bash", "v=$(node --version); echo \"$v\" > version.txt"),
+    allowed("Bash", "cat $(ls docs)"),
+    allowed("Bash", "i=$((1+2)); echo $i"),
+    allowed("Bash", "echo 'a `b` c' > notes.md"),
+  ],
   "file tools": [
     allowed("Write", "C:\\jeux\\demo\\src\\a.gd", ROOT),
     allowed("Write", "C:\\jeux\\demo\\.claude\\worktrees\\a\\src\\a.gd"),

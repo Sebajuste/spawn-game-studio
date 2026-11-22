@@ -14,6 +14,8 @@ export interface RunningAgent {
   agent_type: string;
   story: string | null;
   since: string;
+  // Session qui l'a lancé ; absente des entrées écrites avant le 22/11.
+  session?: string;
 }
 
 const dir = (root: string) => join(root, ".spawn", "agents");
@@ -88,6 +90,21 @@ export function stop(root: string, agentId: string): void {
   const a = read<RunningAgent>(path);
   rmSync(path, { force: true });
   if (a?.story) touchStory(root, a.story, (ids) => ids.filter((id) => id !== agentId));
+}
+
+// Un tour fini ou coupé n'a plus de sous-agent vivant : ses places reviennent (constat du 22/11 : un sous-agent tué avec
+// l'app gardait la sienne six heures). Ceux d'une autre session (un terminal sur le même fil) restent ; une entrée sans
+// session se reconnaît au fil et aux heures du tour.
+export function releaseTurn(root: string, story: string, turn: { session: string | null; start: string; end: string }): void {
+  const d = dir(root);
+  if (!existsSync(d)) return;
+  for (const f of readdirSync(d).filter((x) => x.startsWith("agent-"))) {
+    const a = read<RunningAgent>(join(d, f));
+    if (a === null) continue;
+    const since = Date.parse(a.since);
+    if (since < Date.parse(turn.start) || since > Date.parse(turn.end)) continue;
+    if (a.session === undefined ? a.story === story : a.session === turn.session) stop(root, a.agent_id);
+  }
 }
 
 function touchStory(root: string, name: string, transform: (ids: string[]) => string[]): void {

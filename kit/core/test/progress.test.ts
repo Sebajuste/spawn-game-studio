@@ -91,7 +91,7 @@ test("progress: une étape connue donne exactement une étape en cours à la bon
   assert.ok(story);
   const cases: [string, number][] = [
     ["spec", 0], ["spec à revoir", 0], ["spec proposée, fil à mettre en attente", 0], ["plan", 1], ["plan introuvable", 1], ["plan illisible", 1],
-    ["tâche 1/2, lancer", 2], ["tâche 2/2 : correction", 2], ["correction demandée", 2],
+    ["tâche 1/2, lancer", 2], ["tâche 2/2 : correction", 2], ["correction demandée", 2], ["corrections à planifier", 2], ["plafond de la relecture finale", 3],
     ["relecture finale", 3], ["corrections de la relecture finale", 3], ["relecture finale approuvée", 3],
     ["worktree à commiter", 3], ["preuve et captures", 3], ["compte rendu à juger", 3],
     ["à juger", 4], ["fusion", 5], ["fusion refusée (failing)", 5], ["après fusion", 5],
