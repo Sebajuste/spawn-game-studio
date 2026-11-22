@@ -176,6 +176,19 @@ function isScenario(s: string): s is Scenario {
   return (SUPPORTED as readonly string[]).includes(s) || (NOT_APPLICABLE as readonly string[]).includes(s);
 }
 
+// Gabarit de `new-project` : le projet sain de la suite de contrat, au nom du projet. Il garde ses preuves (test de bout
+// en bout, smoke test, page au lancement), donc la première story part d'une base entièrement verte.
+export function starter(name: string): { files: Record<string, string>; node: Record<string, unknown> } {
+  const title = name.replace(/[&<>"'\\`$]/g, " ").trim() || "Projet";
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "app";
+  const files = Object.fromEntries(
+    Object.entries(scenarioFiles("healthy"))
+      .filter(([rel]) => rel !== "spawn.json")
+      .map(([rel, content]) => [rel, content.replaceAll("Exemple Spawn", title).replace('"spawn-example"', `"${slug}"`)]),
+  );
+  return { files, node: (JSON.parse(spawnJson(true)) as { node: Record<string, unknown> }).node };
+}
+
 export function example(o: Options, r: Report): Promise<void> {
   const project = o.required("project");
   const scenario = o.required("scenario");

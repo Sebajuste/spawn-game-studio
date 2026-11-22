@@ -16,6 +16,8 @@ export const SUBCOMMANDS = [
   "file-types",
   "git-patterns",
   "example",
+  "detect",
+  "adopt",
 ] as const;
 export type Subcommand = (typeof SUBCOMMANDS)[number];
 
@@ -93,6 +95,8 @@ export const NOT_APPLICABLE: readonly NotApplicable[] = ["new-project", ...SCENA
 export interface AdapterDescriptor {
   contract: 1;
   engine: string;
+  // Nom du moteur montré à une personne ; sans lui, `engine`.
+  title?: string;
   command: string[];
   domain?: AdapterDomain;
   not_applicable?: NotApplicable[];
@@ -183,4 +187,32 @@ export interface GitPatternsData {
 
 export interface ExampleData {
   scene: string;
+}
+
+export interface DetectData {
+  match: boolean;
+  version: string | null;
+  // Fichier relatif qui a fait reconnaître le projet.
+  evidence: string | null;
+}
+
+export const ADOPT_CHANGES = ["add", "complete"] as const;
+export type AdoptChange = (typeof ADOPT_CHANGES)[number];
+
+export interface AdoptFile {
+  path: string;
+  change: AdoptChange;
+}
+
+// Ce que l'adaptateur ne sait pas faire seul ; l'app le montre avant et après l'adoption.
+export interface AdoptGap {
+  code: string;
+  message: string;
+}
+
+export interface AdoptData {
+  files: AdoptFile[];
+  // Section du moteur dans spawn.json après l'adoption ; null si le moteur n'en a pas.
+  declared: Record<string, unknown> | null;
+  gaps: AdoptGap[];
 }

@@ -1,0 +1,41 @@
+/* La fenêtre Réglages (docs/maquettes/reglages.html, écrans 1 à 3). */
+.settings-window { position: relative; width: 900px; max-width: calc(100vw - 48px); height: 560px; max-height: calc(100vh - 48px); background: var(--bg); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 16px 40px #0004; display: grid; grid-template-columns: 200px 1fr; overflow: hidden; }
+.settings-window nav { background: var(--bg-bar); border-right: 1px solid var(--border); padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.settings-window nav h4 { margin: 10px 8px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.settings-window nav button { border: 0; background: none; text-align: left; padding: 6px 8px; border-radius: 6px; color: var(--text); }
+.settings-window nav button:hover { background: var(--hover); }
+.settings-window nav button.chosen { background: var(--card); box-shadow: 0 0 0 1px var(--border); font-weight: 600; }
+.settings-content { padding: 16px 22px 22px; overflow-y: auto; }
+.settings-content h3 { margin: 0 0 2px; font-size: 17px; padding-right: 24px; }
+.settings-content h4 { margin: 18px 0 4px; font-size: 13px; }
+.settings-intro { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+.settings-close { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 16px; color: var(--muted); padding: 2px 6px; border-radius: 4px; }
+.settings-close:hover { background: var(--hover); color: var(--text); }
+
+.setting-row { display: grid; grid-template-columns: 190px 1fr; gap: 10px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.setting-label { color: var(--muted); font-size: 13px; padding-top: 4px; }
+.setting-value { min-width: 0; }
+.setting-value > small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.setting-value input, .setting-value select { font: inherit; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; background: var(--card); color: var(--text); width: 100%; max-width: 340px; }
+.setting-value input[aria-invalid="true"] { border-color: var(--blocked); }
+.setting-value > span { display: inline-block; padding-top: 4px; }
+.setting-value .refusal { display: block; margin: 4px 0 0; }
+.setting-folder { display: flex !important; align-items: center; gap: 8px; flex-wrap: wrap; }
+.setting-folder code { font-size: 12px; }
+
+.setting-module { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+.setting-module input { margin-top: 3px; }
+.setting-module small { display: block; color: var(--muted); font-size: 12px; }
+
+.setting-line { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.setting-line-text { flex: 1; min-width: 0; }
+.setting-line-text small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setting-line-text .refusal { display: block; margin: 2px 0 0; }
+.setting-add { margin-top: 10px; }
+.setting-add select { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); }
+
+.danger-zone-box { border: 1px solid #e3b4ae; border-radius: 8px; padding: 10px 12px; margin-top: 22px; background: color-mix(in srgb, var(--blocked) 6%, var(--card)); }
+.danger-zone-box h4 { margin: 0 0 4px; color: var(--blocked); font-size: 13px; }
+.danger-zone-box .setting-line { border: 0; padding-bottom: 0; }
+.danger-zone-box .setting-line-text small { white-space: normal; }
+.btn.danger-outline { border-color: var(--blocked); color: var(--blocked); background: var(--card); }

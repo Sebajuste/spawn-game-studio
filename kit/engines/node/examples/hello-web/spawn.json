@@ -1,0 +1,10 @@
+{
+  "engine": "node",
+  "version": "24",
+  "tag": "HW",
+  "node": {
+    "runner": { "type": "docker", "image": "node:24-alpine" },
+    "compile": ["typecheck"],
+    "test": "test"
+  }
+}

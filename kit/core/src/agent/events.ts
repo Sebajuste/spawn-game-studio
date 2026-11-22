@@ -16,7 +16,7 @@ const EXCERPT = 300;
 export function summarizeTool(name: string, input: Record<string, unknown>): { summary: string; files: string[] } {
   const text = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : "");
   const path = text("file_path") || text("filePath") || text("notebook_path") || text("path");
-  const written = /^(write|edit|multiedit|notebookedit|patch)$/i.test(name);
+  const written = /^(write|edit|multiedit|notebookedit|patch|create)$/i.test(name);
   const summary =
     text("command") ||
     text("description") ||

@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette Spawn App Studio : navigation</title>
+<!-- docs/navigation.md et docs/conversation.md (2026-11-20, validés). Les éléments cliquables de la fenêtre mènent à l'écran correspondant. -->
+<style>
+:root { --fond:#f4f3ef; --barre:#ecebe6; --carte:#fff; --bord:#d8d5cc; --texte:#22231f; --discret:#77756d; --accent:#2f6fd6; --vert:#2e9d5b; --orange:#d98a1c; --rouge:#c9473c; --violet:#6b5bd2; }
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.45 "Segoe UI",system-ui,sans-serif; color:var(--texte); background:#dcd9d0; display:grid; grid-template-columns:230px 1fr; height:100vh; }
+button { font:inherit; color:inherit; cursor:pointer; }
+.nav { background:#2b2c30; color:#ddd; padding:14px 10px; overflow-y:auto; }
+.nav h1 { font-size:13px; margin:0 6px 4px; color:#fff; }
+.nav p { font-size:12px; color:#999; margin:0 6px 12px; }
+.nav button { display:block; width:100%; text-align:left; border:0; background:none; padding:5px 8px; border-radius:5px; color:#ccc; font-size:13px; }
+.nav button:hover { background:#3a3b40; }
+.nav button.actif { background:var(--accent); color:#fff; }
+.scene { padding:18px; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+.note { background:#fffbe6; border:1px solid #e6d98a; border-radius:6px; padding:8px 12px; font-size:13px; max-width:1100px; }
+.fenetre { background:var(--fond); border:1px solid #c9c6bd; border-radius:8px; box-shadow:0 8px 30px #0003; overflow:hidden; display:flex; flex-direction:column; height:640px; max-width:1100px; min-width:900px; position:relative; }
+.menus { display:flex; background:#fff; border-bottom:1px solid var(--bord); font-size:13px; flex:none; }
+.menus span { padding:4px 10px; }
+.corps { flex:1; display:grid; grid-template-columns:220px 1fr; min-height:0; }
+.lieux { background:var(--barre); border-right:1px solid var(--bord); padding:10px 8px; display:flex; flex-direction:column; gap:2px; }
+.portee { display:flex; align-items:center; gap:4px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--bord); }
+.portee > button:first-child { flex:1; min-width:0; display:flex; align-items:center; gap:8px; border:0; background:none; padding:6px 8px; border-radius:6px; text-align:left; }
+.portee > button:first-child:hover { background:#dedbd3; }
+.logo { width:24px; height:24px; border-radius:6px; background:var(--accent); color:#fff; display:grid; place-items:center; font-weight:700; font-size:13px; flex:none; }
+.logo.ws { background:var(--violet); }
+.portee strong { display:block; font-size:14px; }
+.portee small { display:block; color:var(--discret); font-size:11px; }
+.chevron { margin-left:auto; color:var(--discret); }
+.jouer { width:30px; height:30px; border:1px solid var(--bord); background:var(--carte); border-radius:6px; flex:none; font-size:12px; }
+.lieu { display:flex; align-items:center; gap:10px; width:100%; border:0; background:none; padding:7px 8px; border-radius:6px; text-align:left; color:#44453f; }
+.lieu:hover { background:#dedbd3; }
+.lieu.choisi { background:var(--carte); box-shadow:0 0 0 1px var(--bord); color:var(--texte); font-weight:600; }
+.lieu .nb { margin-left:auto; background:var(--orange); color:#fff; border-radius:9px; padding:0 7px; font-size:11px; font-weight:600; }
+.lieu kbd { margin-left:auto; font:11px inherit; color:var(--discret); }
+.lieu .nb + kbd { margin-left:6px; }
+.principal { display:flex; flex-direction:column; min-height:0; }
+.ariane { padding:8px 18px; font-size:13px; color:var(--discret); border-bottom:1px solid var(--bord); background:#faf9f6; display:flex; gap:6px; align-items:center; }
+.ariane button { border:0; background:none; padding:1px 4px; border-radius:4px; color:var(--accent); }
+.ariane button:hover { background:#e8eefb; }
+.ariane b { color:var(--texte); font-weight:600; padding:1px 4px; }
+.ariane .fl { color:#b5b2a8; }
+.ariane .hist { margin-left:auto; color:#b5b2a8; font-size:12px; }
+.entete { display:flex; justify-content:space-between; align-items:center; padding:14px 18px 6px; }
+.entete h2 { margin:0; font-size:18px; }
+.entete p { margin:2px 0 0; color:var(--discret); font-size:13px; }
+.defile { padding:8px 18px 18px; overflow:auto; flex:1; }
+.btn { border:1px solid var(--bord); background:var(--carte); border-radius:6px; padding:5px 10px; font-size:12px; }
+.btn.fort { background:var(--accent); border-color:var(--accent); color:#fff; }
+.carte { background:var(--carte); border:1px solid var(--bord); border-left:4px solid var(--bord); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.carte.o { border-left-color:var(--orange); } .carte.b { border-left-color:var(--accent); } .carte.v { border-left-color:var(--vert); }
+.carte small { display:block; color:var(--discret); font-size:12px; }
+.carte .proj { font-size:11px; background:#efeee9; border-radius:4px; padding:1px 6px; color:#55564f; margin-right:6px; }
+.groupe { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); margin:12px 0 6px; }
+.filtres { display:flex; gap:6px; margin:0 0 6px; font-size:12px; color:var(--discret); }
+.filtres span { border:1px solid var(--bord); border-radius:12px; padding:1px 10px; background:#fff; }
+.etat { flex:none; height:26px; border-top:1px solid var(--bord); background:#fff; display:flex; align-items:center; gap:14px; padding:0 12px; font-size:12px; color:var(--discret); }
+.etat button { border:0; background:none; padding:0; color:var(--texte); font-size:12px; }
+.etat button:hover { text-decoration:underline; }
+.point { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--vert); margin-right:5px; }
+.etat .droite { margin-left:auto; }
+.epic { background:var(--carte); border:1px solid var(--bord); border-radius:8px; padding:12px 14px; margin-bottom:10px; cursor:pointer; }
+.epic:hover { border-color:#bdb9ad; }
+.epic header { display:flex; justify-content:space-between; }
+.barre { height:6px; background:#e6e3da; border-radius:3px; margin:8px 0 10px; overflow:hidden; }
+.barre b { display:block; height:100%; background:var(--vert); }
+.voies { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.voie h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); }
+.story { border:1px solid var(--bord); border-left:4px solid var(--bord); border-radius:6px; padding:6px 8px; font-size:13px; background:#fcfbf8; }
+.story small { display:block; color:var(--discret); font-size:11px; }
+.story.fait { border-left-color:var(--vert); } .story.cours { border-left-color:var(--accent); } .story.attend { border-left-color:var(--orange); }
+.onglets { display:flex; gap:4px; margin:4px 18px 0; border-bottom:1px solid var(--bord); }
+.onglets span { padding:6px 12px; font-size:13px; color:var(--discret); }
+.onglets .actif { background:var(--carte); color:var(--texte); font-weight:600; border:1px solid var(--bord); border-bottom:0; border-radius:6px 6px 0 0; }
+.decision { background:var(--carte); border:1px solid var(--accent); border-radius:8px; padding:12px 14px; margin:10px 0; }
+.etapes { display:flex; gap:6px; font-size:12px; margin:8px 0; flex-wrap:wrap; }
+.etapes span { padding:2px 8px; border-radius:10px; background:#e7f4ec; color:var(--vert); }
+.etapes .en { background:var(--accent); color:#fff; } .etapes .apres { background:#efeee9; color:var(--discret); }
+.voile { position:absolute; inset:0; background:#0002; }
+.selecteur { position:absolute; top:62px; left:10px; width:330px; background:#fff; border:1px solid var(--bord); border-radius:8px; box-shadow:0 10px 30px #0003; padding:8px; }
+.selecteur input { width:100%; border:1px solid var(--bord); border-radius:6px; padding:6px 8px; font:inherit; margin-bottom:6px; }
+.selecteur h5 { margin:8px 6px 2px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); }
+.selecteur button { display:flex; width:100%; border:0; background:none; text-align:left; padding:5px 8px; border-radius:5px; gap:8px; align-items:center; }
+.selecteur button:hover, .selecteur button.sel { background:#e8eefb; }
+.selecteur button small { margin-left:auto; color:var(--discret); font-size:11px; }
+.selecteur .sous { padding-left:28px; }
+.selecteur hr { border:0; border-top:1px solid var(--bord); margin:6px 0; }
+.maison { flex:1; display:grid; grid-template-columns:1fr 280px; min-height:0; }
+.parole { display:flex; flex-direction:column; min-height:0; }
+.parole .fil { flex:1; overflow:auto; padding:12px 18px; display:flex; flex-direction:column; gap:8px; }
+.moi { align-self:flex-end; background:var(--accent); color:#fff; border-radius:10px 10px 2px 10px; padding:7px 11px; max-width:75%; }
+.lui { align-self:flex-start; background:var(--carte); border:1px solid var(--bord); border-radius:10px 10px 10px 2px; padding:7px 11px; max-width:80%; }
+.fait-par { align-self:flex-start; font-size:12px; color:var(--vert); background:#e7f4ec; border-radius:6px; padding:4px 9px; }
+.fait-par button { border:0; background:none; color:var(--accent); padding:0 0 0 6px; }
+.saisie { display:flex; gap:8px; padding:10px 18px 14px; border-top:1px solid var(--bord); }
+.saisie textarea { flex:1; border:1px solid var(--bord); border-radius:8px; padding:7px 10px; font:inherit; resize:none; height:52px; }
+.juger { border-left:1px solid var(--bord); background:#faf9f6; padding:12px; overflow:auto; }
+.juger h3 { margin:0 0 8px; font-size:13px; }
+.juger .carte { display:block; }
+.juger .carte button { margin-top:6px; }
+.accueil { flex:1; display:grid; place-items:center; text-align:center; }
+.accueil .gros { display:flex; gap:12px; justify-content:center; margin-top:16px; }
+.accueil .gros button { border:1px solid var(--bord); background:#fff; border-radius:8px; padding:16px 22px; min-width:190px; }
+.accueil .gros button strong { display:block; }
+.accueil .gros button span { color:var(--discret); font-size:12px; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<main class="scene" id="scene"></main>
+<script>
+const MENUS = `<div class="menus"><span>Fichier</span><span>Projet</span><span>Affichage</span><span>Aide</span></div>`;
+
+// Barre d'état : toujours là, filtrée par la portée.
+const etat = (agents) => `<div class="etat">${agents.length ? agents.map(([txt, aller]) => `<button data-aller="${aller}"><span class="point"></span>${txt}</button>`).join("") : "Aucun agent au travail"}<span class="droite">service connecté</span></div>`;
+
+const ariane = (segments) => `<div class="ariane">${segments
+  .map((s, i) => (i === segments.length - 1 ? `<b>${s[0]}</b>` : `<button data-aller="${s[1]}">${s[0]}</button>`))
+  .join('<span class="fl">›</span>')}<span class="hist">Alt+← Alt+→</span></div>`;
+
+const portee = (p) => p.ws
+  ? `<div class="portee"><button data-aller="selecteur"><span class="logo ws">A</span><span><strong>Arena</strong><small>workspace · 3 projets</small></span><span class="chevron">▾</span></button></div>`
+  : `<div class="portee"><button data-aller="selecteur"><span class="logo">${p.nom[0].toUpperCase()}</span><span><strong>${p.nom}</strong><small>${p.parent ? "dans Arena · " : ""}node 24</small></span><span class="chevron">▾</span></button><button class="jouer" title="Lancer (F5)">▶</button></div>`;
+
+const lieu = (id, nom, choisi, extra, aller) => `<button class="lieu ${choisi === id ? "choisi" : ""}" data-aller="${aller}">${nom}${extra}</button>`;
+
+const barreProjet = (p, choisi) => `<aside class="lieux">${portee(p)}
+  ${lieu("home", "Accueil", choisi, `<span class="nb">${p.nb}</span><kbd>Ctrl+1</kbd>`, p.inbox)}
+  ${lieu("backlog", "Backlog", choisi, `<kbd>Ctrl+2</kbd>`, p.backlog)}
+</aside>`;
+
+const barreWs = (choisi) => `<aside class="lieux">${portee({ ws: true })}
+  ${lieu("home", "Accueil", choisi, `<span class="nb">3</span><kbd>Ctrl+1</kbd>`, "ws-inbox")}
+  ${lieu("epics", "Epics", choisi, `<kbd>Ctrl+2</kbd>`, "ws-epics")}
+  ${lieu("projets", "Projets", choisi, `<kbd>Ctrl+3</kbd>`, "ws-projets")}
+</aside>`;
+
+const saisie = (txt) => `<div class="saisie"><textarea placeholder="${txt}"></textarea><button class="btn fort">Envoyer</button></div>`;
+const maison = (fil, juger) => `<div class="maison"><div class="parole"><div class="fil">${fil}</div>${saisie("Dis ce que tu veux : une idée, un bug, une question… (Ctrl+J)")}</div><aside class="juger">${juger}</aside></div>`;
+
+const fenetre = (barre, principal, agents, flottant = "") => `<div class="fenetre">${MENUS}<div class="corps">${barre}<section class="principal">${principal}</section></div>${etat(agents)}${flottant}</div>`;
+
+const AGENTS_WS = [["ar-api/equipment-routes · tâche 2/4", "ar-api-story"], ["ar-site/equipment-page · cadrage", "ws-epic"]];
+const AR_API = { nom: "ar-api", parent: true, nb: 1, inbox: "ar-api-inbox", backlog: "ar-api-backlog" };
+const HELLO = { nom: "hello-web", nb: 0, inbox: "hello-inbox", backlog: "hello-backlog" };
+
+const voies = `<div class="voies">
+  <div class="voie"><h4>ar-db</h4><div class="story fait">equipment-location<small>fusionnée · 14 min</small></div></div>
+  <div class="voie"><h4>ar-api</h4><div class="story cours" data-aller="ar-api-story">equipment-routes<small>tâche 2/4 · débloquée</small></div></div>
+  <div class="voie"><h4>ar-site</h4><div class="story attend">equipment-page<small>⏳ attend ar-api/equipment-routes</small></div></div>
+</div>`;
+
+const ECRANS = {
+  "ws-inbox": {
+    nom: "1. Workspace : Accueil",
+    note: "L'Accueil d'une portée : la conversation avec son agent au centre, À juger à droite (agrège les trois projets, chaque carte avec son projet). On y dit ce qu'on veut ; l'agent crée l'epic et ses stories par le service, et la conversation le montre, vérifié, avec un lien. Rien à cliquer pour « valider l'intention » : la spec de chaque story arrive dans À juger.",
+    rendu: () => fenetre(barreWs("home"), ariane([["Arena", "ws-inbox"], ["Accueil"]]) + maison(`
+        <div class="moi">Il faudrait pouvoir dire où est installé chaque équipement, et filtrer là-dessus sur le site.</div>
+        <div class="lui">Ça touche les trois projets : la colonne en base (ar-db), les routes (ar-api), le filtre (ar-site), dans cet ordre. Je crée l'epic avec ces trois stories ; chacune s'arrêtera à sa spec pour que tu la valides.</div>
+        <div class="fait-par">✓ Epic créé : ARN-2 Emplacement des équipements, 3 stories<button data-aller="ws-epic">Ouvrir →</button></div>`, `
+        <h3>À juger (3)</h3>
+        <div class="carte o"><span><span class="proj">ar-api</span><strong>equipment-routes</strong><small>question : format de la date ?</small></span><button class="btn fort" data-aller="ar-api-story">Répondre</button></div>
+        <div class="carte b"><span><span class="proj">ar-db</span><strong>equipment-location</strong><small>en recette depuis 12 min</small></span><button class="btn">Recetter</button></div>
+        <div class="carte o"><span><span class="proj">ar-site</span><strong>equipment-page</strong><small>spec à valider</small></span><button class="btn">Ouvrir</button></div>`), AGENTS_WS),
+  },
+  "ws-epics": {
+    nom: "2. Workspace : Epics",
+    note: "Lieu Epics : la vue actuelle en voies, sans bouton « ← Retour ». « + Epic » vit dans l'en-tête du lieu (on crée dans le lieu qui liste). Un clic sur un epic ouvre sa page.",
+    rendu: () => fenetre(barreWs("epics"), ariane([["Arena", "ws-inbox"], ["Epics"]]) + `
+      <div class="entete"><div><h2>Epics</h2><p>1 en cours · 1 livré</p></div><button class="btn fort">+ Epic</button></div>
+      <div class="defile">
+        <div class="epic" data-aller="ws-epic"><header><strong>ARN-2 · Emplacement des équipements</strong><span>1 / 3 fusionnée</span></header><div class="barre"><b style="width:33%"></b></div>${voies}</div>
+        <div class="epic"><header><strong>ARN-1 · Intégration d'un fournisseur</strong><span style="color:var(--vert)">3 / 3 fusionnées</span></header><div class="barre"><b style="width:100%"></b></div></div>
+      </div>`, AGENTS_WS),
+  },
+  "ws-epic": {
+    nom: "3. Page d'un epic",
+    note: "Un epic est un objet : sa page, avec le fil d'Ariane pour revenir. « + Story » est sur l'objet. Une story d'une voie s'ouvre dans la portée de son projet.",
+    rendu: () => fenetre(barreWs("epics"), ariane([["Arena", "ws-inbox"], ["Epics", "ws-epics"], ["ARN-2 Emplacement des équipements"]]) + `
+      <div class="entete"><div><h2>ARN-2 · Emplacement des équipements</h2><p>ordre : ar-db → ar-api → ar-site · contrat : ar-api/docs/contract.md</p></div><button class="btn">+ Story</button></div>
+      <div class="defile"><ul style="color:var(--discret);font-size:13px;margin-top:0"><li>un équipement porte un emplacement facultatif</li><li>le site filtre par emplacement</li></ul>${voies}</div>`, AGENTS_WS),
+  },
+  "ws-projets": {
+    nom: "4. Workspace : Projets",
+    note: "Les projets du workspace, chacun avec son état en une ligne. Un clic change la portée vers ce projet en gardant Arena pour parent (premier segment du fil d'Ariane). Remplace la barre d'onglets en haut du projet.",
+    rendu: () => fenetre(barreWs("projets"), ariane([["Arena", "ws-inbox"], ["Projets"]]) + `
+      <div class="entete"><div><h2>Projets</h2><p>3 projets dans Arena</p></div><button class="btn">+ Ajouter un projet</button></div>
+      <div class="defile">
+        <div class="carte v"><span><strong>ar-db</strong><small>node 24 · 1 story en recette</small></span><button class="btn">Ouvrir</button></div>
+        <div class="carte b" data-aller="ar-api-inbox"><span><strong>ar-api</strong><small>node 24 · 1 agent au travail · 1 question</small></span><button class="btn" data-aller="ar-api-inbox">Ouvrir</button></div>
+        <div class="carte"><span><strong>ar-site</strong><small>node 24 · cadrage à valider</small></span><button class="btn">Ouvrir</button></div>
+      </div>`, AGENTS_WS),
+  },
+  "ar-api-inbox": {
+    nom: "5. Projet dans un workspace : Accueil",
+    note: "Même coque. La portée est ar-api (« dans Arena ») ; le fil d'Ariane commence par le workspace. La conversation est celle du projet : un bug vu en recette s'y raconte, l'agent en fait une story de correction (ou explique que ce n'en est pas un).",
+    rendu: () => fenetre(barreProjet(AR_API, "home"), ariane([["Arena", "ws-inbox"], ["ar-api", "ar-api-inbox"], ["Accueil"]]) + maison(`
+        <div class="moi">La route /equipment renvoie 500 quand la date est vide.</div>
+        <div class="lui">Confirmé en lisant le code : la date est parsée sans contrôle (src/routes/equipment.ts). C'est un petit correctif ; je le crée.</div>
+        <div class="fait-par">✓ Story créée : Corrige la date vide de /equipment<button>Ouvrir →</button></div>`, `
+        <h3>À juger (1)</h3>
+        <div class="carte o"><span><strong>equipment-routes</strong><small>question : format de la date ?</small></span><button class="btn fort" data-aller="ar-api-story">Répondre</button></div>`),
+      [AGENTS_WS[0]]),
+  },
+  "ar-api-backlog": {
+    nom: "6. Projet : Backlog",
+    note: "Le Backlog liste ce qui est en cours et à venir ; « Livrées » et « Fermées » sont des filtres (remplacent l'Historique). Aucun bouton de création : une feature se demande dans la conversation de l'Accueil (Ctrl+J).",
+    rendu: () => fenetre(barreProjet(AR_API, "backlog"), ariane([["Arena", "ws-inbox"], ["ar-api", "ar-api-inbox"], ["Backlog"]]) + `
+      <div class="entete"><div><h2>Backlog</h2><p>2 stories ouvertes</p></div></div>
+      <div class="defile"><div class="filtres"><span>Livrées (4)</span><span>Fermées (1)</span></div>
+        <div class="groupe">En cours</div>
+        <div class="carte b" data-aller="ar-api-story"><span><strong>equipment-routes</strong><small>ARN-2 · tâche 2/4</small></span></div>
+        <div class="groupe">À venir</div>
+        <div class="carte"><span><strong>equipment-history</strong><small>prête · attend equipment-routes</small></span></div>
+      </div>`, [AGENTS_WS[0]]),
+  },
+  "ar-api-story": {
+    nom: "7. Page d'une story",
+    note: "La même page quel que soit le chemin (Accueil, Backlog, epic, barre d'état, Ctrl+K). Le fil d'Ariane garde le lieu d'où l'on vient ; les onglets font partie de la page, pas de la navigation.",
+    rendu: () => fenetre(barreProjet(AR_API, "home"), ariane([["Arena", "ws-inbox"], ["ar-api", "ar-api-inbox"], ["Accueil", "ar-api-inbox"], ["equipment-routes"]]) + `
+      <div class="entete"><div><h2>equipment-routes</h2><p>ARN-2 · Claude Code · depuis 12 min</p></div><button class="btn">⋯</button></div>
+      <div class="defile" style="padding-top:0">
+        <div class="decision"><strong>L'agent demande :</strong> format de la date de mise en service ?<div style="margin-top:8px"><button class="btn fort">ISO 8601</button> <button class="btn">Horodatage Unix</button> <button class="btn">Autre…</button></div></div>
+        <div class="onglets" style="margin:0"><span class="actif">Avancement</span><span>Conversation</span><span>Fichiers</span><span>Journal</span><span>Technique</span></div>
+        <div class="etapes"><span>Cadrage</span><span>Planification</span><span class="en">Développement · tâche 2/4</span><span class="apres">Vérification</span><span class="apres">Recette</span><span class="apres">Livraison</span></div>
+      </div>`, [AGENTS_WS[0]]),
+  },
+  "hello-inbox": {
+    nom: "8. Projet hors workspace : Accueil, au repos",
+    note: "Un projet seul : pas de parent. Conversation vide : une invite. Rien à juger : la colonne le dit, avec ce qui tourne.",
+    rendu: () => fenetre(barreProjet(HELLO, "home").replace('<span class="nb">0</span>', ""), ariane([["hello-web", "hello-inbox"], ["Accueil"]]) + maison(`
+        <div style="margin:auto;text-align:center;color:var(--discret)"><p><strong style="color:var(--texte)">De quoi veux-tu parler ?</strong></p><p style="font-size:13px">Une idée, un bug, une question sur le code. Si ça mène à une story ou à un correctif, l'agent la crée ; sinon, on a juste parlé.</p></div>`, `
+        <h3>À juger</h3><p style="color:var(--discret);font-size:13px">Rien ne t'attend. Aucun agent au travail.</p>`), []),
+  },
+  "hello-backlog": {
+    nom: "9. Projet hors workspace : Backlog",
+    note: "Backlog vide d'un projet seul : il renvoie à la conversation pour la première feature.",
+    rendu: () => fenetre(barreProjet(HELLO, "backlog").replace('<span class="nb">0</span>', ""), ariane([["hello-web", "hello-inbox"], ["Backlog"]]) + `
+      <div class="entete"><div><h2>Backlog</h2><p>aucune story ouverte</p></div><button class="btn" data-aller="hello-inbox">Demander dans l'Accueil (Ctrl+J)</button></div>
+      <div class="defile"><div class="filtres"><span>Livrées (2)</span><span>Fermées (0)</span></div></div>`, []),
+  },
+  selecteur: {
+    nom: "10. Sélecteur de portée (Ctrl+P)",
+    note: "Clic sur le bloc de portée : recherche, workspaces avec leurs projets en retrait, projets hors workspace, puis créer et ouvrir. Remplace l'accueil, la barre d'onglets du projet, la barre « workspaces et projets » et les sous-menus Récents / Workspaces.",
+    rendu: () => fenetre(barreWs("home"), ariane([["Arena", "ws-inbox"], ["Accueil"]]) + `<div class="defile"></div>`, AGENTS_WS, `<div class="voile"></div>
+      <div class="selecteur"><input placeholder="Chercher un projet ou un workspace…">
+        <h5>Workspaces</h5>
+        <button class="sel" data-aller="ws-inbox"><span class="logo ws">A</span>Arena<small>3 à juger</small></button>
+        <button class="sous">ar-db<small>1</small></button>
+        <button class="sous" data-aller="ar-api-inbox">ar-api<small>1</small></button>
+        <button class="sous">ar-site<small>1</small></button>
+        <h5>Hors workspace</h5>
+        <button data-aller="hello-inbox"><span class="logo">H</span>hello-web<small>rien</small></button>
+        <button><span class="logo">S</span>spawn-game-studio<small>2 en cours</small></button>
+        <hr><button>+ Nouveau projet<small>Ctrl+N</small></button><button>Ouvrir un projet…<small>Ctrl+O</small></button><button>+ Nouveau workspace</button>
+      </div>`),
+  },
+  premier: {
+    nom: "11. Premier lancement",
+    note: "Seul écran sans barre : aucun projet ni workspace n'existe encore. Dès le premier projet, on n'y revient plus.",
+    rendu: () => `<div class="fenetre">${MENUS}<div class="accueil"><div><h1 style="margin:0">Spawn App Studio</h1><p style="color:var(--discret)">Des projets complets, faits par des agents, vérifiés par l'outil.</p><div class="gros"><button><strong>Nouveau projet</strong><span>Ctrl+N</span></button><button><strong>Ouvrir un projet</strong><span>un dossier avec spawn.json</span></button></div></div></div>${etat([])}</div>`,
+  },
+};
+
+let courant = "ws-inbox";
+function afficher(id) {
+  if (!ECRANS[id]) return;
+  courant = id;
+  document.getElementById("nav").innerHTML = `<h1>Navigation</h1><p>Proposition docs/navigation.md. Cliquer dans la fenêtre navigue aussi.</p>` + Object.entries(ECRANS).map(([k, e]) => `<button data-ecran="${k}" class="${k === courant ? "actif" : ""}">${e.nom}</button>`).join("");
+  const e = ECRANS[id];
+  document.getElementById("scene").innerHTML = `<div class="note"><b>${e.nom}.</b> ${e.note}</div>${e.rendu()}`;
+  history.replaceState(null, "", "#" + id);
+}
+document.addEventListener("click", (ev) => {
+  const n = ev.target.closest("[data-ecran],[data-aller]");
+  if (!n) return;
+  ev.stopPropagation();
+  afficher(n.dataset.ecran ?? n.dataset.aller);
+});
+afficher(location.hash.slice(1) || "ws-inbox");
+</script>
+</body>
+</html>

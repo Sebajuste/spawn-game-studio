@@ -1,0 +1,17 @@
+/* Ce qui se pose au-dessus de la page : le menu d'un objet (⋯, ▾) et la confirmation partagée. */
+.menu-button { position: relative; flex: none; }
+.object-menu { position: absolute; top: calc(100% + 4px); z-index: 25; min-width: 220px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px #0003; padding: 4px; display: flex; flex-direction: column; }
+.object-menu.right { right: 0; }
+.object-menu.left { left: 0; }
+.object-menu button { display: flex; align-items: center; gap: 16px; width: 100%; border: 0; background: none; text-align: left; padding: 6px 10px; border-radius: 5px; color: var(--text); white-space: nowrap; }
+.object-menu button:hover:not(:disabled), .object-menu button:focus-visible { background: var(--accent-soft); outline: none; }
+.object-menu button:disabled { color: var(--muted); cursor: default; }
+.object-menu button.danger { color: var(--blocked); }
+.object-menu kbd { margin-left: auto; font: 11px inherit; color: var(--muted); }
+.object-menu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+
+.confirm-backdrop { position: fixed; inset: 0; background: #0003; z-index: 40; display: flex; justify-content: center; align-items: flex-start; padding-top: 22vh; }
+.confirm { width: 440px; max-width: calc(100vw - 32px); background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 16px 40px #0005; padding: 16px 18px; }
+.confirm h3 { margin: 0 0 6px; font-size: 15px; }
+.confirm p { margin: 0 0 12px; color: var(--muted); }
+.confirm .refusal { display: block; margin: 0 0 10px; }

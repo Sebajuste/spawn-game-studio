@@ -42,6 +42,32 @@ export interface ProjectView {
   problem: string | null;
 }
 
+// Workspace : état réel de chaque story d'epic, lu dans son projet.
+export interface EpicStoryView {
+  project: string;
+  story: string;
+  blocked_by: { project: string; story: string }[];
+  state: string;
+  merged: boolean;
+  waiting_for: { project: string; story: string }[];
+  metrics: { verdict: string; duration_min: number; interventions: number; cache_read: number } | null;
+}
+
+export interface EpicView {
+  id: string;
+  title: string;
+  acceptance: string[];
+  stories: EpicStoryView[];
+  merged: number;
+}
+
+export interface WorkspaceView {
+  id: string;
+  name: string;
+  projects: string[];
+  epics: EpicView[];
+}
+
 // État technique d'une story (module stories), avec l'étape donnée par `spawn next`.
 export interface StoryStateView extends Story {
   step: string | null;
@@ -49,7 +75,7 @@ export interface StoryStateView extends Story {
   interrupted: boolean;
 }
 
-export type AgentName = "claude-code" | "opencode";
+export type AgentName = "claude-code" | "opencode" | "copilot";
 
 // Événements normalisés d'un tour d'agent (kit/core/src/agent/events.ts).
 export type AgentEvent =
@@ -100,6 +126,39 @@ export interface ConversationEnd {
   refused: string[];
   // L'agent s'était arrêté sans raison : un nouveau tour est lancé tout de suite (relance automatique).
   restarted: boolean;
+}
+
+// Conversation de portée (docs/conversation.md) : l'Accueil d'un projet ou d'un workspace.
+export type TalkScope = "project" | "workspace";
+
+// Ce que le service a fait d'une action demandée par l'agent : vérifié par lui, jamais une promesse de l'agent.
+export type TalkActionResult =
+  | { kind: "story"; ok: true; project: string; story: string; title: string }
+  | { kind: "epic"; ok: true; epic: string; title: string; stories: { project: string; story: string }[] }
+  | { kind: "story" | "epic" | "invalid"; ok: false; error: string };
+
+export interface TalkTurn extends ConversationTurn {
+  actions: TalkActionResult[];
+}
+
+export interface TalkView {
+  agent: AgentName | null;
+  running: boolean;
+  turns: TalkTurn[];
+}
+
+// Événements poussés par le module talk : `id` est celui du projet ou du workspace.
+export interface TalkEvent {
+  scope: TalkScope;
+  id: string;
+  turn: number;
+  events: AgentEvent[];
+}
+
+export interface TalkEnd {
+  scope: TalkScope;
+  id: string;
+  turn: number;
 }
 
 export interface StoryStateDetail extends StoryStateView {
@@ -220,4 +279,70 @@ export interface KnownEngine {
   engine: string;
   version: string;
   executable: string;
+}
+
+// Moteur proposé par « Nouveau projet » et « Ajouter un projet existant » : un adaptateur présent dans le kit.
+export interface AdapterInfo {
+  engine: string;
+  title: string;
+  product: string;
+}
+
+// Un adaptateur vu par Réglages > Application (docs/reglages.md §3.1) : coché ou non sur cette machine, et combien de
+// projets inscrits l'utilisent (ils continuent de fonctionner s'il est décoché).
+export interface AdapterChoice extends AdapterInfo {
+  active: boolean;
+  projects: number;
+}
+
+// Diagnostic d'adoption (docs/adoption.md §3) : ✓ ok, + add, ~ complete, ⚠ warn, ⛔ stop.
+export type PointStatus = "ok" | "add" | "complete" | "warn" | "stop";
+export type PointGroup = "git" | "engine" | "files" | "hooks" | "plugin";
+
+export interface DiagnosisPoint {
+  status: PointStatus;
+  group: PointGroup;
+  label: string;
+  detail?: string;
+}
+
+export interface AdoptGap {
+  code: string;
+  message: string;
+}
+
+export interface Diagnosis {
+  dir: string;
+  name: string;
+  spawn: boolean;
+  engine: string | null;
+  title: string | null;
+  version: string | null;
+  tag: string;
+  points: DiagnosisPoint[];
+  gaps: AdoptGap[];
+  gitignore: string[];
+  ready: boolean;
+}
+
+export interface Baseline {
+  ok: boolean;
+  total: number;
+  passed: number;
+  failed: number;
+  message: string | null;
+}
+
+export interface AdoptionView {
+  project: ProjectView;
+  commit: string | null;
+  baseline: Baseline | null;
+  gaps: AdoptGap[];
+  leftovers: string[];
+}
+
+// Refus d'adoption (409) : le diagnostic refait, à montrer à la place de l'ancien.
+export interface AdoptionRefusal {
+  error: string;
+  diagnosis: Diagnosis;
 }

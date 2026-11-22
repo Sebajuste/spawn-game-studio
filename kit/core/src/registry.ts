@@ -1,4 +1,4 @@
-// Registre des projets de la machine (`~/.spawn/projects.json`), lu par l'app ; `new-game` y inscrit chaque jeu créé.
+// Registre des projets de la machine (`~/.spawn/projects.json`), lu par l'app ; `new-project` y inscrit chaque projet créé.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";

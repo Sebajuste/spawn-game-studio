@@ -111,7 +111,7 @@ export async function startService(o: { modules: readonly ServiceModule[]; port?
     } catch (e) {
       const status = e instanceof HttpError ? e.status : 500;
       if (status === 500) log(`${request.method} ${url.pathname} : ${(e as Error).stack ?? String(e)}`);
-      if (!response.headersSent) reply(status, { error: (e as Error).message });
+      if (!response.headersSent) reply(status, { ...(e instanceof HttpError ? e.extra : {}), error: (e as Error).message });
     }
   });
 

@@ -1,6 +1,6 @@
 // Ce qui diffère d'un agent à l'autre dans les consignes (D8) : noms des agents et skills, gestes de worktree,
 // reprise d'un sous-agent, choix du modèle. Le reste de l'outillage ne connaît aucun agent.
-export type Agent = "claude-code" | "opencode";
+export type Agent = "claude-code" | "opencode" | "copilot";
 
 export interface Vocabulary {
   agent: Agent;
@@ -37,6 +37,19 @@ const opencode: Vocabulary = {
   subagentTool: "l'outil subagent (pas l'outil skill)",
 };
 
+// Copilot CLI lit les plugins au format Claude Code : mêmes noms de skills et d'agents (`spawnstudio:<nom>`).
+// Pas d'outil de worktree : le fil se crée par la commande `spawn`, comme sous OpenCode.
+const copilot: Vocabulary = {
+  agent: "copilot",
+  subagent: (name) => `spawnstudio:${name}`,
+  skill: (name) => `spawnstudio:${name}`,
+  model: () => "",
+  enterWorktree: opencode.enterWorktree,
+  resumeSubagent: opencode.resumeSubagent,
+  viewImage: "regardée avec l'outil view",
+  subagentTool: "l'outil task (paramètre agent_type)",
+};
+
 export function vocabulary(agent = process.env.SPAWN_AGENT): Vocabulary {
-  return agent === "opencode" ? opencode : claude;
+  return agent === "opencode" ? opencode : agent === "copilot" ? copilot : claude;
 }

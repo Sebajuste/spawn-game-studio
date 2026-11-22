@@ -1,6 +1,7 @@
 // Outil `spawn` des skills et des agents : node "${CLAUDE_PLUGIN_ROOT}/src/cli.ts" <commande> …
 // Le fil et le worktree se déduisent du dossier courant ; aucune commande ne demande de chemin du kit.
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { callAdapter, type OptionValue } from "./adapter/call.ts";
 import { ledgerPath, contextOf, type Context } from "./context.ts";
@@ -12,9 +13,10 @@ import { write, LedgerError, shapes, readLedger, render, RESERVED, fromOptions, 
 import { planDefects, planProofDefects, readPlan, specDefects } from "./plan.ts";
 import { measure } from "./metrics.ts";
 import { engineSettingsPath, setEngine, readEngineSettings } from "./engines.ts";
-import { newGame, slug } from "./new-game.ts";
+import { newProject, slug } from "./new-project.ts";
 import { opencodeConfigDir, generateOpencode } from "./opencode.ts";
 import { claudeAdapter } from "./agent/claude.ts";
+import { copilotAdapter } from "./agent/copilot.ts";
 import { opencodeAdapter } from "./agent/opencode.ts";
 import { pilot } from "./pilot.ts";
 import { apply, installPlan, checkPrerequisites } from "./prerequisites.ts";
@@ -49,7 +51,7 @@ const HELP = `spawn <commande>
   pilot <claude|opencode> --story F --intent "…" [--load]   essai sans surveillance (interventions mesurées)
   engines [set <moteur> <version> "<exécutable>"]   réglage machine des moteurs (~/.spawn/engines.json)
   limits                               limites du projet (spawn.json) et sous-agents en cours
-  new-game --name N --dir D --version V [--engine godot] [--tag ABC] [--remote local|none|<url>]
+  new-project --name N --dir D --version V [--engine godot] [--tag ABC] [--remote local|none|<url>]   (alias : new-game)
   runtime status                       version active du runtime (~/.spawn/runtime) et ce qu'exécute chaque composant
   runtime install [--dry-run]          depuis le dépôt : vérifie, copie le commit, construit l'app, active la version
   runtime use <version> [--dry-run]    rend active une version installée (retour en arrière)`;
@@ -100,6 +102,15 @@ function checkSpec(ctx: Context, path: string): void {
   if (text === null) throw new LedgerError(`spec : ${path} introuvable dans ${ctx.dir} ; écris-la là, commite-la, puis recommence`);
   const defects = specDefects(text, ctx.project.config.tag);
   if (defects.length > 0) throw new LedgerError(`spec refusée, ${path} : ${defects.join(" ; ")}. Corrige le fichier, commite, puis relance cette commande`);
+}
+
+// Le projet n'a rien à montrer quand l'adaptateur répond `not-declared` à une capture (aucun lancement déclaré). Toute
+// autre réponse, succès compris, veut une vraie capture. L'essai est jeté.
+async function nothingToCapture(ctx: Context): Promise<boolean> {
+  const probe = join(tmpdir(), `spawn-probe-${process.pid}.png`);
+  const r = await callAdapter(projectAdapter(ctx.project), "capture", { project: ctx.dir, output: probe }, { timeoutMs: 120_000 });
+  rmSync(probe, { force: true });
+  return r.result?.ok === false && r.result.errors.some((e) => e.code === "not-declared");
 }
 
 // Chaque exigence « Preuve : capture » de la spec validée a sa capture, nommée par son identifiant, sur le disque.
@@ -302,6 +313,11 @@ async function main(argv: string[]): Promise<number> {
         }
         // La preuve est faite ici, par l'outil, et notée avant les captures : c'est elle que l'app montre comme vérifiée.
         if (ev.type === "captures" && ev.verdict === "valid") {
+          // Sans chemin, la preuve vaut pour un projet sans rien à montrer (une bibliothèque, une API sans page) : c'est
+          // l'adaptateur qui le dit, pas l'agent (essai du 20/11 : pilote abandonné, la capture d'une bibliothèque étant impossible).
+          if (ev.paths.length === 0 && !(await nothingToCapture(ctx))) {
+            throw new LedgerError(`captures : --paths manquant : ce projet peut montrer quelque chose, une capture par exigence « Preuve : capture » est attendue (${SPAWN} engine capture --output <png>)`);
+          }
           checkCaptures(ctx, ev.paths, events);
           // Une preuve refusée est notée : sans trace, `spawn next` redonnait la même étape et l'agent rejouait captures
           // et refus en boucle, le motif perdu (essai du 19/11 : une heure, ~95 next d'affilée).
@@ -518,7 +534,12 @@ ${prep.result ? JSON.stringify(prep.result, null, 2) : prep.defects.join(" ; ")}
       const ctx = requireContext();
       requireStory(ctx);
       const name = opt("agent") ?? readProjectSettings(ctx.project.root).agent;
-      const agent = name === "opencode" ? opencodeAdapter({ model: opt("model") ?? readProjectSettings(ctx.project.root).localModel, context: readProjectSettings(ctx.project.root).localContext }) : claudeAdapter();
+      const agent =
+        name === "opencode"
+          ? opencodeAdapter({ model: opt("model") ?? readProjectSettings(ctx.project.root).localModel, context: readProjectSettings(ctx.project.root).localContext })
+          : name === "copilot"
+            ? copilotAdapter(opt("model") ? { model: opt("model") as string } : {})
+            : claudeAdapter();
       const stop = new AbortController();
       process.once("SIGINT", () => stop.abort());
       const outcome = await runTasks({ ctx, agent, signal: stop.signal, log: (l) => console.log(l), ...(opt("max-steps") ? { maxSteps: Number(opt("max-steps")) } : {}) });
@@ -528,10 +549,14 @@ ${renderOutcome(outcome, renderAction)}`);
     }
     case "pilot": {
       const agentName = positionals[0];
-      if (agentName !== "opencode" && agentName !== "claude") {
-        throw new Usage("pilot <claude|opencode> --story <nom> (--intent \"<texte>\" | --intent-file <f>) [--model M] [--restarts N] [--max-hours H] [--load]");
+      if (agentName !== "opencode" && agentName !== "claude" && agentName !== "copilot") {
+        throw new Usage("pilot <claude|opencode|copilot> --story <nom> (--intent \"<texte>\" | --intent-file <f>) [--model M] [--restarts N] [--max-hours H] [--project <racine>] [--load]");
       }
-      const ctx = requireContext();
+      // Le projet se désigne par --project, ou par le dossier courant. Un dossier courant dans un worktree de fil est
+      // refusé : le pilote supprime ce worktree à la fusion (EPERM sous Windows), et le fil visé serait le mauvais.
+      const target = opt("project");
+      const ctx = target === undefined ? requireContext() : (contextOf(resolve(target)) ?? (() => { throw new Usage(`pilot : ${target} n'est pas un projet Spawn (aucun spawn.json)`); })());
+      if (ctx.story !== null) throw new Usage(`pilot : lancé depuis le worktree du fil « ${ctx.story} » ; le lancer depuis la racine du projet (${ctx.project.root}) ou passer --project <racine>`);
       const story = opt("story");
       const file = opt("intent-file");
       const intent = opt("intent") ?? (file ? readFileSync(file, "utf8").trim() : undefined);
@@ -540,7 +565,9 @@ ${renderOutcome(outcome, renderAction)}`);
       const agent =
         agentName === "opencode"
           ? opencodeAdapter({ model: model ?? readProjectSettings(ctx.project.root).localModel, load: opts.has("load"), context: Number(opt("context")) || readProjectSettings(ctx.project.root).localContext })
-          : claudeAdapter(model ? { model } : {});
+          : agentName === "copilot"
+            ? copilotAdapter(model ? { model } : {})
+            : claudeAdapter(model ? { model } : {});
       console.log(`vérifications avant l'essai (${agent.name}, périmètre compris)…`);
       const problems = await agent.check(ctx.project.root);
       if (problems.length > 0) {
@@ -578,15 +605,17 @@ ${renderOutcome(outcome, renderAction)}`);
       console.log(`${engineSettingsPath()}\n${JSON.stringify(readEngineSettings(), null, 2)}`);
       return 0;
     }
-    case "new-game": {
+    // `new-game` reste un alias : des scripts et la doc d'avant le renommage l'appellent encore.
+    case "new-game":
+    case "new-project": {
       const name = opt("name");
       const parent = opt("dir");
       const version = opt("version");
-      if (!name || !parent || !version) throw new Usage("new-game : --name, --dir et --version sont requis");
-      const tag = opt("tag") ?? (slug(name).replace(/-/g, "").slice(0, 3).toUpperCase() || "JEU");
-      const game = await newGame({ name, parent: resolve(parent), engine: opt("engine") ?? "godot", version, tag, remote: opt("remote") ?? "local" });
-      console.log(`\njeu créé : ${game.root}${game.remote ? `\ndistant : ${game.remote}` : ""}\npréfixe d'exigences : ${tag}`);
-      console.log(`ouvrir une session : cd "${game.root}" && claude --permission-mode bypassPermissions`);
+      if (!name || !parent || !version) throw new Usage("new-project : --name, --dir et --version sont requis");
+      const tag = opt("tag") ?? (slug(name).replace(/-/g, "").slice(0, 3).toUpperCase() || "APP");
+      const project = await newProject({ name, parent: resolve(parent), engine: opt("engine") ?? "godot", version, tag, remote: opt("remote") ?? "local" });
+      console.log(`\nprojet créé : ${project.root}${project.remote ? `\ndistant : ${project.remote}` : ""}\npréfixe d'exigences : ${tag}`);
+      console.log(`ouvrir une session : cd "${project.root}" && claude --permission-mode bypassPermissions`);
       return 0;
     }
     case "runtime":

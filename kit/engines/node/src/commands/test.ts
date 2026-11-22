@@ -1,4 +1,4 @@
-// Lance le script de test déclaré (`node.test`) et relit le résumé du lanceur de tests de Node.
+// Lance le script de test déclaré (`node.test`) et relit son résumé (lanceur de Node, Vitest ou Jest).
 import type { TestData } from "../../../../core/src/adapter/types.ts";
 import type { Options } from "../arguments.ts";
 import { parseErrors, parseTestOutput } from "../parse.ts";
@@ -24,7 +24,7 @@ export async function runTests(o: Options, r: Report): Promise<void> {
   r.data = { total: s.total, passed: s.passed, failed: s.failed, skipped: s.skipped, end_to_end: endToEnd } satisfies TestData;
 
   if (s.total === 0) {
-    r.error("no-tests", s.suites === 0 ? `le script « ${script} » n'a donné aucun résumé du lanceur de tests de Node (ℹ tests N)` : "aucun test lancé");
+    r.error("no-tests", s.suites === 0 ? `le script « ${script} » n'a donné aucun résumé reconnu (lanceur de tests de Node « ℹ tests N », Vitest « Tests  N passed », Jest « Tests: N total »)` : "aucun test lancé");
   }
   for (const f of s.failures) r.error("test-failed", f.name, f.file, f.line);
   if (s.failed > 0 && s.failures.length === 0) r.error("test-failed", `${s.failed} test(s) en échec : voir le journal`);

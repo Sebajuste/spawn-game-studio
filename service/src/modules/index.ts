@@ -5,8 +5,10 @@ import { backlogModule } from "./backlog.ts";
 import { filesModule, galleryModule } from "./files.ts";
 import { storiesModule } from "./stories.ts";
 import { projectsModule } from "./projects.ts";
+import { workspacesModule } from "./workspaces.ts";
+import { talkModule } from "./talk/index.ts";
 import { activityModule, statusBarModule, contextModule } from "./views.ts";
 
 const conversation = conversationModule();
 
-export const MODULES: readonly ServiceModule[] = [projectsModule, storiesModule, conversation, backlogModule(conversation), activityModule, contextModule(), statusBarModule, filesModule(), galleryModule];
+export const MODULES: readonly ServiceModule[] = [projectsModule, workspacesModule, storiesModule, conversation, backlogModule(conversation), talkModule(conversation), activityModule, contextModule(), statusBarModule, filesModule(), galleryModule];

@@ -155,9 +155,10 @@ test("install: layout, version name, tag, current.json, thin Claude plugin and O
   // Node embarqué : copié dans la version, et c'est lui que lancent les hooks (aucun Node installé n'est requis).
   const node = slash(join(dir, "node", NODE_EXE));
   assert.equal(readFileSync(node, "utf8"), "node");
-  const commands = [...hooks.matchAll(/"command": "([^"]+)"/g)].map((m) => m[1]);
-  assert.ok(commands.length >= 5 && commands.every((cmd) => cmd === node), commands.join(", "));
-  const targets = [...hooks.matchAll(/"([^"]+\.ts)"/g)].map((m) => m[1] ?? "");
+  // Chaque hook est une ligne de commande : `"<node embarqué>" "<script>" [args]`.
+  const commands = [...hooks.matchAll(/"command": ("(?:[^"\\]|\\.)*")/g)].map((m) => JSON.parse(m[1] ?? '""') as string);
+  assert.ok(commands.length >= 5 && commands.every((cmd) => cmd.startsWith(`"${node}" "`)), commands.join(", "));
+  const targets = commands.map((cmd) => /"([^"]+\.ts)"/.exec(cmd)?.[1] ?? "");
   assert.ok(targets.length >= 5);
   for (const t of targets) {
     assert.ok(t.startsWith(`${core}/src/hooks/`), t);
@@ -237,6 +238,18 @@ test("status flags what points to the repository, to another version or to a sta
   assert.match(by("Claude Code, plugin")?.detail ?? "", /périmé \(version 0\.1\.0, active aucune\)/);
   assert.match(by("Claude Code, plugin")?.detail ?? "", /copie incomplète/);
   assert.equal(by("app")?.ok, false);
+});
+
+test("Claude Code absent: install succeeds and status says there is nothing to update", () => {
+  const repo = fakeRepo();
+  const calls: string[] = [];
+  const absent: FakeClaude = { calls, market: null, run: (args) => (calls.push(args.join(" ")), { code: -1, stdout: "", stderr: "spawnSync claude ENOENT" }) };
+  const log: string[] = [];
+  assert.equal(install({ repo }, deps({ claude: absent, log })), 0, log.join("\n"));
+  assert.ok(log.some((l) => l.includes("Claude Code absent")), log.join("\n"));
+  const c = status({ claude: absent.run }).components.find((x) => x.name === "Claude Code");
+  assert.ok(c?.ok, c?.detail);
+  assert.match(c?.detail ?? "", /absent/);
 });
 
 test("three versions kept; use switches back with the same updates; unknown version refused", () => {

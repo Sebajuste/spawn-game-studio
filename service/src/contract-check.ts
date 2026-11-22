@@ -6,7 +6,10 @@ import type { AgentAdapter } from "../../kit/core/src/agent/type.ts";
 import type { Action as KitAction } from "../../kit/core/src/next.ts";
 import type { ProgressStep as KitProgressStep } from "../../kit/core/src/progress.ts";
 import type { ProjectSettings as KitProjectSettings } from "../../kit/core/src/settings.ts";
-import type { Action, AgentEvent, AgentName, ModuleState, ProgressStep, ProjectSettings, Story } from "./contract.ts";
+import type { AdapterInfo as KitAdapterInfo } from "../../kit/core/src/adapters.ts";
+import type { Baseline as KitBaseline } from "../../kit/core/src/adopt/adopt.ts";
+import type { Diagnosis as KitDiagnosis } from "../../kit/core/src/adopt/diagnose.ts";
+import type { Action, AdapterInfo, AgentEvent, AgentName, Baseline, Diagnosis, ModuleState, ProgressStep, ProjectSettings, Story } from "./contract.ts";
 import type { ModuleState as ServiceModuleState } from "./module.ts";
 
 type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
@@ -18,3 +21,6 @@ export const sameAgent: Equal<AgentName, AgentAdapter["name"]> = true;
 export const sameModuleState: Equal<ModuleState, ServiceModuleState> = true;
 export const sameProgressStep: Equal<ProgressStep, KitProgressStep> = true;
 export const sameSettings: Equal<ProjectSettings, KitProjectSettings> = true;
+export const sameAdapter: Equal<AdapterInfo, KitAdapterInfo> = true;
+export const sameDiagnosis: Equal<Diagnosis, KitDiagnosis> = true;
+export const sameBaseline: Equal<Baseline, KitBaseline> = true;

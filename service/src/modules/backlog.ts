@@ -11,7 +11,7 @@ import { createWorktree } from "../../../kit/core/src/hooks/worktree.ts";
 import { abandon, accept, acceptanceReport, AcceptanceError, requestChanges, proposedSpec, approveSpec } from "../../../kit/core/src/acceptance.ts";
 import { readDecisions } from "../../../kit/core/src/merge.ts";
 import { readLedger } from "../../../kit/core/src/ledger.ts";
-import { slug } from "../../../kit/core/src/new-game.ts";
+import { slug } from "../../../kit/core/src/new-project.ts";
 import { LOCAL_MODEL, MAX_LOCAL_CONTEXT, MIN_LOCAL_CONTEXT, writeProjectSettings, readProjectSettings } from "../../../kit/core/src/settings.ts";
 import { projectAdapter, findProject, type Project } from "../../../kit/core/src/project.ts";
 import { SPAWN, nextAction } from "../../../kit/core/src/next.ts";
@@ -21,7 +21,7 @@ import { HttpError } from "../router.ts";
 import { ASK_USER, lastReply, type ConversationModule } from "./conversation.ts";
 import { projectById } from "./projects.ts";
 
-const AGENTS: readonly AgentName[] = ["claude-code", "opencode"];
+const AGENTS: readonly AgentName[] = ["claude-code", "opencode", "copilot"];
 
 // Fiche d'une story demandée depuis l'app : `.spawn/story-meta/<story>.json`.
 interface StoryMeta {
@@ -85,6 +85,18 @@ export function firstMessage(request: string): string {
     "",
     `Pour avancer, lance « ${SPAWN} next » et fais exactement l'action qu'il donne, puis recommence. Arrête-toi quand il dit que la feature est à juger, ${ASK_USER}`,
   ].join("\n");
+}
+
+// Une phrase suffit : titre et nom tirés d'elle, agent des réglages du projet sauf choix contraire. Le seul chemin de
+// création d'une feature (Backlog d'hier, conversation de portée aujourd'hui).
+export async function requestFeature(conversation: ConversationModule, projectId: string, project: Project, request: string, agent?: AgentName): Promise<{ story: string; title: string }> {
+  const title = titleFrom(request);
+  const name = freeName(project.root, title);
+  writeJson(metaPath(project.root, name), { title, request, created: new Date().toISOString() } satisfies StoryMeta);
+  // La story existe dès la réponse : l'app la montre tout de suite, avant même le premier mot de l'agent.
+  await createWorktree({ cwd: project.root, name }, { log: () => {} });
+  await conversation.send(projectId, name, firstMessage(request), agent ?? readSettings(project.root).agent);
+  return { story: name, title };
 }
 
 export function backlogModule(conversation: ConversationModule): ServiceModule {
@@ -223,20 +235,13 @@ export function backlogModule(conversation: ConversationModule): ServiceModule {
         };
       });
 
-      // Une phrase suffit : titre et nom tirés d'elle, agent des réglages du projet sauf choix contraire.
       routes.add("POST", base, async ({ params, body }) => {
         const id = params.id ?? "";
         const project = projectOf(id);
         const request = text(body, "request");
         const chosen = (body as { agent?: unknown }).agent;
         if (chosen !== undefined && !AGENTS.includes(chosen as AgentName)) throw new HttpError(400, `agent inconnu : ${String(chosen)}`);
-        const title = titleFrom(request);
-        const name = freeName(project.root, title);
-        writeJson(metaPath(project.root, name), { title, request, created: new Date().toISOString() } satisfies StoryMeta);
-        // La story existe dès la réponse : l'app la montre tout de suite, avant même le premier mot de l'agent.
-        await createWorktree({ cwd: project.root, name }, { log: () => {} });
-        await conversation.send(id, name, firstMessage(request), (chosen as AgentName | undefined) ?? readSettings(project.root).agent);
-        return { story: name, title };
+        return requestFeature(conversation, id, project, request, chosen as AgentName | undefined);
       });
 
       routes.add("PATCH", `${base}/:story`, ({ params, body }) => {

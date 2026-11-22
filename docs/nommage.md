@@ -1,4 +1,4 @@
-# Nommage technique (validé par le mainteneur le 2026-11-18)
+﻿# Nommage technique (validé par le mainteneur le 2026-11-18)
 
 Tout ce qui est technique est en anglais : noms de fichiers et de dossiers, identifiants (fonctions, variables, types, classes CSS), commandes et options de la CLI, contrat des adaptateurs (sous-commandes, options, champs JSON, codes d'erreur), formats sur disque (champs, statuts, événements, dossiers), routes de l'API, noms de tests.
 
@@ -36,7 +36,7 @@ Les termes ci-dessous font foi ; un nom absent se traduit en anglais technique c
 | domaine (vocabulaire de l'adaptateur) | domain |
 | jugement | acceptance (`accept`, `requestChanges`, `abandon`) |
 | prérequis | prerequisites |
-| nouveau jeu / nouveau projet | new-game / new-project |
+| nouveau projet (ex-« nouveau jeu ») | new-project (alias : new-game) |
 | brief / rapport / verdict | brief / report / verdict |
 
 ## Statuts d'une story
@@ -109,7 +109,7 @@ Les termes ci-dessous font foi ; un nom absent se traduit en anglais technique c
 | `limites` | `limits` |
 | `pilote` (`--fil`, `--intention`, `--intention-fichier`, `--charger`, `--contexte`, `--relances`, `--duree-max-h`, `--modele`) | `pilot` (`--story`, `--intent`, `--intent-file`, `--load`, `--context`, `--restarts`, `--max-hours`, `--model`) |
 | `moteurs` | `engines` |
-| `nouveau-jeu` (`--nom`, `--dossier`, `--version`, `--moteur`, `--tag`, `--distant`) | `new-game` (`--name`, `--dir`, `--version`, `--engine`, `--tag`, `--remote`) |
+| `nouveau-jeu` (`--nom`, `--dossier`, `--version`, `--moteur`, `--tag`, `--distant`) | `new-project` (alias `new-game` ; `--name`, `--dir`, `--version`, `--engine`, `--tag`, `--remote`) |
 | `aide` | `help` |
 | options `--statut`, `--tache`, `--premier-geste`, `--chemin`, `--verdict`, `--detail`, `--commits`, `--base` | `--status`, `--task`, `--first-step`, `--path`, `--verdict`, `--detail`, `--commits`, `--base` |
 
@@ -140,7 +140,7 @@ Variable d'environnement : `SPAWN_MOTEURS` → `SPAWN_ENGINES`, `SPAWN_CONFIG`, 
 
 | Avant | Après |
 |---|---|
-| routes `/api/projets`, `/fils`, `/features`, `/conversation`, `/fichiers`, `/fichier`, `/ouvrir`, `/reglages`, `/lancer`, `/moteurs`, `/jeux`, `/modules`, `/evenements` | `/api/projects`, `/stories` (état technique), `/backlog` (vue utilisateur), `/conversation`, `/files`, `/file`, `/open`, `/settings`, `/launch`, `/engines`, `/games`, `/modules`, `/events` |
+| routes `/api/projets`, `/fils`, `/features`, `/conversation`, `/fichiers`, `/fichier`, `/ouvrir`, `/reglages`, `/lancer`, `/moteurs`, `/jeux`, `/modules`, `/evenements` | `/api/projects`, `/stories` (état technique), `/backlog` (vue utilisateur), `/conversation`, `/files`, `/file`, `/open`, `/settings`, `/launch`, `/engines`, `/projects/new`, `/modules`, `/events` |
 | modules `projets`, `fils`, `features`, `conversation`, `activite`, `contexte`, `barre-etat`, `fichiers`, `galerie` | `projects`, `stories`, `backlog`, `conversation`, `activity`, `context`, `status-bar`, `files`, `gallery` |
 | événements SSE `modules`, `fils`, `conversation`, `conversation-fin`, `feature`, `creation` | `modules`, `stories`, `conversation`, `conversation-end`, `backlog`, `creation` |
 | composants `Accueil`, `Jeu`, `Feature`, `Fichiers`, `Menus`, `Conversation` | `Home`, `Game`, `Story`, `Files`, `Menus`, `Conversation` |
@@ -171,7 +171,7 @@ Variable d'environnement : `SPAWN_MOTEURS` → `SPAWN_ENGINES`, `SPAWN_CONFIG`, 
 ## Ajouts de l'étape 3 (service et app)
 
 - Connexion : `{port, token}` (première ligne du service, paramètre d'URL `?port=…&token=…`) ; erreurs `{error}`.
-- Routes : `/api/projects` (`{dir}`), `/api/games` (`{name, parent, version, engine?, tag?, remote?}`), `/api/engines`, `/api/modules/:id` (`{active}`), `/api/projects/:id/stories[/:story]`, `/api/projects/:id/backlog[/:story]` (`POST {request, agent?}`, `PATCH {title}`, `/approve-spec`, `/answer`, `/request-changes`, `/accept`, `/abandon`), `/settings` (`{agent, localContext}`), `/launch` (`{story?}`), `/context/:agent`, `…/conversation` (`/resume`, `/stop`), `…/files`, `/file?path=`, `/open` (`{access}`).
+- Routes : `/api/projects` (`{dir}`), `/api/projects/new` (`{name, parent, version, engine?, tag?, remote?}`), `/api/engines`, `/api/modules/:id` (`{active}`), `/api/projects/:id/stories[/:story]`, `/api/projects/:id/backlog[/:story]` (`POST {request, agent?}`, `PATCH {title}`, `/approve-spec`, `/answer`, `/request-changes`, `/accept`, `/abandon`), `/settings` (`{agent, localContext}`), `/launch` (`{story?}`), `/context/:agent`, `…/conversation` (`/resume`, `/stop`), `…/files`, `/file?path=`, `/open` (`{access}`).
 - Types : `ProjectView`, `StoryView` (groupes `blocked`, `acceptance`, `active`, `history` ; attente `spec-approval`, `question`, `stopped`, `interrupted` ; résultat `accepted`, `abandoned`), `StoryDetail`, `ProgressStep`, `ToolProof`, `ConversationTurn`, `TouchedFile`, `StoryFiles`, `ProjectSettings`, `KnownEngine`, `ModuleState`.
 - Événements SSE : `modules`, `stories`, `conversation`, `conversation-end`, `backlog`, `creation`. Modules : `projects`, `stories`, `conversation`, `backlog`, `activity`, `context`, `status-bar`, `files`, `gallery` (les anciens identifiants de `~/.spawn/app.json` sont repris une fois).
 - Sur disque : `.spawn/story-meta/<story>.json`, `.spawn/conversations/<story>/state.json`, `turn-N.jsonl` (pilote compris). `localStorage` : `spawn.game` (ancienne clé reprise une fois).

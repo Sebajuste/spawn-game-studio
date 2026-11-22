@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette Spawn App Studio : réglages et adoption</title>
+<!-- docs/reglages.md et docs/adoption.md (2026-11-21, validés). Les éléments cliquables mènent à l'écran correspondant. -->
+<style>
+:root { --fond:#f4f3ef; --barre:#ecebe6; --carte:#fff; --bord:#d8d5cc; --texte:#22231f; --discret:#77756d; --accent:#2f6fd6; --vert:#2e9d5b; --orange:#d98a1c; --rouge:#c9473c; --violet:#6b5bd2; }
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.45 "Segoe UI",system-ui,sans-serif; color:var(--texte); background:#dcd9d0; display:grid; grid-template-columns:230px 1fr; height:100vh; }
+button { font:inherit; color:inherit; cursor:pointer; }
+.nav { background:#2b2c30; color:#ddd; padding:14px 10px; overflow-y:auto; }
+.nav h1 { font-size:13px; margin:0 6px 4px; color:#fff; }
+.nav p { font-size:12px; color:#999; margin:0 6px 12px; }
+.nav button { display:block; width:100%; text-align:left; border:0; background:none; padding:5px 8px; border-radius:5px; color:#ccc; font-size:13px; }
+.nav button:hover { background:#3a3b40; }
+.nav button.actif { background:var(--accent); color:#fff; }
+.scene { padding:18px; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+.note { background:#fffbe6; border:1px solid #e6d98a; border-radius:6px; padding:8px 12px; font-size:13px; max-width:1100px; }
+.fenetre { background:var(--fond); border:1px solid #c9c6bd; border-radius:8px; box-shadow:0 8px 30px #0003; overflow:hidden; display:flex; flex-direction:column; height:640px; max-width:1100px; min-width:900px; position:relative; }
+.menus { display:flex; background:#fff; border-bottom:1px solid var(--bord); font-size:13px; flex:none; }
+.menus span { padding:4px 10px; }
+.corps { flex:1; display:grid; grid-template-columns:220px 1fr; min-height:0; }
+.lieux { background:var(--barre); border-right:1px solid var(--bord); padding:10px 8px; display:flex; flex-direction:column; gap:2px; }
+.portee { display:flex; align-items:center; gap:4px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--bord); }
+.portee > button:first-child { flex:1; min-width:0; display:flex; align-items:center; gap:8px; border:0; background:none; padding:6px 8px; border-radius:6px; text-align:left; }
+.portee > button:first-child:hover { background:#dedbd3; }
+.logo { width:24px; height:24px; border-radius:6px; background:var(--accent); color:#fff; display:grid; place-items:center; font-weight:700; font-size:13px; flex:none; }
+.logo.ws { background:var(--violet); }
+.portee strong { display:block; font-size:14px; }
+.portee small { display:block; color:var(--discret); font-size:11px; }
+.chevron { margin-left:auto; color:var(--discret); }
+.jouer { width:30px; height:30px; border:1px solid var(--bord); background:var(--carte); border-radius:6px; flex:none; font-size:12px; }
+.lieu { display:flex; align-items:center; gap:10px; width:100%; border:0; background:none; padding:7px 8px; border-radius:6px; text-align:left; color:#44453f; }
+.lieu:hover { background:#dedbd3; }
+.lieu.choisi { background:var(--carte); box-shadow:0 0 0 1px var(--bord); color:var(--texte); font-weight:600; }
+.lieu .nb { margin-left:auto; background:var(--orange); color:#fff; border-radius:9px; padding:0 7px; font-size:11px; font-weight:600; }
+.lieu kbd { margin-left:auto; font:11px inherit; color:var(--discret); }
+.lieu .nb + kbd { margin-left:6px; }
+.principal { display:flex; flex-direction:column; min-height:0; }
+.ariane { padding:8px 18px; font-size:13px; color:var(--discret); border-bottom:1px solid var(--bord); background:#faf9f6; display:flex; gap:6px; align-items:center; }
+.ariane button { border:0; background:none; padding:1px 4px; border-radius:4px; color:var(--accent); }
+.ariane button:hover { background:#e8eefb; }
+.ariane b { color:var(--texte); font-weight:600; padding:1px 4px; }
+.ariane .fl { color:#b5b2a8; }
+.ariane .hist { margin-left:auto; color:#b5b2a8; font-size:12px; }
+.entete { display:flex; justify-content:space-between; align-items:center; padding:14px 18px 6px; }
+.entete h2 { margin:0; font-size:18px; }
+.entete p { margin:2px 0 0; color:var(--discret); font-size:13px; }
+.defile { padding:8px 18px 18px; overflow:auto; flex:1; }
+.btn { border:1px solid var(--bord); background:var(--carte); border-radius:6px; padding:5px 10px; font-size:12px; }
+.btn.fort { background:var(--accent); border-color:var(--accent); color:#fff; }
+.carte { background:var(--carte); border:1px solid var(--bord); border-left:4px solid var(--bord); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.carte.o { border-left-color:var(--orange); } .carte.b { border-left-color:var(--accent); } .carte.v { border-left-color:var(--vert); }
+.carte small { display:block; color:var(--discret); font-size:12px; }
+.carte .proj { font-size:11px; background:#efeee9; border-radius:4px; padding:1px 6px; color:#55564f; margin-right:6px; }
+.groupe { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); margin:12px 0 6px; }
+.filtres { display:flex; gap:6px; margin:0 0 6px; font-size:12px; color:var(--discret); }
+.filtres span { border:1px solid var(--bord); border-radius:12px; padding:1px 10px; background:#fff; }
+.etat { flex:none; height:26px; border-top:1px solid var(--bord); background:#fff; display:flex; align-items:center; gap:14px; padding:0 12px; font-size:12px; color:var(--discret); }
+.etat button { border:0; background:none; padding:0; color:var(--texte); font-size:12px; }
+.etat button:hover { text-decoration:underline; }
+.point { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--vert); margin-right:5px; }
+.etat .droite { margin-left:auto; }
+.epic { background:var(--carte); border:1px solid var(--bord); border-radius:8px; padding:12px 14px; margin-bottom:10px; cursor:pointer; }
+.epic:hover { border-color:#bdb9ad; }
+.epic header { display:flex; justify-content:space-between; }
+.barre { height:6px; background:#e6e3da; border-radius:3px; margin:8px 0 10px; overflow:hidden; }
+.barre b { display:block; height:100%; background:var(--vert); }
+.voies { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.voie h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); }
+.story { border:1px solid var(--bord); border-left:4px solid var(--bord); border-radius:6px; padding:6px 8px; font-size:13px; background:#fcfbf8; }
+.story small { display:block; color:var(--discret); font-size:11px; }
+.story.fait { border-left-color:var(--vert); } .story.cours { border-left-color:var(--accent); } .story.attend { border-left-color:var(--orange); }
+.onglets { display:flex; gap:4px; margin:4px 18px 0; border-bottom:1px solid var(--bord); }
+.onglets span { padding:6px 12px; font-size:13px; color:var(--discret); }
+.onglets .actif { background:var(--carte); color:var(--texte); font-weight:600; border:1px solid var(--bord); border-bottom:0; border-radius:6px 6px 0 0; }
+.decision { background:var(--carte); border:1px solid var(--accent); border-radius:8px; padding:12px 14px; margin:10px 0; }
+.etapes { display:flex; gap:6px; font-size:12px; margin:8px 0; flex-wrap:wrap; }
+.etapes span { padding:2px 8px; border-radius:10px; background:#e7f4ec; color:var(--vert); }
+.etapes .en { background:var(--accent); color:#fff; } .etapes .apres { background:#efeee9; color:var(--discret); }
+.voile { position:absolute; inset:0; background:#0002; }
+.selecteur { position:absolute; top:62px; left:10px; width:330px; background:#fff; border:1px solid var(--bord); border-radius:8px; box-shadow:0 10px 30px #0003; padding:8px; }
+.selecteur input { width:100%; border:1px solid var(--bord); border-radius:6px; padding:6px 8px; font:inherit; margin-bottom:6px; }
+.selecteur h5 { margin:8px 6px 2px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); }
+.selecteur button { display:flex; width:100%; border:0; background:none; text-align:left; padding:5px 8px; border-radius:5px; gap:8px; align-items:center; }
+.selecteur button:hover, .selecteur button.sel { background:#e8eefb; }
+.selecteur button small { margin-left:auto; color:var(--discret); font-size:11px; }
+.selecteur .sous { padding-left:28px; }
+.selecteur hr { border:0; border-top:1px solid var(--bord); margin:6px 0; }
+.maison { flex:1; display:grid; grid-template-columns:1fr 280px; min-height:0; }
+.parole { display:flex; flex-direction:column; min-height:0; }
+.parole .fil { flex:1; overflow:auto; padding:12px 18px; display:flex; flex-direction:column; gap:8px; }
+.moi { align-self:flex-end; background:var(--accent); color:#fff; border-radius:10px 10px 2px 10px; padding:7px 11px; max-width:75%; }
+.lui { align-self:flex-start; background:var(--carte); border:1px solid var(--bord); border-radius:10px 10px 10px 2px; padding:7px 11px; max-width:80%; }
+.fait-par { align-self:flex-start; font-size:12px; color:var(--vert); background:#e7f4ec; border-radius:6px; padding:4px 9px; }
+.fait-par button { border:0; background:none; color:var(--accent); padding:0 0 0 6px; }
+.saisie { display:flex; gap:8px; padding:10px 18px 14px; border-top:1px solid var(--bord); }
+.saisie textarea { flex:1; border:1px solid var(--bord); border-radius:8px; padding:7px 10px; font:inherit; resize:none; height:52px; }
+.juger { border-left:1px solid var(--bord); background:#faf9f6; padding:12px; overflow:auto; }
+.juger h3 { margin:0 0 8px; font-size:13px; }
+.juger .carte { display:block; }
+.juger .carte button { margin-top:6px; }
+.accueil { flex:1; display:grid; place-items:center; text-align:center; }
+.accueil .gros { display:flex; gap:12px; justify-content:center; margin-top:16px; }
+.accueil .gros button { border:1px solid var(--bord); background:#fff; border-radius:8px; padding:16px 22px; min-width:190px; }
+.accueil .gros button strong { display:block; }
+.accueil .gros button span { color:var(--discret); font-size:12px; }
+
+.reglages { position:absolute; inset:40px 70px 46px; background:var(--fond); border:1px solid #bdb9ad; border-radius:10px; box-shadow:0 16px 40px #0004; display:grid; grid-template-columns:200px 1fr; overflow:hidden; }
+.reglages nav { background:var(--barre); border-right:1px solid var(--bord); padding:12px 8px; display:flex; flex-direction:column; gap:2px; }
+.reglages nav h4 { margin:10px 8px 4px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); }
+.reglages nav button { border:0; background:none; text-align:left; padding:6px 8px; border-radius:6px; }
+.reglages nav button.choisi { background:var(--carte); box-shadow:0 0 0 1px var(--bord); font-weight:600; }
+.reglages .contenu { padding:16px 22px; overflow:auto; }
+.reglages .contenu h3 { margin:0 0 2px; font-size:17px; }
+.reglages .contenu > p { margin:0 0 14px; color:var(--discret); font-size:13px; }
+.reglages .fermer { position:absolute; top:8px; right:10px; border:0; background:none; font-size:16px; color:var(--discret); }
+.champ { display:grid; grid-template-columns:170px 1fr; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #e6e3da; }
+.champ label { color:#55564f; font-size:13px; }
+.champ select, .champ input { font:inherit; border:1px solid var(--bord); border-radius:6px; padding:4px 8px; background:#fff; max-width:320px; }
+.champ small { display:block; color:var(--discret); font-size:12px; }
+.module { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid #e6e3da; }
+.module small { display:block; color:var(--discret); font-size:12px; }
+.ligne { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #e6e3da; }
+.ligne .droite { margin-left:auto; }
+.ligne small { display:block; }
+.danger { border:1px solid #e3b4ae; border-radius:8px; padding:10px 12px; margin-top:18px; background:#fdf5f4; }
+.danger h4 { margin:0 0 6px; color:var(--rouge); font-size:13px; }
+.btn.rouge { border-color:var(--rouge); color:var(--rouge); background:#fff; }
+.btn.rouge.fort { background:var(--rouge); color:#fff; }
+.confirmer { position:absolute; top:190px; left:50%; transform:translateX(-50%); width:420px; background:#fff; border:1px solid var(--bord); border-radius:10px; box-shadow:0 16px 40px #0005; padding:16px 18px; }
+.confirmer h3 { margin:0 0 6px; font-size:15px; }
+.confirmer p { margin:0 0 12px; color:#55564f; }
+.confirmer .actions { display:flex; justify-content:flex-end; gap:8px; }
+.menu-objet { position:absolute; background:#fff; border:1px solid var(--bord); border-radius:8px; box-shadow:0 10px 30px #0003; padding:4px; width:220px; }
+.menu-objet button { display:flex; width:100%; border:0; background:none; text-align:left; padding:6px 10px; border-radius:5px; }
+.menu-objet button:hover, .menu-objet button.sel { background:#e8eefb; }
+.menu-objet button kbd { margin-left:auto; font:11px inherit; color:var(--discret); }
+.menu-objet button.rouge { color:var(--rouge); }
+.menu-objet hr { border:0; border-top:1px solid var(--bord); margin:4px 0; }
+.adopter { position:absolute; inset:30px 110px 40px; background:var(--fond); border:1px solid #bdb9ad; border-radius:10px; box-shadow:0 16px 40px #0004; display:flex; flex-direction:column; overflow:hidden; }
+.adopter header { padding:14px 18px 8px; border-bottom:1px solid var(--bord); background:#faf9f6; }
+.adopter header h3 { margin:0; font-size:16px; }
+.adopter header p { margin:2px 0 0; color:var(--discret); font-size:12px; }
+.adopter .choix { display:flex; gap:14px; padding:10px 18px; border-bottom:1px solid var(--bord); font-size:13px; align-items:center; }
+.adopter .choix select, .adopter .choix input { font:inherit; border:1px solid var(--bord); border-radius:6px; padding:3px 6px; background:#fff; }
+.adopter .liste { flex:1; overflow:auto; padding:8px 18px; }
+.adopter .liste h4 { margin:10px 0 4px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--discret); }
+.point-a { display:grid; grid-template-columns:22px 1fr; gap:6px; padding:4px 0; font-size:13px; }
+.point-a small { display:block; color:var(--discret); font-size:12px; }
+.point-a code { font-size:12px; background:#efeee9; padding:0 4px; border-radius:3px; }
+.s-ok { color:var(--vert); } .s-add { color:var(--accent); } .s-warn { color:var(--orange); } .s-stop { color:var(--rouge); }
+.adopter footer { display:flex; justify-content:flex-end; gap:8px; padding:10px 18px; border-top:1px solid var(--bord); background:#faf9f6; align-items:center; }
+.adopter footer .gauche { margin-right:auto; color:var(--discret); font-size:12px; }
+.journal { font:12px Consolas,monospace; background:#fff; border:1px solid var(--bord); border-radius:6px; padding:8px 10px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<main class="scene" id="scene"></main>
+<script>
+const MENUS_WS = `<div class="menus"><span>Fichier</span><span>Workspace</span><span>Affichage</span><span>Aide</span></div>`;
+const MENUS_P = `<div class="menus"><span>Fichier</span><span>Projet</span><span>Affichage</span><span>Aide</span></div>`;
+const etat = `<div class="etat">Aucun agent au travail<span class="droite">service connecté</span></div>`;
+const ariane = (s) => `<div class="ariane">${s.map((x, i) => (i === s.length - 1 ? `<b>${x}</b>` : `<button>${x}</button>`)).join('<span class="fl">›</span>')}<span class="hist">Alt+← Alt+→</span></div>`;
+const porteeWs = `<div class="portee"><button data-aller="menu-portee"><span class="logo ws">A</span><span><strong>Arena</strong><small>workspace · 3 projets</small></span><span class="chevron">▾</span></button></div>`;
+const porteeP = `<div class="portee"><button data-aller="menu-portee"><span class="logo">A</span><span><strong>ar-api</strong><small>dans Arena · node 24</small></span><span class="chevron">▾</span></button><button class="jouer">▶</button></div>`;
+const barreWs = (c) => `<aside class="lieux">${porteeWs}<button class="lieu ${c === "home" ? "choisi" : ""}">Accueil<span class="nb">2</span><kbd>Ctrl+1</kbd></button><button class="lieu ${c === "epics" ? "choisi" : ""}">Epics<kbd>Ctrl+2</kbd></button><button class="lieu ${c === "projets" ? "choisi" : ""}">Projets<kbd>Ctrl+3</kbd></button></aside>`;
+const barreP = (c) => `<aside class="lieux">${porteeP}<button class="lieu ${c === "home" ? "choisi" : ""}">Accueil<span class="nb">1</span><kbd>Ctrl+1</kbd></button><button class="lieu ${c === "backlog" ? "choisi" : ""}">Backlog<kbd>Ctrl+2</kbd></button></aside>`;
+const fenetre = (menus, barre, principal, flottant = "") => `<div class="fenetre">${menus}<div class="corps">${barre}<section class="principal">${principal}</section></div>${etat}${flottant}</div>`;
+const fondWs = (flottant) => fenetre(MENUS_WS, barreWs("projets"), ariane(["Arena", "Projets"]) + `<div class="entete"><div><h2>Projets</h2><p>3 projets dans Arena</p></div><button class="btn" data-aller="ws">Gérer les projets…</button></div><div class="defile"><div class="carte v"><span><strong>ar-db</strong><small>rien en cours</small></span></div><div class="carte o"><span><strong>ar-api</strong><small>1 à juger</small></span></div><div class="carte"><span><strong>ar-site</strong><small>rien en cours</small></span></div></div>`, flottant);
+const nav = (choisi) => `<nav><h4>Application</h4><button class="${choisi === "app" ? "choisi" : ""}" data-aller="app">Application</button><h4>Portée</h4><button class="${choisi === "ws" ? "choisi" : ""}" data-aller="ws">Workspace « Arena »</button>${choisi === "projet" ? `<button class="choisi">Projet « ar-api »</button>` : ""}</nav>`;
+const reglages = (choisi, contenu) => `<div class="voile"></div><div class="reglages">${nav(choisi)}<div class="contenu">${contenu}</div><button class="fermer" title="Fermer (Échap)">✕</button></div>`;
+
+const APP = `<h3>Application</h3><p>Pour toute l'app, sur cette machine.</p>
+  <div class="champ"><label>Langue</label><select><option>Français</option><option>English</option></select></div>
+  <h4 style="margin:16px 0 4px">Moteurs</h4>
+  <p style="margin:0 0 4px">Proposés par Nouveau projet et Ajouter un projet existant. Les projets déjà inscrits continuent de fonctionner.</p>
+  <div class="module"><input type="checkbox"><span><strong>Godot</strong><small>jeu · aucun projet</small></span></div>
+  <div class="module"><input type="checkbox" checked><span><strong>Node (web, services)</strong><small>app · 3 projets</small></span></div>
+  <div class="module"><input type="checkbox" checked><span><strong>Conteneur (Maven, Gradle)</strong><small>service · aucun projet · demande Docker</small></span></div>
+  <h4 style="margin:16px 0 4px">Fonctions facultatives</h4>
+  <div class="module"><input type="checkbox" checked><span><strong>Conversation de portée</strong><small>L'Accueil de chaque portée : parler avec un agent qui crée les stories et les epics.</small></span></div>
+  <div class="module"><input type="checkbox" checked><span><strong>Activité</strong><small>Ce que fait l'agent, en direct, sous la conversation.</small></span></div>
+  <div class="module"><input type="checkbox" checked><span><strong>Fichiers</strong><small>L'onglet Fichiers d'une story : ce qu'elle a changé, avec aperçu.</small></span></div>
+  <div class="module"><input type="checkbox" disabled><span><strong>Galerie</strong><small>Indisponible : demande le module Fichiers.</small></span></div>`;
+
+const WS = `<h3>Workspace « Arena »</h3><p>Le regroupement de projets ; ses projets restent des projets à part entière.</p>
+  <div class="champ"><label>Nom</label><input value="Arena"></div>
+  <h4 style="margin:16px 0 4px">Projets</h4>
+  <div class="ligne"><span class="logo">D</span><span><strong>ar-db</strong><small style="color:var(--discret)">C:\\Dev\\ar-db · node 24</small></span><button class="btn droite">Retirer</button></div>
+  <div class="ligne"><span class="logo">A</span><span><strong>ar-api</strong><small style="color:var(--discret)">C:\\Dev\\ar-api · node 24</small></span><button class="btn droite">Retirer</button></div>
+  <div class="ligne"><span class="logo">S</span><span><strong>ar-site</strong><small style="color:var(--discret)">C:\\Dev\\ar-site · node 24</small></span><button class="btn droite">Retirer</button></div>
+  <div style="margin-top:10px; display:flex; gap:8px"><select><option>Ajouter un projet connu…</option><option>hello-web</option></select><button class="btn" data-aller="diagnostic">Ajouter un projet existant…</button><button class="btn">Nouveau projet…</button></div>
+  <div class="danger"><h4>Zone dangereuse</h4><div class="ligne" style="border:0"><span>Supprimer le workspace<small style="color:var(--discret)">Ses 3 projets restent dans Spawn et sur le disque ; ses epics disparaissent.</small></span><button class="btn rouge droite" data-aller="confirmer">Supprimer…</button></div></div>`;
+
+const PROJET = `<h3>Projet « ar-api »</h3><p>Réglages de ce projet sur cette machine (<code>.spawn/settings.json</code>, hors git).</p>
+  <div class="champ"><label>Agent</label><select><option>Claude Code</option><option>OpenCode (modèle local)</option><option>GitHub Copilot</option></select></div>
+  <div class="champ"><label>Modèle local</label><input value="lmstudio/qwen/qwen3.5-9b"></div>
+  <div class="champ"><label>Contexte</label><input value="100000"></div>
+  <h4 style="margin:16px 0 4px">Projet</h4>
+  <div class="champ"><label>Moteur</label><span>Node (web, services) 24</span></div>
+  <div class="champ"><label>Préfixe d'exigences</label><span>PGA</span></div>
+  <div class="champ"><label>Dossier</label><span>C:\\Dev\\ar-api <button class="btn">Ouvrir</button></span></div>
+  <div class="danger"><h4>Zone dangereuse</h4><div class="ligne" style="border:0"><span>Retirer de Spawn<small style="color:var(--discret)">Le dossier reste tel quel ; il se rajoute par « Ajouter un projet existant ».</small></span><button class="btn rouge droite">Retirer…</button></div></div>`;
+
+const DIAG = `<div class="voile"></div><div class="adopter"><header><h3>Ajouter un projet existant : arena-admin</h3><p>C:\\Dev\\arena-admin · rien n'est écrit avant « Adopter »</p></header>
+  <div class="choix"><label>Moteur <select><option>Node (web, services)</option><option>Godot</option></select></label><label>Version <input value="22" size="4"></label><label>Préfixe <input value="PAD" size="5"></label><span style="color:var(--discret)">reconnu par <code>package.json</code></span></div>
+  <div class="liste">
+    <h4>Git</h4>
+    <div class="point-a"><span class="s-ok">✓</span><span>Dépôt git, arbre propre, sur <code>main</code></span></div>
+    <div class="point-a"><span class="s-add">+</span><span>Branche <code>develop</code> créée depuis <code>main</code>, puis extraite</span></div>
+    <div class="point-a"><span class="s-warn">⚠</span><span><code>origin/HEAD</code> pointe sur <code>main</code><small>Rien n'est poussé. Pour que les clones partent de develop : <code>git push -u origin develop</code> puis <code>git remote set-head origin develop</code></small></span></div>
+    <h4>Spawn</h4>
+    <div class="point-a"><span class="s-add">+</span><span><code>spawn.json</code> : node 22, préfixe PAD, limites du kit</span></div>
+    <div class="point-a"><span class="s-add">~</span><span><code>.gitignore</code> : 3 lignes ajoutées à la fin<small>.spawn/ · .claude/worktrees/ · .claude/settings.local.json</small></span></div>
+    <div class="point-a"><span class="s-ok">✓</span><span>Hooks git : aucun autre en place, ceux du kit seront réglés</span></div>
+    <div class="point-a"><span class="s-add">+</span><span>Plugin spawnstudio pour ce projet ; <code>.claude/settings.json</code> créé</span></div>
+    <h4>Node (web, services)</h4>
+    <div class="point-a"><span class="s-add">~</span><span>Section <code>node</code> de <code>spawn.json</code><small>compile : typecheck, lint · test : test (Vitest) · launch : dev</small></span></div>
+    <div class="point-a"><span class="s-warn">⚠</span><span>Lancement : le script <code>dev</code> doit écrire <code>SPAWN-URL &lt;url&gt;</code> quand l'app est prête<small>Sans elle, ▶ Lancer et les captures attendront en vain. Une première story peut l'ajouter.</small></span></div>
+  </div>
+  <footer><span class="gauche">Puis : suite de tests de départ, un commit « spawn : adoption » sur develop, ajout à Arena.</span><button class="btn">Annuler</button><button class="btn fort" data-aller="fait">Adopter</button></footer></div>`;
+
+const FAIT = `<div class="voile"></div><div class="adopter"><header><h3>arena-admin est adopté</h3><p>Ajouté à Arena</p></header>
+  <div class="liste"><div class="journal">develop créée depuis main, extraite
+spawn.json écrit (node 22, PAD)
+node : section déclarée (compile, test, launch)
+.gitignore : 3 lignes ajoutées
+hooks git du kit réglés
+plugin spawnstudio activé pour ce projet
+dépendances : node_modules partagé
+suite de départ : 41 tests, 39 verts, 2 en échec
+commit 3f2a9c1 « spawn : adoption » sur develop
+inscrit dans l'app, ajouté à Arena</div>
+  <h4>À savoir</h4>
+  <div class="point-a"><span class="s-warn">⚠</span><span>La suite de départ a 2 tests en échec<small>Ils étaient rouges avant l'adoption. Une story qui y touche devra les rendre verts ; les autres ne seront pas bloquées par eux.</small></span></div>
+  <div class="point-a"><span class="s-warn">⚠</span><span>Lancement sans <code>SPAWN-URL</code> (voir le diagnostic)</span></div>
+  </div><footer><button class="btn fort">Ouvrir arena-admin</button></footer></div>`;
+
+const DIAG_C = `<div class="voile"></div><div class="adopter"><header><h3>Ajouter un projet existant : arena-ledger</h3><p>C:\\Dev\\arena-ledger · rien n'est écrit avant « Adopter »</p></header>
+  <div class="choix"><label>Moteur <select><option>Conteneur (Maven, Gradle)</option><option>Node (web, services)</option></select></label><label>Image <input value="maven:3.9-eclipse-temurin-21" size="26"></label><label>Préfixe <input value="LDG" size="5"></label><span style="color:var(--discret)">reconnu par <code>pom.xml</code> (Java 21)</span></div>
+  <div class="liste">
+    <h4>Git</h4>
+    <div class="point-a"><span class="s-ok">✓</span><span>Dépôt git, arbre propre, sur <code>develop</code></span></div>
+    <h4>Spawn</h4>
+    <div class="point-a"><span class="s-add">+</span><span><code>spawn.json</code> : conteneur, image ci-dessus, préfixe LDG</span></div>
+    <div class="point-a"><span class="s-add">~</span><span><code>.gitignore</code> : 2 lignes ajoutées à la fin<small>.spawn/ · .claude/worktrees/</small></span></div>
+    <h4>Conteneur (Maven)</h4>
+    <div class="point-a"><span class="s-ok">✓</span><span>Docker répond ; image présente sur la machine</span></div>
+    <div class="point-a"><span class="s-add">~</span><span>Section <code>container</code> de <code>spawn.json</code><small>compile : mvn -B -q -DskipTests test-compile · test : mvn -B test · rapports : target/surefire-reports · cache : dépôt Maven, partagé par les worktrees</small></span></div>
+    <div class="point-a"><span class="s-warn">⚠</span><span><code>~/.m2/settings.xml</code> existe sur cette machine mais n'est pas monté<small>Si le projet dépend d'un dépôt Maven privé, ajouter à <code>~/.spawn/container.json</code> : <code>{"mounts":[{"source":"~/.m2/settings.xml","target":"/root/.m2/settings.xml"}]}</code>. Monté en lecture seule, jamais copié dans le projet.</small></span></div>
+    <div class="point-a"><span class="s-ok">✓</span><span>Sur l'hôte : ni JDK ni Maven nécessaires</span></div>
+  </div>
+  <footer><span class="gauche">Puis : suite de départ dans l'image, un commit « spawn : adoption » sur develop, ajout à Arena.</span><button class="btn">Annuler</button><button class="btn fort" data-aller="fait-c">Adopter</button></footer></div>`;
+
+const FAIT_C = `<div class="voile"></div><div class="adopter"><header><h3>arena-ledger est adopté</h3><p>Ajouté à Arena</p></header>
+  <div class="liste"><div class="journal">spawn.json écrit (conteneur maven:3.9-eclipse-temurin-21, LDG)
+container : section déclarée (compile, test, cache)
+.gitignore : 2 lignes ajoutées
+hooks git du kit réglés
+image récupérée ; cache Maven du projet créé
+suite de départ (dans l'image) : 52 tests, 52 verts
+commit 8c41d07 « spawn : adoption » sur develop
+inscrit dans l'app, ajouté à Arena</div>
+  <h4>À savoir</h4>
+  <div class="point-a"><span class="s-ok">✓</span><span>Le verdict vient des rapports JUnit de cet appel<small>Un rapport resté d'une exécution précédente n'est jamais jugé.</small></span></div>
+  <div class="point-a"><span class="s-warn">⚠</span><span>Ni lancement ni capture pour ce moteur<small>▶ reste grisé ; le smoke test est la commande déclarée, s'il y en a une.</small></span></div>
+  </div><footer><button class="btn fort">Ouvrir arena-ledger</button></footer></div>`;
+
+const MENU_STORY = `<div class="menu-objet" style="top:128px; right:22px"><button class="sel">Renommer<kbd>F2</kbd></button><hr><button class="rouge" data-aller="confirmer-story">Abandonner…</button></div>`;
+const MENU_PORTEE = `<div class="menu-objet" style="top:62px; left:10px"><button>Changer de portée<kbd>Ctrl+P</kbd></button><hr><button class="sel" data-aller="ws">Réglages du workspace…</button></div>`;
+const story = (flottant) => fenetre(MENUS_P, barreP("backlog"), ariane(["Arena", "ar-api", "Backlog", "equipment-routes"]) + `<div class="entete"><div><h2>equipment-routes</h2><p>ARN-2 · Claude Code · depuis 12 min</p></div><button class="btn" data-aller="menu-story">⋯</button></div><div class="onglets"><span class="actif">Avancement</span><span>Conversation</span><span>Fichiers</span><span>Journal</span></div><div class="defile"><div class="decision"><strong>Question de l'agent</strong><p>Format de la date ?</p></div></div>`, flottant);
+
+const ECRANS = {
+  "app": { nom: "1. Réglages : Application", note: "Ctrl+, ou Fichier > Réglages. Une seule fenêtre, une section par portée. La langue et les modules quittent le menu Affichage. Les moteurs se choisissent par machine (Godot décoché ici ; le dernier moteur coché serait grisé). Un changement s'enregistre aussitôt.", rendu: () => fondWs(reglages("app", APP)) },
+  "ws": { nom: "2. Réglages : Workspace", note: "Nom, composition (ajouter un projet connu, ajouter un projet existant qui sera adopté, nouveau projet ; retirer) et zone dangereuse. Le lieu Projets ne gère plus rien, il montre (« Gérer les projets… » ouvre ici).", rendu: () => fondWs(reglages("ws", WS)) },
+  "projet": { nom: "3. Réglages : Projet", note: "Les réglages machine du projet (ceux d'aujourd'hui), ce que dit spawn.json en lecture, et « Retirer de Spawn » (le dossier reste).", rendu: () => fenetre(MENUS_P, barreP("home"), ariane(["Arena", "ar-api", "Accueil"]), reglages("projet", PROJET)) },
+  "confirmer": { nom: "4. Confirmation partagée", note: "Une seule confirmation pour toute suppression ou abandon : elle nomme l'objet et dit la conséquence. Entrée ne confirme pas : il faut cliquer (ou Tab puis Entrée) ; Échap annule.", rendu: () => fondWs(reglages("ws", WS) + `<div class="confirmer"><h3>Supprimer le workspace « Arena » ?</h3><p>Ses 3 projets restent dans Spawn et sur le disque. Ses 2 epics disparaissent ; leurs stories restent dans leurs projets.</p><div class="actions"><button class="btn">Annuler</button><button class="btn rouge fort">Supprimer</button></div></div>`) },
+  "menu-portee": { nom: "5. Menu ▾ de la portée", note: "Le bloc de portée ouvre un menu : changer de portée, ou les réglages de la portée courante.", rendu: () => fondWs(MENU_PORTEE) },
+  "menu-story": { nom: "6. Menu ⋯ d'une story", note: "Les actions sur l'objet sont dans son menu ⋯ (en-tête). Un epic a le même : Renommer, Supprimer.", rendu: () => story(MENU_STORY) },
+  "confirmer-story": { nom: "7. Abandonner une story", note: "La même confirmation.", rendu: () => story(`<div class="voile"></div><div class="confirmer"><h3>Abandonner « equipment-routes » ?</h3><p>Son worktree et sa branche sont supprimés ; elle reste dans l'historique du Backlog. Le travail non fusionné est perdu.</p><div class="actions"><button class="btn">Annuler</button><button class="btn rouge fort">Abandonner</button></div></div>`) },
+  "diagnostic": { nom: "8. Ajouter un projet existant : diagnostic", note: "Lecture seule. ✓ déjà là, + à ajouter, ~ à compléter, ⚠ à savoir, ⛔ bloquant (Adopter grisé). Moteur, version et préfixe proposés et modifiables ; les lignes du moteur viennent de son adaptateur (adopt --dry-run).", rendu: () => fondWs(DIAG) },
+  "fait": { nom: "9. Ajouter un projet existant : adopté", note: "Les étapes s'affichent pendant qu'elles se font. Le résultat dit la suite de départ (même rouge), le commit et ce qui reste à faire.", rendu: () => fondWs(FAIT) },
+  "diagnostic-c": { nom: "10. Projet Maven : moteur Conteneur", note: "La recette Maven reconnaît pom.xml et y lit Java 21 ; l'image proposée en découle, modifiable. Rien n'est demandé à l'hôte que Docker. Les secrets de la machine se montent en lecture seule par ~/.spawn/container.json, jamais par le dépôt.", rendu: () => fondWs(DIAG_C) },
+  "fait-c": { nom: "11. Projet Maven : adopté", note: "La suite de départ tourne dans l'image ; le verdict vient des rapports JUnit écrits pendant l'appel. Pas de lancement ni de capture en v1.", rendu: () => fondWs(FAIT_C) },
+};
+
+function montrer(id) {
+  const e = ECRANS[id];
+  document.getElementById("scene").innerHTML = `<div class="note"><strong>${e.nom}</strong> : ${e.note}</div>${e.rendu()}`;
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("actif", b.dataset.id === id));
+  location.hash = id;
+}
+document.getElementById("nav").innerHTML = `<h1>Réglages et adoption</h1><p>docs/reglages.md · docs/adoption.md</p>` + Object.entries(ECRANS).map(([id, e]) => `<button data-id="${id}">${e.nom}</button>`).join("");
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-id],[data-aller]");
+  if (b) montrer(b.dataset.id ?? b.dataset.aller);
+});
+const depuisAncre = () => montrer(ECRANS[location.hash.slice(1)] ? location.hash.slice(1) : "app");
+addEventListener("hashchange", depuisAncre);
+depuisAncre();
+</script>
+</body>
+</html>

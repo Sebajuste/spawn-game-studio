@@ -66,6 +66,7 @@ test("ledger: readable rendering; user decisions are reserved to the app", () =>
   assert.equal(render(ev("round", EXAMPLES.round)), "2026-11-17 16:53 tâche 2 round 3 : 2 importants ; commits a..b");
   assert.equal(render(ev("task-parked", EXAMPLES["task-parked"])), "2026-11-17 16:53 tâche 4 parquée : flou du rendu — Ruling: parquer — hors spec — dette visible");
   assert.equal(render(ev("captures", EXAMPLES.captures)), "2026-11-17 16:53 captures valide : a.png, b.png");
+  assert.equal(render(ev("captures", { verdict: "valid" })), "2026-11-17 16:53 captures valide : rien à montrer");
   assert.equal(render(ev("final-review", { verdict: "clean" })), "2026-11-17 16:53 relecture finale propre");
 
   assert.equal(render(ev("spec-proposed", EXAMPLES["spec-proposed"])), "2026-11-17 16:53 spec proposée : docs/specs/2026-11-17-morpion.md");

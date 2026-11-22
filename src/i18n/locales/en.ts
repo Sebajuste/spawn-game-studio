@@ -1,0 +1,57 @@
+// Source des clés de l'interface : toute nouvelle clé s'écrit ici d'abord, `fr.ts` doit suivre (typecheck).
+import { project } from "./zones/project.ts";
+import { story } from "./zones/story.ts";
+import { misc } from "./zones/misc.ts";
+import { workspace } from "./zones/workspace.ts";
+import { navigation } from "./zones/navigation.ts";
+import { talk } from "./zones/talk.ts";
+import { settings } from "./zones/settings.ts";
+import { adopt } from "./zones/adopt.ts";
+
+export const en = {
+  "app.connecting": "Connecting to the service…",
+  "app.dismiss": "Click to dismiss",
+
+  "menu.file": "File",
+  "menu.file.new": "New project…",
+  "menu.file.open": "Add existing project?",
+  "menu.file.recent": "Recent projects",
+  "menu.project": "Project",
+  "menu.project.launch": "Run project",
+  "menu.project.folder": "Open folder",
+  "menu.project.settings": "Project settings…",
+  "menu.view": "View",
+  "menu.view.goto": "Go to…",
+  "menu.help": "Help",
+  "menu.help.journey": "App walkthrough: docs/ux-parcours.md",
+
+
+  "dialog.cancel": "Cancel",
+  "dialog.close": "Close",
+  "dialog.edit": "Edit",
+  "dialog.browse": "Browse…",
+  "new.title": "New project",
+  "new.creating": "Creating “{name}”",
+  "new.name": "Name",
+  "new.namePlaceholder": "Brick breaker",
+  "new.parent": "In folder",
+  "new.parentPick": "Folder where the project is created",
+  "new.engine": "Engine",
+  "new.engineVersion": "engine version, e.g. 4.5.1 for Godot, 24 for Node (no engine known on this machine)",
+  "new.advanced": "Advanced",
+  "new.tag": "Requirement prefix (2 to 6 capitals)",
+  "new.tagPlaceholder": "derived from the name",
+  "new.remote": "Remote repository",
+  "new.remoteLocal": "Local, next to the project",
+  "new.remoteNone": "None",
+  "new.create": "Create",
+  "new.pending": "Creating…",
+  ...project.en,
+  ...story.en,
+  ...misc.en,
+  ...workspace.en,
+  ...navigation.en,
+  ...talk.en,
+  ...settings.en,
+  ...adopt.en,
+};

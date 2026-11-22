@@ -3,7 +3,7 @@
 import { mkdirSync, openSync, readSync, closeSync } from "node:fs";
 import { join } from "node:path";
 import { callAdapter, type Adapter, type CallOptions, type Response, type OptionValue } from "./call.ts";
-import { FILE_CATEGORIES, OPEN_WITH, type NotApplicable, type Scenario } from "./types.ts";
+import { ADOPT_CHANGES, FILE_CATEGORIES, OPEN_WITH, type NotApplicable, type Scenario } from "./types.ts";
 
 export interface Finding {
   rule: string;
@@ -111,6 +111,16 @@ export async function checkContract(adapter: Adapter, options: ContractOptions):
   mkdirSync(notAProject, { recursive: true });
   expect("launch", await run("launch", "launch", { project: notAProject }), false, "le dossier n'est pas un projet");
 
+  // Adoption d'un projet existant (§4) : un dossier qui n'est pas un projet n'est ni reconnu ni adopté.
+  const detected = await run("detect", "detect", { project: notAProject });
+  if (expect("detect", detected, true, "un dossier d'un autre moteur n'est pas un échec") && detected.result?.data.match !== false) {
+    report("detect", `un dossier vide doit donner match: false (${JSON.stringify(detected.result?.data.match)})`);
+  }
+  const refused = await run("adopt", "adopt", { project: notAProject, "dry-run": true });
+  if (expect("adopt", refused, false, "le dossier n'est pas un projet") && !refused.result?.errors.some((e) => e.code === "not-a-project")) {
+    report("adopt", "un dossier non reconnu doit porter l'erreur not-a-project");
+  }
+
   // Nouveau projet : création, puis refus d'un second passage.
   if (applies("new-project")) {
     const newDir = join(options.workDir, "new-project");
@@ -120,6 +130,19 @@ export async function checkContract(adapter: Adapter, options: ContractOptions):
     const again = await run("new-project", "new-project", { project: newDir, name: "contract-check" });
     if (expect("new-project", again, false, "le projet existe déjà") && !again.result?.errors.some((e) => e.code === "project-exists")) {
       report("new-project", "un second passage doit porter l'erreur project-exists");
+    }
+    // Un projet du gabarit est reconnu, et n'a rien à recevoir.
+    const known = await run("detect", "detect", { project: newDir });
+    if (expect("detect", known, true, "le projet vient de new-project") && known.result?.data.match !== true) {
+      report("detect", "le projet de new-project doit donner match: true");
+    }
+    const adopted = await run("adopt", "adopt", { project: newDir, "dry-run": true });
+    if (expect("adopt", adopted, true, "le projet vient de new-project") && adopted.result) {
+      const files = adopted.result.data.files;
+      const valid = Array.isArray(files) && (files as Record<string, unknown>[]).every((f) => typeof f.path === "string" && (ADOPT_CHANGES as readonly unknown[]).includes(f.change));
+      if (!valid) report("adopt", `data.files doit lister { path, change: add | complete } (${JSON.stringify(files)})`);
+      else if (files.length > 0) report("adopt", `le projet de new-project n'a rien à recevoir (${JSON.stringify(files)})`);
+      if (!Array.isArray(adopted.result.data.gaps)) report("adopt", "data.gaps doit être un tableau");
     }
   }
 

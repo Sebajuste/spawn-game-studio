@@ -14,7 +14,14 @@ export interface CaptureConfig {
   wait_ms?: number;
 }
 
+// Exécution de compile, test et smoke_test dans un conteneur (launch et capture restent locaux : fenêtre, Edge).
+export interface RunnerConfig {
+  type: "docker";
+  image: string;
+}
+
 export interface NodeConfig {
+  runner?: RunnerConfig;
   compile?: string[];
   test?: string;
   smoke_test?: string;
@@ -30,13 +37,14 @@ export interface SpawnJson {
   node: NodeConfig;
 }
 
-const KEYS = ["compile", "test", "smoke_test", "launch", "capture", "end_to_end"] as const;
+const KEYS = ["runner", "compile", "test", "smoke_test", "launch", "capture", "end_to_end"] as const;
 export type ScriptKey = "test" | "smoke_test" | "launch";
 
 // Un nom de script passe par le shell (`npm run <nom>`) : seuls les caractères sans effet sur le shell sont admis.
 const SCRIPT_NAME = /^[A-Za-z0-9@][\w:.@/-]*$/;
 
 const EXAMPLE: Record<(typeof KEYS)[number], string> = {
+  runner: '"runner": { "type": "docker", "image": "node:24-alpine" }',
   compile: '"compile": ["typecheck", "lint"]',
   test: '"test": "test"',
   smoke_test: '"smoke_test": "smoke"',
@@ -109,6 +117,16 @@ export function parseNodeSection(raw: unknown): NodeConfig {
   const unknownKeys = Object.keys(n).filter((k) => !(KEYS as readonly string[]).includes(k));
   if (unknownKeys.length > 0) throw invalid(`clé inconnue dans "node" : ${unknownKeys.join(", ")} (connues : ${KEYS.join(", ")})`);
   const c: NodeConfig = {};
+  if (n.runner !== undefined) {
+    const x = n.runner as Record<string, unknown>;
+    if (typeof x !== "object" || x === null || Array.isArray(x)) throw invalid('"node.runner" doit être un objet { "type": "docker", "image": "…" }');
+    const extra = Object.keys(x).filter((k) => k !== "type" && k !== "image");
+    if (extra.length > 0) throw invalid(`clé inconnue dans "node.runner" : ${extra.join(", ")} (connues : type, image)`);
+    if (x.type !== "docker") throw invalid('"node.runner.type" doit valoir "docker"');
+    // Un nom d'image passe par docker, pas par un shell : on borne tout de même les caractères admis.
+    if (typeof x.image !== "string" || !/^[A-Za-z0-9][\w./:@-]*$/.test(x.image)) throw invalid('"node.runner.image" doit être un nom d\'image (ex. "node:24-alpine")');
+    c.runner = { type: "docker", image: x.image };
+  }
   if (n.compile !== undefined) {
     if (!Array.isArray(n.compile) || n.compile.length === 0) throw invalid('"node.compile" doit être une liste non vide de scripts npm');
     c.compile = n.compile.map((s, i) => scriptName(s, `"node.compile[${i}]"`));

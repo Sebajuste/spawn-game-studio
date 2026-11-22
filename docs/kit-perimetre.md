@@ -1,4 +1,4 @@
-# Périmètre du kit
+﻿# Périmètre du kit
 
 Source : un relevé des pratiques du projet Deep Front, tenu hors de ce dépôt (abrégé `retex`).
 
@@ -34,6 +34,10 @@ Conséquence pour l'outillage : **il guide**. Chaque sortie dit quoi faire ensui
 | D7 | Fusion par une file tenue par l'outillage, jamais par un LLM, reprise du circuit de Deep Front et rendue générique : même logique avec ou sans forge (fichiers en local, MR et runner avec GitLab). La preuve d'une branche vaut par suite et par empreinte de ses entrées, pas par tête : un rebase ne rejoue que ce qu'il a changé. Aucun rouge admis : un rouge se corrige ou passe en quarantaine bornée et datée (§9) | Un rebase pour une ligne de `known-reds.txt` a coûté 30 min de suite à refaire ; les rouges admis s'accumulent sans être remis à plat (mainteneur, 2026-11-17). Deep Front a déjà la file sur runner GitLab, la sélection par carte de zones, les gels et la vérification après coup (`tools/ci/`, spec `2026-10-11-fusion-mr-gitlab`) |
 | D8 | Le cœur est neutre vis-à-vis de l'agent comme il l'est du moteur (D6) : Claude Code et OpenCode (modèle local compris) sont deux adaptateurs d'agent. Ce qui est propre à un agent (hooks, format des transcripts, installation du plugin, pilotage par l'app) reste dans une couche fine ; l'outil `spawn`, les adaptateurs de moteur, la fusion et l'état des fils ne dépendent d'aucun agent | Le mainteneur, 2026-11-17 : supporter OpenCode quoi qu'il arrive, car l'outillage précis qu'exige un petit modèle (Qwen3.5 9B, 100 k de contexte) profite aussi à Claude. Vérifié le 2026-11-17 (OpenCode v2.2.6, Qwen3.5 9B) : le hook de permission `evaluate` des plugins v2 bloque aussi les sous-agents, contrôle négatif compris (`docs/essais/2026-11-17-opencode-perimetre.md`) ; le périmètre OpenCode passe par lui, pas par `tool.execute.before` (issue #5894, v1) |
 | D9 | Architecture généralisable, sans généraliser : le cœur ne nomme pas le domaine qu'il sert. Les mots du jeu vidéo (« jeu », « scène principale », « joueur », le rappel du cadre technique) viennent de la section `domaine` du descripteur de l'adaptateur (`adaptateur.json`), avec des mots neutres par défaut (`kit/core/src/domaine.ts`). Restent propres au jeu, à renommer le jour où un deuxième domaine le justifie : la commande `nouveau-jeu`, le nom de l'outil, les libellés de l'app (« Lancer le jeu ») | Le mainteneur, 2026-11-18 : l'outil peut servir au-delà du jeu vidéo (une app C++ avec un adaptateur CMake) ; pas de généralisation tant qu'un deuxième usage réel ne la justifie (§0, « petit »), mais rien de nouveau ne doit lier le cœur au jeu |
+| D10 | L'outil s'appelle **Spawn App Studio** et n'est plus propre au jeu : la commande est 
+| D11 | **Décidé (validé par le mainteneur)** : un *workspace* groupe plusieurs projets (un dépôt peut figurer dans plusieurs) ; un epic peut viser plusieurs projets, une story reste dans un seul ; suivi local d'abord (workspaces.json), plugins de suivi (Jira…) plus tard. Détail : docs/workspaces.md | Mise en œuvre : `kit/core/src/workspaces.ts`, module `workspaces` du service, `blocked_by` dans `spawn next` ; interface à venir |
+ew-project (
+ew-game reste un alias), la route POST /api/projects/new, le composant Project. Les identifiants techniques (spawn-game-studio, spawnstudio, com.sebajuste.spawnstudio) ne changent pas : les renommer casse les installations existantes. L'interface est multilingue (src/i18n.ts, src/locales/), **anglais par défaut, français proposé** (menu Affichage > Langue) | Le mainteneur, 2026-11 : un POC multi-dépôts montre un deuxième domaine (backend Node en Docker) ; remplace la fin de D9 |
 
 ## 2. Structure d'un projet créé par le kit
 
@@ -122,14 +126,9 @@ Mise à jour : un `git pull` de Spawn Game Studio puis `claude plugin update` ; 
 | 6 | Premier import Godot et premier test vide | Sortie de Godot relue : 0 erreur, 1 test vert |
 | 7 | Enregistrer le projet dans l'app | Le projet apparaît, sans fil |
 
-### 4.2 Adopter un projet existant (Deep Front) : `/adopter`
+### 4.2 Adopter un projet existant : « Ajouter un projet existant » de l'app
 
-| # | Étape |
-|---|---|
-| 1 | Inventaire en lecture seule : réglages, hooks, agents, outillage, worktrees, branches ; diff avec le kit |
-| 2 | Proposer, sans rien écrire : réglages remplacés, outils du kit qui remplacent les outils locaux, ce qui reste local |
-| 3 | Après accord : création de `.spawn/` et de `knowledge/`, migration de la mémoire globale vers `knowledge/`, réglages du kit |
-| 4 | Ménage des worktrees et branches déjà fusionnés (§5), liste montrée avant suppression |
+Décrit dans `docs/adoption.md` (2026-11-21) : diagnostic en lecture seule, puis, après accord, le commun par le cœur (git, `spawn.json`, hooks, plugin, un commit sur `develop`) et le gabarit du moteur par son adaptateur (`detect`, `adopt`). La migration de la mémoire d'un gros projet vers `knowledge/` et le ménage de ses worktrees (Deep Front) restent à faire à la main.
 
 ## 5. Règles git
 

@@ -38,9 +38,34 @@ test("adapter.json: contract 1, engine node, app domain, scene checks not applic
     product: "app",
     entry: "point d'entrée de l'app",
     user: "utilisateur",
-    framing: "tout se fait avec la pile du projet (TypeScript, React, Rust pour la coque), selon ses conventions",
+    framing: "tout se fait avec la pile que déclarent package.json et les conventions du projet (langage, bibliothèques, outils) ; n'en introduis pas d'autre",
   });
-  assert.deepEqual(d.not_applicable, ["invalid-scene", "empty-main-scene", "new-project"]);
+  assert.deepEqual(d.not_applicable, ["invalid-scene", "empty-main-scene"]);
+});
+
+test("new-project: a starter that passes compile, test, smoke-test, and refuses an existing project", () => {
+  const p = dir("starter");
+  mkdirSync(p, { recursive: true });
+  writeFileSync(join(p, "spawn.json"), JSON.stringify({ engine: "node", version: major, tag: "ST" }));
+  const created = invoke(["new-project", "--project", p, "--name", "Mon App"]);
+  assert.ok(created.result.ok, JSON.stringify(created.result));
+  assert.ok((created.result.data.files as string[]).includes("package.json"));
+  const config = JSON.parse(readFileSync(join(p, "spawn.json"), "utf8")) as { tag: string; node: { launch: string } };
+  assert.equal(config.tag, "ST");
+  assert.equal(config.node.launch, "start");
+  for (const sub of ["compile", "test", "smoke-test"]) {
+    const r = invoke([sub, "--project", p]);
+    assert.ok(r.result.ok, `${sub} : ${JSON.stringify(r.result)}`);
+  }
+  assert.ok(((invoke(["test", "--project", p]).result.data.end_to_end as string[]) ?? []).length > 0);
+  assert.equal(invoke(["new-project", "--project", p, "--name", "Autre"]).result.errors[0]?.code, "project-exists");
+
+  // Sans lancement déclaré, la capture répond not-declared : le cœur y reconnaît un projet sans rien à montrer.
+  const config2 = JSON.parse(readFileSync(join(p, "spawn.json"), "utf8")) as { node: Record<string, unknown> };
+  delete config2.node.launch;
+  writeFileSync(join(p, "spawn.json"), JSON.stringify(config2));
+  const shot = invoke(["capture", "--project", p, "--output", join(p, "x.png")]);
+  assert.equal(shot.result.errors[0]?.code, "not-declared");
 });
 
 test("usage: unknown subcommand, missing option, relative path, scene scenario", () => {

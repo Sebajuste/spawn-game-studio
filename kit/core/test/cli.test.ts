@@ -285,6 +285,10 @@ test("spawn ledger: the spec fixes each requirement's proof, the plan writes no 
   const unnamed = spawnCli(worktree, "ledger", "captures", "--paths", join(shots, "capture-1.png"), "--verdict", "valid");
   assert.equal(unnamed.code, 2);
   assert.match(unnamed.stderr, /aucune capture pour PNT-01 \(preuve « capture »/);
+  // Sans chemin, la preuve n'est admise que si l'adaptateur déclare rien à capturer (ici il capture : refus).
+  const bare = spawnCli(worktree, "ledger", "captures", "--verdict", "valid");
+  assert.equal(bare.code, 2);
+  assert.match(bare.stderr, /--paths manquant : ce projet peut montrer quelque chose/);
   writeFileSync(join(shots, "PNT-01.png"), "png");
   // Chemin relatif au worktree, comme les consignes le donnent : le ledger le garde absolu (lu depuis l'app).
   const named = spawnCli(worktree, "ledger", "captures", "--paths", relative(worktree, join(shots, "PNT-01.png")), "--verdict", "valid");

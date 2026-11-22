@@ -1,4 +1,4 @@
-# Spawn Game Studio
+# Spawn App Studio
 
 Un kit (`kit/core`, adaptateurs de moteur dans `kit/engines/`), un service Node (`service/`) et une app Tauri et React (`src/`, `src-tauri/`) pour faire des projets complets avec des agents. Spawn est développé avec Spawn : ce dépôt est un projet Spawn (moteur `node`, `spawn.json`).
 

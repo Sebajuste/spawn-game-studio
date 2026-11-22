@@ -12,6 +12,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, 
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { claudeAdapter } from "../../../kit/core/src/agent/claude.ts";
+import { copilotAdapter } from "../../../kit/core/src/agent/copilot.ts";
 import type { AgentEvent } from "../../../kit/core/src/agent/events.ts";
 import { opencodeAdapter } from "../../../kit/core/src/agent/opencode.ts";
 import type { AgentAdapter } from "../../../kit/core/src/agent/type.ts";
@@ -33,7 +34,7 @@ import { projectById } from "./projects.ts";
 
 export type AgentFactory = (agent: AgentName, project: Project) => AgentAdapter;
 
-const AGENTS: readonly AgentName[] = ["claude-code", "opencode"];
+const AGENTS: readonly AgentName[] = ["claude-code", "opencode", "copilot"];
 const TURN_TIMEOUT_MS = 2 * 60 * 60_000;
 const TURNS_SHOWN = 30;
 // Relance automatique d'un agent qui s'arrête sans raison (§0 : sans l'utilisateur). Bornée : au-delà, ou après des tours
@@ -80,6 +81,7 @@ const needsRestart = (root: string, story: string) => ["active", "compacting", "
 
 // OpenCode : l'app charge le modèle local réglé pour le projet s'il ne l'est pas, avec le contexte réglé (selon la VRAM).
 export const defaultAgentFactory: AgentFactory = (agent, project) => {
+  if (agent === "copilot") return copilotAdapter();
   if (agent !== "opencode") return claudeAdapter();
   const settings = readProjectSettings(project.root);
   return opencodeAdapter({ model: settings.localModel, load: true, context: settings.localContext });
@@ -155,7 +157,7 @@ function writeQueue(root: string, story: string, queue: Queued[]): void {
 
 // Lecture incrémentale d'une sortie en cours d'écriture : seules les lignes complètes sont rendues (jamais un caractère
 // UTF-8 coupé en deux).
-class Tail {
+export class Tail {
   private position = 0;
   private readonly path: string;
   constructor(path: string) {

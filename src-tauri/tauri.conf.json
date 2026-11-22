@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Spawn Game Studio",
+  "productName": "Spawn App Studio",
   "version": "0.1.0",
   "identifier": "com.sebajuste.spawnstudio",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Spawn Game Studio",
+        "title": "Spawn App Studio",
         "width": 800,
         "height": 600
       }

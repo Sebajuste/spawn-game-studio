@@ -5,6 +5,8 @@ export interface Specification {
   required: readonly string[];
   optional: readonly string[];
   repeatable?: readonly string[];
+  // Options sans valeur (`--dry-run`) : présentes ou non.
+  flags?: readonly string[];
   paths?: readonly string[];
   integers?: readonly string[];
 }
@@ -49,6 +51,7 @@ export class Options {
 export function parseOptions(args: readonly string[], spec: Specification): Options {
   const allowed = new Set<string>([...spec.required, ...spec.optional, ...COMMON]);
   const repeatable = new Set(spec.repeatable ?? []);
+  const flags = new Set(spec.flags ?? []);
   const options = new Options();
 
   for (let i = 0; i < args.length; i++) {
@@ -62,7 +65,10 @@ export function parseOptions(args: readonly string[], spec: Specification): Opti
       name = name.slice(0, equals);
     }
     if (!allowed.has(name)) throw new UsageError(`option inconnue : --${name}`);
-    if (value === undefined) {
+    if (flags.has(name)) {
+      if (value !== undefined) throw new UsageError(`option --${name} sans valeur attendue`);
+      value = "";
+    } else if (value === undefined) {
       value = args[i + 1];
       if (value === undefined || value.startsWith("--")) throw new UsageError(`option --${name} sans valeur`);
       i++;

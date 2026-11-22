@@ -17,7 +17,7 @@ export interface Turn {
 }
 
 export interface AgentAdapter {
-  name: "claude-code" | "opencode";
+  name: "claude-code" | "opencode" | "copilot";
   // Lance (session null) ou reprend une session dans `dossier` ; la sortie brute de l'agent va dans `sortie`.
   // `signal` arrête le tour (bouton Stop de l'app) : l'arbre du processus est tué par son PID.
   // `env` s'ajoute à l'environnement de l'agent (SPAWN_RUNNER : l'enchaîneur du service fait les étapes automatiques).

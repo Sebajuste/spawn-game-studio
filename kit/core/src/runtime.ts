@@ -151,6 +151,21 @@ export function versionOf(repo: string, commit = "HEAD"): { version: string; com
   return { version: `${version}+${short}`, commit: full };
 }
 
+// Sous Windows, un antivirus ou l'indexeur tient parfois un instant les exécutables tout juste copiés : le renommage
+// du dossier échoue alors en EPERM, EBUSY ou EACCES. On réessaie quelques fois avant d'abandonner.
+function renameWithRetry(from: string, to: string, attempts = 10): void {
+  for (let i = 1; ; i++) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code ?? "";
+      if (i >= attempts || !["EPERM", "EBUSY", "EACCES"].includes(code)) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200 * i);
+    }
+  }
+}
+
 // Plugin Claude Code mince de la version (SGS-04) : manifeste, hooks, skills et agents dont chaque commande est un
 // chemin absolu dans le runtime. Claude Code peut le copier où il veut : il ne contient aucun code à exécuter.
 // `core` : les sources lues ; `written` : le kit que désignent les chemins écrits (par défaut le même).
@@ -177,7 +192,8 @@ export function generateClaudePlugin(core: string, version: string, dest: string
         ) + "\n",
     },
     { path: join(plugin, ".claude-plugin", "plugin.json"), content: JSON.stringify({ ...manifest, version }, null, 2) + "\n" },
-    { path: join(plugin, "hooks", "hooks.json"), content: node ? hooks.replaceAll('"command": "node"', `"command": ${JSON.stringify(toSlash(node))}`) : hooks },
+    // Les hooks sont des lignes de commande `node "<script>" …` : on remplace `node` par le Node embarqué, entre guillemets.
+    { path: join(plugin, "hooks", "hooks.json"), content: node ? hooks.replaceAll('"command": "node ', `"command": ${JSON.stringify(`"${toSlash(node)}" `).slice(0, -1)}`) : hooks },
   ];
   for (const name of readdirSync(join(core, "skills"))) {
     const source = join(core, "skills", name, "SKILL.md");
@@ -275,6 +291,11 @@ function activationSteps(version: string, deps: RuntimeDeps, root: string, probl
         }
         const r = claude(args);
         if (r.code !== 0) {
+          // Claude Code absent de la machine (Copilot, OpenCode seuls) : rien à désigner, ce n'est pas un échec.
+          if (!claudePresent(claude)) {
+            deps.log("  Claude Code absent : pas de plugin à mettre à jour");
+            return;
+          }
           problems.push(`Claude Code : « ${shown(args)} » a échoué (${(r.stderr || r.stdout).trim().split(/\r?\n/)[0] ?? `code ${r.code}`}) ; taper : ${commands.map(shown).join(" ; ")}`);
           return;
         }
@@ -286,6 +307,10 @@ function activationSteps(version: string, deps: RuntimeDeps, root: string, probl
   steps.push({ description: `commande spawn : ${bin} (spawn.cmd, spawn), vers ${version}`, run: () => writeFiles(launchers(version, root)) });
   steps.push({ description: `app : ${versionExe(version, root)} (elle démarre ${join(versionDir(version, root), "service", "src", "main.ts")})`, run: () => {} });
   return steps;
+}
+
+function claudePresent(claude: (args: readonly string[]) => Output): boolean {
+  return claude(["--version"]).code === 0;
 }
 
 function installedPlugin(claude: (args: readonly string[]) => Output): boolean {
@@ -399,7 +424,7 @@ export function install(o: InstallOptions, deps: RuntimeDeps): number {
         const info: RuntimeInfo = { version, commit, installed: new Date().toISOString(), repo: o.repo };
         writeFileSync(join(partial, "runtime.json"), JSON.stringify(info, null, 2) + "\n");
         rmSync(dir, { recursive: true, force: true, maxRetries: 5 });
-        renameSync(partial, dir);
+        renameWithRetry(partial, dir);
       },
     });
   }
@@ -510,7 +535,8 @@ function json<T>(r: Output | null): T | null {
 function pluginTargets(folder: string): { hook: string | null; cli: string | null } {
   const root = toSlash(folder).replace(/\/$/, "");
   const read = (p: string) => (existsSync(p) ? readFileSync(p, "utf8").replaceAll("${CLAUDE_PLUGIN_ROOT}", root) : "");
-  const hook = /"([^"]*pre-tool-use\.ts)"/.exec(read(join(folder, "hooks", "hooks.json")))?.[1] ?? null;
+  // Dans hooks.json, le script est entre guillemets échappés (`node \"…ts\"`) : on les déséchappe avant de chercher.
+  const hook = /"([^"]*pre-tool-use\.ts)"/.exec(read(join(folder, "hooks", "hooks.json")).replaceAll('\\"', '"'))?.[1] ?? null;
   const cli = /node "([^"]*cli\.ts)"/.exec(read(join(folder, "skills", "story", "SKILL.md")))?.[1] ?? null;
   return { hook, cli };
 }
@@ -541,7 +567,8 @@ export function status(o: { root?: string; claude: ((args: readonly string[]) =>
     const markets = json<{ name: string; path?: string; installLocation?: string }[]>(o.claude(["plugin", "marketplace", "list", "--json"]));
     const plugins = json<ClaudePluginEntry[]>(o.claude(["plugin", "list", "--json"]));
     if (markets === null || plugins === null) {
-      add({ name: "Claude Code", executes: "?", ok: false, detail: "claude plugin list --json illisible ou Claude Code absent" });
+      const present = claudePresent(o.claude);
+      add({ name: "Claude Code", executes: "?", ok: !present, detail: present ? "claude plugin list --json illisible" : "absent de cette machine : pas de plugin à mettre à jour" });
     } else {
       const market = markets.find((m) => m.name === MARKETPLACE);
       const marketPath = market?.path ?? market?.installLocation ?? null;
