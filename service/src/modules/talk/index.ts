@@ -107,7 +107,7 @@ export function talkModule(conversation: ConversationModule, factory: AgentFacto
         // Un tour arrêté ou refusé n'a pas fini sa pensée : ses blocs éventuels ne sont pas exécutés.
         if (!controller.signal.aborted && turn.refused.length === 0) {
           const { actions, errors } = parseActions(replyOf(said), target.kind);
-          turn.actions = await executeActions(target, actions, errors, createStory);
+          turn.actions = await executeActions(target, actions, errors, createStory, () => emit("workspaces", {}));
         }
       } catch (e) {
         turn.actions = [{ kind: "invalid", ok: false, error: `actions non exécutées : ${(e as Error).message}` }];

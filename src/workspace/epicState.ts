@@ -5,9 +5,10 @@ import { t } from "../i18n/i18n.ts";
 export const refKey = (r: { project: string; story: string }) => `${r.project}/${r.story}`;
 
 export function stateLabel(state: string): string {
-  const key = `workspace.state.${state}`;
-  const label = t(key as Parameters<typeof t>[0]);
-  return label === key ? t("workspace.state.other", { state }) : label;
+  if (state.startsWith("blocked:")) return t("project.step.waitingUser");
+  // `t` rend undefined pour une clé absente, malgré son type.
+  const label = t(`workspace.state.${state}` as Parameters<typeof t>[0]) as string | undefined;
+  return label ?? t("workspace.state.other", { state });
 }
 
 export const stateClass = (s: EpicStoryView) => (s.merged ? "done" : s.state === "not-started" ? (s.waiting_for.length > 0 ? "waiting" : "idle") : "running");

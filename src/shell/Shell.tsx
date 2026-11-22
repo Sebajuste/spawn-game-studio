@@ -40,7 +40,7 @@ export function Shell({ api }: { api: Api }) {
   const [error, setError] = useState<string | null>(null);
   const onError = useCallback((e: string | null) => setError(e), []);
   const { events, connected } = useEvents(api);
-  const { projects, reload: reloadProjects } = useProjects(api, onError);
+  const { projects, reload: reloadProjects } = useProjects(api, events, onError);
   const { workspaces, reload: reloadWorkspaces } = useWorkspaces(api, events, onError);
   const { modules, active, toggle } = useModules(api, events, onError);
   const { route: asked, navigate } = useRoute();

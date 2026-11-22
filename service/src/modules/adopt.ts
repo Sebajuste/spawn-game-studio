@@ -44,6 +44,7 @@ export function adoptionRoutes({ routes, emit, remount }: Pick<ModuleContext, "r
     try {
       const a = await adoptProject({ dir, engine, version, tag, ...(workspace ? { workspace } : {}), log: (line) => emit("adoption", { line }) });
       await remount();
+      emit("projects", {});
       if (workspace) emit("workspaces", {});
       return { project: projectView(a.project), commit: a.commit, baseline: a.baseline, gaps: a.gaps, leftovers: a.leftovers };
     } catch (e) {

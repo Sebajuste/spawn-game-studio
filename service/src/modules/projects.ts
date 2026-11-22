@@ -1,6 +1,7 @@
 // Module socle : les projets Spawn de la machine (registre `~/.spawn/projects.json`).
 import { isAbsolute, resolve } from "node:path";
 import { listStories } from "../../../kit/core/src/stories.ts";
+import { enginesDir } from "../../../kit/core/src/adapters.ts";
 import { readEngineSettings } from "../../../kit/core/src/engines.ts";
 import { newProject, slug } from "../../../kit/core/src/new-project.ts";
 import { findProject } from "../../../kit/core/src/project.ts";
@@ -49,6 +50,7 @@ export const projectsModule: ServiceModule = {
         throw new HttpError(400, (e as Error).message);
       }
       await remount();
+      emit("projects", {});
       return projectView(registered);
     });
     // Moteurs connus de la machine (`~/.spawn/engines.json`), pour « Nouveau projet ».
@@ -76,12 +78,14 @@ export const projectsModule: ServiceModule = {
           name,
           parent: resolve(parent),
           engine,
+          engines: enginesDir(),
           version,
           tag,
           remote: typeof c.remote === "string" && c.remote ? c.remote : "local",
           log: (line) => emit("creation", { line }),
         });
         await remount();
+        emit("projects", {});
         const registered = readRegistry().find((p) => resolve(p.root).toLowerCase() === resolve(created.root).toLowerCase());
         if (!registered) throw new HttpError(500, `projet créé mais absent du registre : ${created.root}`);
         return projectView(registered);
@@ -101,6 +105,7 @@ export const projectsModule: ServiceModule = {
       forgetProject(params.id ?? "");
       emit("workspaces", {});
       await remount();
+      emit("projects", {});
       return { removed: params.id };
     });
   },

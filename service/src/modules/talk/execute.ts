@@ -13,7 +13,7 @@ function inScope(target: TalkTarget, project: string): boolean {
   return target.projects.some((p) => p.id === project);
 }
 
-async function runOne(target: TalkTarget, action: TalkAction, create: CreateStory): Promise<TalkActionResult> {
+async function runOne(target: TalkTarget, action: TalkAction, create: CreateStory, changed: () => void): Promise<TalkActionResult> {
   if (action.kind === "story") {
     const project = action.project ?? target.host.id;
     if (!inScope(target, project)) return { kind: "story", ok: false, error: `projet « ${project} » hors de ${target.name}` };
@@ -30,6 +30,8 @@ async function runOne(target: TalkTarget, action: TalkAction, create: CreateStor
   let epic: { id: string; title: string };
   try {
     epic = createEpic(target.id, action.title, action.acceptance);
+    // Annoncé à chaque écriture : créer les stories d'un epic dure des minutes.
+    changed();
   } catch (e) {
     return { kind: "epic", ok: false, error: message(e) };
   }
@@ -40,6 +42,7 @@ async function runOne(target: TalkTarget, action: TalkAction, create: CreateStor
       const ref = { project: s.project, story: r.story };
       addEpicStory(target.id, epic.id, ref, s.after.map((i) => refs[i]).filter((x): x is StoryRef => x !== undefined));
       refs.push(ref);
+      changed();
     } catch (e) {
       return { kind: "epic", ok: false, error: `${epic.id} créé, mais arrêt à la story ${refs.length + 1}/${action.stories.length} (${s.project}) : ${message(e)}` };
     }
@@ -47,9 +50,9 @@ async function runOne(target: TalkTarget, action: TalkAction, create: CreateStor
   return { kind: "epic", ok: true, epic: epic.id, title: epic.title, stories: refs };
 }
 
-export async function executeActions(target: TalkTarget, actions: TalkAction[], errors: string[], create: CreateStory): Promise<TalkActionResult[]> {
+export async function executeActions(target: TalkTarget, actions: TalkAction[], errors: string[], create: CreateStory, changed: () => void): Promise<TalkActionResult[]> {
   const results: TalkActionResult[] = errors.map((error) => ({ kind: "invalid", ok: false, error }));
-  for (const a of actions) results.push(await runOne(target, a, create));
+  for (const a of actions) results.push(await runOne(target, a, create, changed));
   return results;
 }
 
