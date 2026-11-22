@@ -108,7 +108,7 @@ function checkSpec(ctx: Context, path: string): void {
 // autre réponse, succès compris, veut une vraie capture. L'essai est jeté.
 async function nothingToCapture(ctx: Context): Promise<boolean> {
   const probe = join(tmpdir(), `spawn-probe-${process.pid}.png`);
-  const r = await callAdapter(projectAdapter(ctx.project), "capture", { project: ctx.dir, output: probe }, { timeoutMs: 120_000 });
+  const r = await callAdapter(projectAdapter(ctx.project), "capture", { project: ctx.dir, output: probe });
   rmSync(probe, { force: true });
   return r.result?.ok === false && r.result.errors.some((e) => e.code === "not-declared");
 }
@@ -182,7 +182,7 @@ async function checkTaskDone(ctx: Context, task: number, events: readonly Ledger
   }
   // Une tâche ne se ferme pas sur une compilation rouge (lint compris quand le moteur le déclare) : la tâche suivante
   // en hériterait. Essai du 18/11 : lint rouge porté de tâche en tâche jusqu'à la fusion.
-  const r = await callAdapter(projectAdapter(ctx.project), "compile", { project: ctx.dir }, { timeoutMs: 600_000 });
+  const r = await callAdapter(projectAdapter(ctx.project), "compile", { project: ctx.dir });
   if (!r.result?.ok) {
     const errors = r.result?.errors.map((e) => `${e.file ? `${e.file}${e.line ? `:${e.line}` : ""} ` : ""}${e.message}`) ?? [r.stderr.trim() || "sans réponse"];
     throw new LedgerError(`task-done : la compilation est rouge (${errors.slice(0, 5).join(" ; ")}${errors.length > 5 ? ` ; ${errors.length - 5} de plus` : ""}). Ce n'est pas à toi de corriger : relance l'implémenteur de cette tâche avec ces erreurs (il corrige et commite), puis relance cette commande`);
@@ -197,7 +197,7 @@ async function checkProof(ctx: Context): Promise<Extract<LedgerEvent, { type: "p
   const defects: string[] = [];
   const results: Record<string, Record<string, unknown>> = {};
   for (const command of ["compile", "test", "smoke-test"] as const) {
-    const r = await callAdapter(adapter, command, { project: ctx.dir }, { timeoutMs: 600_000 });
+    const r = await callAdapter(adapter, command, { project: ctx.dir });
     if (r.result?.ok) results[command] = r.result.data;
     if (!r.result?.ok) {
       const errors = r.result?.errors.map((e) => `${e.file ? `${e.file}${e.line ? `:${e.line}` : ""} ` : ""}${e.message}`) ?? [r.stderr.trim() || "sans réponse"];
@@ -391,7 +391,7 @@ async function main(argv: string[]): Promise<number> {
       // Une capture prépare d'abord le worktree (import du moteur, dépendances) : idempotent par contrat, et une commande
       // de moins à donner à l'agent (essai du 18/11).
       if (sub === "capture") {
-        const prep = await callAdapter(projectAdapter(ctx.project), "prepare-worktree", { project: forwarded.project as string }, { timeoutMs: 600_000 });
+        const prep = await callAdapter(projectAdapter(ctx.project), "prepare-worktree", { project: forwarded.project as string });
         if (prep.result === null || !prep.result.ok) {
           console.error(`capture : préparation du worktree en échec, aucune capture faite
 ${prep.result ? JSON.stringify(prep.result, null, 2) : prep.defects.join(" ; ")}`);

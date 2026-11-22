@@ -95,16 +95,36 @@ function killTree(pid: number): void {
   }
 }
 
+// Filet contre un adaptateur pendu, pas une limite du moteur : c'est l'adaptateur qui borne le moteur (contrat §2) et
+// rend une erreur `timeout` lisible, jusqu'à 900 s par défaut pour une suite. Un filet au même niveau tue l'adaptateur
+// avant qu'il réponde (22/11 : suite map-editor saine tuée à 600 s, « adaptateur non conforme »). Il passe donc
+// au-dessus de `--timeout` ou de `--seconds` quand ils sont donnés, et largement au-dessus des défauts sinon.
+const SAFETY_MS = 30 * 60_000;
+const ANSWER_MARGIN_MS = 60_000;
+
+export function adapterTimeoutMs(options: Readonly<Record<string, OptionValue>>): number {
+  const seconds = (name: string): number => {
+    const v = options[name];
+    return typeof v === "string" && /^\d+$/.test(v) ? Number(v) : 0;
+  };
+  const timeout = seconds("timeout");
+  if (timeout > 0) return timeout * 1000 + ANSWER_MARGIN_MS;
+  return Math.max(SAFETY_MS, (seconds("seconds") + 120) * 1000 + ANSWER_MARGIN_MS);
+}
+
 export function callAdapter(
   adapter: Adapter,
   subcommand: string,
   options: Readonly<Record<string, OptionValue>> = {},
-  { timeoutMs = 600_000, env }: CallOptions = {},
+  { timeoutMs = adapterTimeoutMs(options), env }: CallOptions = {},
 ): Promise<Response> {
   const { program, args } = resolveProgram(adapter);
   const childEnv = { ...(env ?? process.env) };
   // Hérité d'un lanceur node --test, il détournerait la sortie d'un adaptateur écrit en Node.
   delete childEnv.NODE_TEST_CONTEXT;
+  // Marqueur de l'enchaîneur (RUNNER_ENV de next.ts), destiné à l'agent : une suite du projet qui en hérite change de
+  // comportement selon qui la lance (22/11 : fusion refusée sur runner.test.ts, verte sans la variable).
+  delete childEnv.SPAWN_RUNNER;
   return new Promise((resolvePromise, reject) => {
     const child = spawn(program, [...args, subcommand, ...optionArgs(options)], {
       cwd: adapter.dir,

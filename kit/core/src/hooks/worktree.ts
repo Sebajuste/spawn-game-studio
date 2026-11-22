@@ -108,7 +108,11 @@ export async function createWorktree(input: { cwd: string; name: string }, optio
     else createStory(root, { story: name, branch, worktree, base: gitOk(path, ["rev-parse", "HEAD"]) });
   } catch (e) {
     // Un worktree à moitié prêt ne doit pas rester : c'est ce qui a produit les 85 worktrees sans import de Deep Front.
-    git(root, ["worktree", "remove", "--force", path]);
+    try {
+      removeWorktree(root, path);
+    } catch {
+      // L'erreur de préparation est celle à rendre ; un reste se range avec `spawn cleanup`.
+    }
     if (!branchExists) git(root, ["branch", "-D", branch]);
     throw e;
   }
@@ -119,11 +123,14 @@ export async function createWorktree(input: { cwd: string; name: string }, optio
 // sous bash) fait échouer `git worktree remove` : le dossier est alors supprimé par Node, puis git oublie le worktree.
 // Windows refuse (EPERM) de supprimer le dossier courant du processus : on en sort d'abord, quand l'outil est lancé
 // depuis le worktree qu'il range (essai sans surveillance, shell ouvert dans le fil).
+// Jamais par `git worktree remove` : sous Windows, git suit une jonction et vide sa cible (bac à sable du 22/11, un
+// node_modules relié au projet principal y passait). Node supprime le lien sans le suivre ; git oublie ensuite le
+// worktree, verrouillé ou non.
 export function removeWorktree(root: string, path: string): void {
   const rel = relative(resolve(path), process.cwd());
   if (rel === "" || (!rel.startsWith("..") && !isAbsolute(rel))) process.chdir(root);
-  if (git(root, ["worktree", "remove", "--force", path]).code === 0) return;
   rmSync(path, { recursive: true, force: true, maxRetries: 5 });
+  git(root, ["worktree", "remove", "--force", "--force", path]);
   gitOk(root, ["worktree", "prune"]);
 }
 

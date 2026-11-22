@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -136,6 +136,21 @@ test("removing a worktree containing « nul » (Windows reserved name, left by a
   removeWorktree(root, wt);
   assert.ok(!existsSync(wt));
   assert.doesNotMatch(gitOk(root, ["worktree", "list"]), /worktrees.piege/);
+});
+
+// Bac à sable du 22/11 : `git worktree remove --force` suit une jonction Windows et vide sa cible ; le node_modules
+// du projet principal, relié depuis un worktree, aurait été effacé. Un lien symbolique, lui, n'était pas suivi.
+test("removing a worktree never empties the target of a link or junction it contains", async () => {
+  const root = spawnProject();
+  const target = join(root, "shared");
+  mkdirSync(join(target, "pkg"), { recursive: true });
+  writeFileSync(join(target, "pkg", "index.js"), "x");
+  const wt = await createWorktree({ cwd: root, name: "liens" }, silence);
+  symlinkSync(target, join(wt, "shared-link"), process.platform === "win32" ? "junction" : "dir");
+  removeWorktree(root, wt);
+  assert.ok(existsSync(join(target, "pkg", "index.js")), "la cible du lien est intacte");
+  assert.ok(!existsSync(wt), "le worktree est supprimé");
+  assert.doesNotMatch(gitOk(root, ["worktree", "list"]), /worktrees.liens/);
 });
 
 // Essais 2 et 3 : le rangement depuis le worktree échoue à moitié, git oublie le worktree mais le dossier vide reste.

@@ -7,6 +7,7 @@ import { callAdapter, loadAdapter, type Adapter } from "./adapter/call.ts";
 import { readStory, updateStory, transitionAllowed } from "./stories.ts";
 import { currentBranch, git, gitOk } from "./git.ts";
 import { ENGINES_DIR, type Project } from "./project.ts";
+import { removeWorktree } from "./hooks/worktree.ts";
 
 export interface QueueEntry {
   story: string;
@@ -119,9 +120,8 @@ function acquireLock(root: string, log: (l: string) => void): boolean {
 
 function removeIntegration(root: string): void {
   const path = integrationDir(root);
-  if (existsSync(path)) git(root, ["worktree", "remove", "--force", path]);
-  rmSync(path, { recursive: true, force: true, maxRetries: 5 });
-  git(root, ["worktree", "prune"]);
+  // Par removeWorktree : `git worktree remove` suivrait une jonction posée par prepare-worktree.
+  removeWorktree(root, path);
 }
 
 const hasRemote = (root: string) => git(root, ["remote"]).stdout.split(/\s+/).includes("origin");
