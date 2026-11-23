@@ -63,6 +63,14 @@ Un choix technique, une ambiguïté de spec, un plan qui ne tient pas : décider
 
 Ce qu'aucun type ne couvre : `spawn ledger note --text "<texte>"`, en dernier recours (une note n'est pas comptée par `spawn metrics`).
 
+## Décisions de l'utilisateur, au ledger aussitôt
+
+Dès qu'un message de l'utilisateur tranche quelque chose (un choix, une précision, un refus, un « pas ça »), l'écrire avant toute autre action, avec ses mots :
+
+`spawn ledger ruling --by user --decision "<ce qu'il a décidé>" --reason "<sa raison, ou le contexte>" --cost "<coût si faux>"`
+
+Après le plan, l'exécution repart d'une session neuve, et un compactage résume : dans les deux cas, ne reste que ce qui est écrit. Le document du fil, donné à chaque démarrage de session, reprend la spec, le plan et toutes ces décisions ; une décision qui n'est pas au ledger est perdue, et l'agent finit par inventer à sa place.
+
 Seuls trois cas arrêtent le fil et attendent l'utilisateur :
 
 - un choix de design du projet qui change ce que l'utilisateur verra ;

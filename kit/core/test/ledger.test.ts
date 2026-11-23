@@ -54,6 +54,7 @@ test("ledger: invalid shapes refused with the expected shape", () => {
   refusal("task-done", { task: "1", commits: "" }, /--commits : texte vide/);
   refusal("note", { text: "x", detail: "y" }, /option inconnue --detail/);
   refusal("ruling", { decision: ["a", "b"], reason: "r", cost: "c" }, /donné plusieurs fois/);
+  refusal("ruling", { decision: "a", reason: "r", cost: "c", by: "agent" }, /--by : user attendu/);
   refusal("final-review", { verdict: "correction" }, /clean ou changes attendu/);
   refusal("final-review", { verdict: "changes" }, /--detail requis avec le verdict changes/);
   refusal("captures", { paths: "a.png", verdict: "ok" }, /valid ou invalid ou undecidable attendu/);
@@ -68,6 +69,8 @@ test("ledger: readable rendering; user decisions are reserved to the app", () =>
   assert.equal(render(ev("captures", EXAMPLES.captures)), "2026-11-17 16:53 captures valide : a.png, b.png");
   assert.equal(render(ev("captures", { verdict: "valid" })), "2026-11-17 16:53 captures valide : rien à montrer");
   assert.equal(render(ev("final-review", { verdict: "clean" })), "2026-11-17 16:53 relecture finale propre");
+  assert.equal(render(ev("ruling", EXAMPLES.ruling)), "2026-11-17 16:53 Ruling: grille 3x3 fixe — spec — coût si faux : refaire la grille");
+  assert.equal(render(ev("ruling", { ...EXAMPLES.ruling, by: "user" })), "2026-11-17 16:53 Décision de l'utilisateur: grille 3x3 fixe — spec — coût si faux : refaire la grille");
 
   assert.equal(render(ev("spec-proposed", EXAMPLES["spec-proposed"])), "2026-11-17 16:53 spec proposée : docs/specs/2026-11-17-morpion.md");
   assert.deepEqual(Object.keys(RESERVED).sort(), ["abandoned", "accepted", "changes-requested", "merged", "proof", "spec-approved"]);

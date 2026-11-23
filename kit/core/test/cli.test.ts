@@ -177,6 +177,11 @@ test("spawn engine: project adapter on the current worktree, verdict as exit cod
 test("compaction: handoff-format instructions, status active → compacting → active, state reinjected", async () => {
   const { root, worktree } = await projectWithStory();
   updateStory(root, "pont", { first_step: "relancer la tâche 3" });
+  write(ledgerPath(root, "pont"), { date: "2026-11-17T14:00:00.000Z", type: "spec-approved", path: "docs/specs/2026-11-17-pont.md" });
+  write(ledgerPath(root, "pont"), { date: "2026-11-17T14:30:00.000Z", type: "plan", path: "docs/plans/2026-11-17-pont.md" });
+  // Une décision ancienne de l'utilisateur, sortie des 15 derniers événements, reste dans le document du fil.
+  write(ledgerPath(root, "pont"), { date: "2026-11-17T15:00:00.000Z", type: "ruling", decision: "un seul personnage", reason: "dit en discutant la spec", cost: "refaire la sélection", by: "user" });
+  write(ledgerPath(root, "pont"), { date: "2026-11-17T15:01:00.000Z", type: "ruling", decision: "grille fixe", reason: "spec", cost: "faible" });
   for (let n = 1; n <= 16; n++) write(ledgerPath(root, "pont"), { date: "2026-11-17T16:00:00.000Z", type: "note", text: `note ${n}` });
   const instructions = compactionInstructions(worktree) ?? "";
   for (const section of ["## Fil", "## État", "## Décisions", "## Rouges et doutes", "## Premier geste"]) assert.ok(instructions.includes(section), section);
@@ -184,6 +189,10 @@ test("compaction: handoff-format instructions, status active → compacting → 
   const resumed = resumeContext(worktree, "compact") ?? "";
   assert.match(resumed, /Reprise après compactage/);
   assert.match(resumed, /relancer la tâche 3/);
+  assert.match(resumed, /Document du fil :\nSpec validée : docs\/specs\/2026-11-17-pont\.md\nPlan : docs\/plans\/2026-11-17-pont\.md/);
+  assert.match(resumed, /Décisions de l'utilisateur \(1\)[^\n]*\n2026-11-17 15:00 Décision de l'utilisateur: un seul personnage — dit en discutant la spec/);
+  assert.match(resumed, /Arbitrages de l'agent \(1\) :\n2026-11-17 15:01 Ruling: grille fixe/);
+  assert.match(resumed, /spawn ledger ruling --by user/);
   assert.match(resumed, /15 derniers événements :\n2026-11-17 16:00 note : note 2\n[^]*note : note 16$/, "rendu lisible des 15 derniers");
   assert.equal(readStory(root, "pont")?.status, "active");
   assert.equal(compactionInstructions(join(root, "..")), null, "hors projet : rien");

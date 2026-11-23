@@ -19,7 +19,8 @@ export type LedgerEvent = { date: string } & (
   | { type: "round"; task: number; number: number; detail: string }
   | { type: "task-parked"; task: number; detail: string; ruling: string }
   | { type: "minor"; task: number; detail: string }
-  | { type: "ruling"; decision: string; reason: string; cost: string }
+  // `by: "user"` : décision de l'utilisateur, notée dès qu'il la prend ; sans lui, arbitrage de l'agent.
+  | { type: "ruling"; decision: string; reason: string; cost: string; by?: "user" }
   | { type: "final-review"; verdict: ReviewVerdict; detail?: string }
   // `detail` : motif d'une preuve refusée par l'outil, noté par lui pour que `spawn next` donne la correction.
   | { type: "captures"; paths: string[]; verdict: CapturesVerdict; detail?: string }
@@ -56,7 +57,13 @@ const FIELDS: Record<LedgerEventType, readonly Field[]> = {
   round: [TASK, { name: "number", kind: "number", placeholder: "<r>" }, t("detail", "<findings traités ; commits a..b>")],
   "task-parked": [TASK, t("detail", "<ce qui reste>"), t("ruling", "<décision — raison — coût si faux>")],
   minor: [TASK, t("detail", "<finding>")],
-  ruling: [t("decision", "<décision>"), t("reason", "<raison>"), t("cost", "<coût si faux>")],
+  ruling: [
+    t("decision", "<décision>"),
+    t("reason", "<raison>"),
+    t("cost", "<coût si faux>"),
+    // Une session neuve ou un compactage ne garde que ce qui est écrit : c'est ici que vit une décision de l'utilisateur.
+    { name: "by", kind: ["user"], placeholder: "user", optional: true },
+  ],
   "final-review": [
     { name: "verdict", kind: ["clean", "changes"], placeholder: "clean|changes" },
     // Requis quand le verdict est `changes` (findings et commits de la correction).
@@ -229,7 +236,7 @@ export function render(ev: LedgerEvent): string {
       case "minor":
         return `tâche ${ev.task} mineur reporté : ${ev.detail}`;
       case "ruling":
-        return `Ruling: ${ev.decision} — ${ev.reason} — coût si faux : ${ev.cost}`;
+        return `${ev.by === "user" ? "Décision de l'utilisateur" : "Ruling"}: ${ev.decision} — ${ev.reason} — coût si faux : ${ev.cost}`;
       case "final-review":
         return `relecture finale ${REVIEW_WORDS[ev.verdict]}${ev.detail ? ` : ${ev.detail}` : ""}`;
       case "captures":
