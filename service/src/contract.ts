@@ -218,6 +218,20 @@ export interface StoryView {
   result: "accepted" | "abandoned" | null;
   // Action longue en cours (la fusion prime sur un tour d'agent) et sa date de début ; null au repos.
   operation: { kind: "merge" | "turn"; since: string } | null;
+  // Rang dans la file d'attente de la machine (1 = la prochaine), null si elle n'attend pas de place.
+  place: number | null;
+}
+
+// Charge de la machine (docs/reglages.md §3.2) : les réglages et ce qui tourne ou attend, tous projets confondus.
+export interface LoadView {
+  stories: number;
+  agents: number;
+  // Tous les projets inscrits, dans l'ordre de priorité (les projets non rangés à la fin).
+  projects: { id: string; name: string }[];
+  running: { project: string; story: string }[];
+  waiting: { project: string; story: string; rank: number }[];
+  // Sous-agents en cours et places réservées, tous projets confondus.
+  agentsRunning: number;
 }
 
 // Issue de la dernière fusion connue : livrée (commit), refusée ou en erreur (cause).

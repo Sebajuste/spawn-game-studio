@@ -43,7 +43,14 @@ export function readConfig(): AppConfig {
   }
 }
 
+// Les autres clés (`load`, écrite par kit/core/src/load.ts) restent telles quelles.
 export function writeConfig(config: AppConfig): void {
+  let rest: Record<string, unknown> = {};
+  try {
+    if (existsSync(configPath())) rest = JSON.parse(readFileSync(configPath(), "utf8")) as Record<string, unknown>;
+  } catch {
+    // Illisible : readConfig l'a déjà dit ; réécrit au propre.
+  }
   mkdirSync(dirname(configPath()), { recursive: true });
-  writeFileSync(configPath(), JSON.stringify(config, null, 2) + "\n");
+  writeFileSync(configPath(), JSON.stringify({ ...rest, ...config }, null, 2) + "\n");
 }

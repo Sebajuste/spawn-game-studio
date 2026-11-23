@@ -18,6 +18,7 @@ import { SPAWN, nextAction } from "../../../kit/core/src/next.ts";
 import type { AgentName, ProjectSettings, StoryDetail, StoryView } from "../contract.ts";
 import type { ServiceModule } from "../module.ts";
 import { HttpError } from "../router.ts";
+import { rankIn, readBacklogOrder, writeBacklogOrder } from "../backlogOrder.ts";
 import { ASK_USER, lastReply, type ConversationModule } from "./conversation.ts";
 import { projectById } from "./projects.ts";
 
@@ -148,7 +149,9 @@ export function backlogModule(conversation: ConversationModule): ServiceModule {
     const merging = mergeRun !== undefined;
     let waiting: StoryView["waiting"] = null;
     const spec = proposedSpec(project.root, story.story);
-    if (spec !== null && story.worktree) waiting = { reason: "spec-approval", text: lastReply(project.root, story.story), spec: `${story.worktree}/${spec}` };
+    // En attente d'une place : elle a été lancée (message, Reprendre), il n'y a plus rien à demander à l'utilisateur.
+    if (conv.waiting !== null) waiting = null;
+    else if (spec !== null && story.worktree) waiting = { reason: "spec-approval", text: lastReply(project.root, story.story), spec: `${story.worktree}/${spec}` };
     else if (story.status.startsWith("blocked:")) waiting = { reason: "question", text: conv.halted ?? lastReply(project.root, story.story) ?? story.task };
     else if (conv.interrupted) waiting = { reason: "interrupted", text: null };
     else if (conv.paused && !merging && ["active", "compacting", "handoff-pending"].includes(story.status)) waiting = { reason: "paused", text: null };
@@ -170,6 +173,7 @@ export function backlogModule(conversation: ConversationModule): ServiceModule {
       updated: story.updated,
       result,
       operation,
+      place: conv.waiting,
     };
     return { view, step };
   };
@@ -207,9 +211,23 @@ export function backlogModule(conversation: ConversationModule): ServiceModule {
       routes.add("GET", base, ({ params }) => {
         const id = params.id ?? "";
         const project = projectOf(id);
+        const order = readBacklogOrder(project.root);
+        // L'ordre choisi par l'utilisateur d'abord (P7) ; les stories qu'il n'a pas rangées, les plus récentes en tête.
         return listStories(project.root)
           .map((f) => view(id, project, f))
-          .sort((a, b) => b.updated.localeCompare(a.updated));
+          .sort((a, b) => rankIn(order, a.story) - rankIn(order, b.story) || b.updated.localeCompare(a.updated));
+      });
+
+      // Ordre du Backlog, changé en glissant : la liste complète des stories rangées, de la première à la dernière.
+      routes.add("PUT", `${base}/order`, ({ params, body }) => {
+        const id = params.id ?? "";
+        const project = projectOf(id);
+        const stories = (body as { stories?: unknown } | null)?.stories;
+        if (!Array.isArray(stories) || !stories.every((s) => typeof s === "string")) throw new HttpError(400, 'corps attendu : { "stories": ["<story>", …] }');
+        writeBacklogOrder(project.root, stories as string[]);
+        emit("stories", { project: id });
+        emit("load", {});
+        return { stories: readBacklogOrder(project.root) };
       });
 
       routes.add("GET", `${base}/:story`, ({ params }): StoryDetail => {

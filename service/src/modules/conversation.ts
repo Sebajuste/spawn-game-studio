@@ -17,7 +17,9 @@ import type { AgentEvent } from "../../../kit/core/src/agent/events.ts";
 import { opencodeAdapter } from "../../../kit/core/src/agent/opencode.ts";
 import type { AgentAdapter } from "../../../kit/core/src/agent/type.ts";
 import { readStory, updateStory } from "../../../kit/core/src/stories.ts";
-import { releaseTurn } from "../../../kit/core/src/agents.ts";
+import { releaseTurn, running as runningAgents } from "../../../kit/core/src/agents.ts";
+import { DEFAULT_LOAD, LOAD_BOUNDS, readLoad, writeLoad, type Load } from "../../../kit/core/src/load.ts";
+import { rankIn, readBacklogOrder } from "../backlogOrder.ts";
 import { git } from "../../../kit/core/src/git.ts";
 import { readProjectSettings } from "../../../kit/core/src/settings.ts";
 import { readRegistry } from "../../../kit/core/src/registry.ts";
@@ -28,7 +30,7 @@ import { tidyMerged } from "../../../kit/core/src/cleanup.ts";
 import { contextOf, ledgerPath, type Context } from "../../../kit/core/src/context.ts";
 import { renderOutcome, runTasks } from "../../../kit/core/src/runner.ts";
 import { findProject, type Project } from "../../../kit/core/src/project.ts";
-import type { AgentName, ConversationTurn, ConversationView } from "../contract.ts";
+import type { AgentName, ConversationTurn, ConversationView, LoadView } from "../contract.ts";
 import type { ServiceModule } from "../module.ts";
 import { HttpError } from "../router.ts";
 import { projectById } from "./projects.ts";
@@ -259,6 +261,8 @@ export interface ConversationSummary {
   interrupted: boolean;
   // Constat de l'outil quand il a cessé de relancer l'agent après le dernier tour, sinon null.
   halted: string | null;
+  // Rang dans la file d'attente de la machine (1 = la prochaine à démarrer), null si elle n'attend pas de place.
+  waiting: number | null;
 }
 
 export interface ConversationModule extends ServiceModule {
@@ -267,6 +271,8 @@ export interface ConversationModule extends ServiceModule {
   // Une fusion est en cours sur ce fil : les messages attendent la fin de `work`, puis la file part.
   hold(projectId: string, story: string, work: Promise<unknown>): void;
   stop(projectId: string, story: string): Promise<void>;
+  // Charge de la machine : réglages, stories au travail et en attente (docs/reglages.md §3.2).
+  load(): LoadView;
   summary(projectId: string, root: string, story: string): ConversationSummary;
 }
 
@@ -284,6 +290,74 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
   let closing = false;
   let repaired = false;
   let emit: (type: string, data: unknown) => void = () => {};
+
+  // File d'attente de la machine (docs/reglages.md §3.2) : stories lancées alors que toutes les places étaient prises.
+  // En mémoire seulement : à la fermeture de l'app, leurs messages restent dans leur file, rien ne repart au démarrage.
+  // Les suites d'une story au travail (relance, enchaîneur, messages en file) gardent sa place et n'y passent pas.
+  interface Waiting {
+    key: string;
+    projectId: string;
+    root: string;
+    story: string;
+    since: number;
+    start: () => Promise<number>;
+  }
+  const waiting: Waiting[] = [];
+  const currentLoad = (): Load => {
+    try {
+      return readLoad();
+    } catch {
+      return DEFAULT_LOAD;
+    }
+  };
+  // Premier projet de l'ordre choisi, puis l'ordre de son Backlog, puis la plus ancienne en attente.
+  const ordered = (): Waiting[] => {
+    const projects = currentLoad().projects;
+    const orders = new Map<string, string[]>();
+    const order = (root: string) => {
+      if (!orders.has(root)) orders.set(root, readBacklogOrder(root));
+      return orders.get(root) ?? [];
+    };
+    return [...waiting].sort((a, b) => rankIn(projects, a.projectId) - rankIn(projects, b.projectId) || rankIn(order(a.root), a.story) - rankIn(order(b.root), b.story) || a.since - b.since);
+  };
+  const rankOf = (key: string): number | null => {
+    const i = ordered().findIndex((w) => w.key === key);
+    return i < 0 ? null : i + 1;
+  };
+  const notify = (projects: Iterable<string>) => {
+    emit("load", {});
+    for (const p of new Set(projects)) emit("stories", { project: p });
+  };
+  const dropWaiting = (key: string): boolean => {
+    const i = waiting.findIndex((w) => w.key === key);
+    if (i < 0) return false;
+    waiting.splice(i, 1);
+    return true;
+  };
+  // Démarre tout de suite s'il reste une place, sinon met la story en attente (une seule entrée par story : la dernière
+  // demande remplace la précédente, ses messages étant déjà dans sa file).
+  const admit = (projectId: string, root: string, story: string, start: () => Promise<number>): Promise<number> | { waiting: number } => {
+    const key = `${projectId}/${story}`;
+    if (running.size < currentLoad().stories) return start();
+    const existing = waiting.find((w) => w.key === key);
+    if (existing) existing.start = start;
+    else waiting.push({ key, projectId, root, story, since: Date.now(), start });
+    notify(waiting.map((w) => w.projectId));
+    return { waiting: rankOf(key) ?? waiting.length };
+  };
+  // Une place s'est libérée (fin d'un tour sans suite, limite relevée) : les premières de la file démarrent.
+  const promote = (): void => {
+    if (closing) return;
+    const touched = new Set<string>();
+    while (waiting.length > 0 && running.size < currentLoad().stories) {
+      const next = ordered()[0];
+      if (!next) break;
+      dropWaiting(next.key);
+      touched.add(next.projectId);
+      if (!running.has(next.key)) void next.start().catch(() => {});
+    }
+    notify([...touched, ...(touched.size > 0 ? waiting.map((w) => w.projectId) : [])]);
+  };
 
   const projectOf = (id: string): Project => {
     const project = findProject(projectById(id).root);
@@ -315,6 +389,8 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
   const launch = async (projectId: string, project: Project, story: string, message: string, agent: AgentName, auto = false, manual = false, resuming = false): Promise<number> => {
     const key = `${projectId}/${story}`;
     if (!auto) restarts.delete(key);
+    // Partie par un autre chemin (message direct avec une place libre) : elle ne doit pas repartir de la file.
+    if (dropWaiting(key)) notify([projectId]);
     // La file part avec ce tour (après le message donné), dans l'ordre : un seul tour, jamais deux files en concurrence.
     const queued = readQueue(project.root, story);
     if (queued.length > 0) writeQueue(project.root, story, []);
@@ -421,6 +497,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
     finished.set(key, work);
     void work.finally(() => {
       if (finished.get(key) === work) finished.delete(key);
+      promote();
     });
     return n;
   };
@@ -469,6 +546,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
     finished.set(key, work);
     void work.catch(() => {}).finally(() => {
       if (finished.get(key) === work) finished.delete(key);
+      promote();
     });
   };
 
@@ -485,8 +563,19 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
       writeQueue(project.root, story, options.head ? [entry, ...waiting] : [...waiting, entry]);
       // Un fil encore sans conversation garde l'agent choisi pour le tour qui sortira de la file.
       if (!readState(project.root, story)) writeState(project.root, story, { agent: chosen, session: null, turns: [] });
-      if (!running.has(key) && !held.has(key)) return launch(projectId, project, story, "", chosen);
+      if (!running.has(key) && !held.has(key)) {
+        const r = admit(projectId, project.root, story, () => launch(projectId, project, story, "", chosen));
+        return r instanceof Promise ? r : { queued: entry.id };
+      }
       return { queued: entry.id };
+    }
+    // Au repos sans place libre : le message attend dans sa file, la story dans celle de la machine.
+    if (running.size >= currentLoad().stories) {
+      const entry: Queued = { id: randomUUID(), message: text, date: new Date().toISOString() };
+      writeQueue(project.root, story, [...waiting, entry]);
+      if (!readState(project.root, story)) writeState(project.root, story, { agent: chosen, session: null, turns: [] });
+      const r = admit(projectId, project.root, story, () => launch(projectId, project, story, "", chosen));
+      return r instanceof Promise ? r : { queued: entry.id };
     }
     // Au repos avec une file restée là (après un Stop) : elle part avec ce message, qui s'ajoute à sa suite.
     if (waiting.length > 0) {
@@ -508,14 +597,17 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
       try {
         const project = projectOf(projectId);
         const state = readState(project.root, story);
-        if (state && readQueue(project.root, story).length > 0) void launch(projectId, project, story, "", state.agent).catch(() => {});
+        if (state && readQueue(project.root, story).length > 0) {
+          const r = admit(projectId, project.root, story, () => launch(projectId, project, story, "", state.agent));
+          if (r instanceof Promise) void r.catch(() => {});
+        }
       } catch {
         // projet disparu : la file reste écrite
       }
     });
   };
 
-  const resume = async (projectId: string, story: string): Promise<number> => {
+  const resume = async (projectId: string, story: string): Promise<number | { waiting: number }> => {
     const project = projectOf(projectId);
     const state = readState(project.root, story);
     const last = state?.turns.at(-1);
@@ -525,14 +617,41 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
     if (!state || !last || last.end === null || (last.refused.length > 0 && !last.interrupted)) throw new HttpError(409, "rien à reprendre : aucun tour de ce fil n'a été coupé, arrêté ou fini sans point d'arrêt");
     const message = last.interrupted ? resumeMessage(last.message, state.session !== null) : RESTART_MESSAGE;
     // Reprendre lève la pause ; une question coupée par la fermeture la garde.
-    return launch(projectId, project, story, message, state.agent, false, false, !(last.interrupted && last.paused));
+    return admit(projectId, project.root, story, () => launch(projectId, project, story, message, state.agent, false, false, !(last.interrupted && last.paused)));
+  };
+
+  const loadView = (): LoadView => {
+    const load = currentLoad();
+    const registry = readRegistry();
+    const ids = registry.map((p) => p.id);
+    const projects = [...registry].sort((a, b) => rankIn(load.projects, a.id) - rankIn(load.projects, b.id) || ids.indexOf(a.id) - ids.indexOf(b.id));
+    let agents = 0;
+    for (const p of registry) {
+      try {
+        const r = runningAgents(p.root);
+        agents += r.agents.length + r.reservations;
+      } catch {
+        // Projet illisible : il ne compte pas.
+      }
+    }
+    const split = (key: string) => ({ project: key.slice(0, key.indexOf("/")), story: key.slice(key.indexOf("/") + 1) });
+    return {
+      stories: load.stories,
+      agents: load.agents,
+      projects: projects.map((p) => ({ id: p.id, name: p.name })),
+      running: [...running.keys()].map(split),
+      waiting: ordered().map((w, i) => ({ project: w.projectId, story: w.story, rank: i + 1 })),
+      agentsRunning: agents,
+    };
   };
 
   return {
     send,
     hold,
+    load: loadView,
     async stop(projectId, story) {
       const key = `${projectId}/${story}`;
+      if (dropWaiting(key)) notify([projectId]);
       running.get(key)?.abort();
       await finished.get(key);
     },
@@ -550,6 +669,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
         paused: !busy && (last?.stopped === true || (last?.paused === true && !last.interrupted)),
         halted: !busy ? (last?.halted ?? null) : null,
         interrupted: !busy && last?.interrupted === true,
+        waiting: rankOf(`${projectId}/${story}`),
       };
     },
     id: "conversation",
@@ -593,12 +713,41 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
         writeQueue(project.root, story, queue.filter((q) => q.id !== params.qid));
         return { removed: params.qid };
       });
-      ctx.routes.add("POST", `${path}/resume`, async ({ params }) => ({ turn: await resume(params.id ?? "", params.story ?? "") }));
+      ctx.routes.add("POST", `${path}/resume`, async ({ params }) => {
+        const r = await resume(params.id ?? "", params.story ?? "");
+        return typeof r === "number" ? { turn: r } : r;
+      });
       ctx.routes.add("POST", `${path}/stop`, ({ params }) => {
+        // En attente d'une place : Stop la retire de la file ; ses messages restent, elle reste à reprendre.
+        if (dropWaiting(`${params.id}/${params.story}`)) {
+          notify([params.id ?? ""]);
+          return { stopped: true };
+        }
         const controller = running.get(`${params.id}/${params.story}`);
         if (!controller) throw new HttpError(409, "aucun tour en cours sur ce fil");
         controller.abort();
         return { stopped: true };
+      });
+      ctx.routes.add("GET", "/api/load", () => loadView());
+      ctx.routes.add("PUT", "/api/load", ({ body }) => {
+        const b = (body ?? {}) as Partial<Record<keyof Load, unknown>>;
+        const load = currentLoad();
+        for (const k of ["stories", "agents"] as const) {
+          const v = b[k];
+          if (v === undefined) continue;
+          const [min, max] = LOAD_BOUNDS[k];
+          if (typeof v !== "number" || !Number.isInteger(v) || v < min || v > max) throw new HttpError(400, `${k} : un entier de ${min} à ${max}`);
+          load[k] = v;
+        }
+        if (b.projects !== undefined) {
+          if (!Array.isArray(b.projects) || !b.projects.every((p) => typeof p === "string")) throw new HttpError(400, "projects : la liste des identifiants de projets, du premier au dernier");
+          load.projects = [...new Set(b.projects as string[])];
+        }
+        writeLoad(load);
+        // Limite relevée ou ordre changé : la file en tient compte tout de suite.
+        promote();
+        notify(waiting.map((w) => w.projectId));
+        return loadView();
       });
       return undefined;
     },
