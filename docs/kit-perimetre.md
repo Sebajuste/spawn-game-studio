@@ -82,6 +82,7 @@ Arborescence Godot (modèle de l'adaptateur ; un autre moteur a la sienne, ex. U
 | `libs/` | Réutilisable entre projets, hors éditeur |
 | `assets/` | Textures, modèles, sons, polices |
 | `core/games/` | Scènes lançables : `main`, scènes de test manuelles |
+| `core/maps/` | Cartes et niveaux, géométrie et décor plaçables, sans personnage, contrôleur ni règles ; une scène lançable de `core/games/` les instancie |
 | `core/actors/` | Objets de gameplay plaçables |
 | `core/gui/` | Interface seulement |
 | `core/systems/` | Code de jeu ni plaçable ni d'interface : règles, autoloads, systèmes |
