@@ -67,8 +67,8 @@ function agent(play: Play): AgentAdapter {
   };
 }
 
-async function open(play: Play, options: { autoResume?: boolean } = {}) {
-  const conversation = conversationModule(() => agent(play), options);
+async function open(play: Play) {
+  const conversation = conversationModule(() => agent(play));
   const s = await startService({ modules: [projectsModule, storiesModule, conversation], log: () => {} });
   services.push(s);
   const api = async (method: string, path: string, body?: unknown) => {
@@ -83,7 +83,7 @@ async function open(play: Play, options: { autoResume?: boolean } = {}) {
 }
 
 async function project() {
-  // Un registre par cas : au démarrage, le service reprend les fils coupés de tous les projets inscrits.
+  // Un registre par cas : au démarrage, le service marque coupés les tours de tous les projets inscrits.
   process.env.SPAWN_CONFIG = tempDir("config-test");
   const play: Play = { root: "", turns: [], delegated: 0 };
   const s = await open(play);
@@ -107,7 +107,9 @@ const statePath = (root: string) => join(root, ".spawn", "conversations", "grill
 type State = { turns: Record<string, unknown>[] };
 const stateOf = (root: string) => JSON.parse(readFileSync(statePath(root), "utf8")) as State;
 
-test("restart: a chain cut by closing the app is shown interrupted and resumes on its own", async () => {
+// Étude du 23/11, point 4 : au démarrage, tous les fils coupés repartaient ensemble, sans limite ; arrêter l'app ne
+// rendait pas la main. Un fil coupé reste coupé jusqu'au geste de l'utilisateur.
+test("restart: a chain cut by closing the app is shown interrupted and waits for Resume", async () => {
   const p = await project();
   await p.api("POST", p.path, { message: "go" });
   await waitUntil(() => p.play.delegated === 1);
@@ -115,7 +117,11 @@ test("restart: a chain cut by closing the app is shown interrupted and resumes o
   assert.equal(stateOf(p.play.root).turns.at(-1)?.interrupted, true);
 
   const again: Play = { root: p.play.root, turns: ["déjà joué"], delegated: 0 };
-  await open(again);
+  const s = await open(again);
+  await new Promise((ok) => setTimeout(ok, 500));
+  assert.deepEqual(again.turns, ["déjà joué"], "rien ne repart au démarrage");
+  assert.equal(stateOf(p.play.root).turns.at(-1)?.interrupted, true);
+  await s.api("POST", `${p.path}/resume`);
   await waitUntil(() => again.delegated === 1);
   assert.match(again.turns[1] ?? "", /coupée/);
 });
@@ -129,7 +135,7 @@ test("restart: a chain cut by a crash, nothing written at the end, is interrupte
   await p.close();
   writeFileSync(statePath(p.play.root), before);
 
-  await open({ root: p.play.root, turns: ["déjà joué"], delegated: 0 }, { autoResume: false });
+  await open({ root: p.play.root, turns: ["déjà joué"], delegated: 0 });
   assert.equal(stateOf(p.play.root).turns.at(-1)?.interrupted, true);
 });
 
@@ -197,6 +203,6 @@ test("subagents: at startup the places of cut turns are given back, entries writ
   start(p.play.root, { ...type, agent_id: "apres", story: "grille" }, new Date(Date.parse(turn.end) + 1000));
   start(p.play.root, { ...type, agent_id: "autre-fil", story: "menu" }, new Date(turn.start));
 
-  await open({ root: p.play.root, turns: ["déjà joué"], delegated: 0 }, { autoResume: false });
+  await open({ root: p.play.root, turns: ["déjà joué"], delegated: 0 });
   assert.deepEqual(running(p.play.root).agents.map((a) => a.agent_id).sort(), ["apres", "autre-fil"]);
 });

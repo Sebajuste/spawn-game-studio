@@ -45,7 +45,7 @@ test("title from the request: first clause, 7 words at most", () => {
 
 test("backlog: request, follow, request changes, accept, abandon, settings, launch", async () => {
   const agent = fakeAgent();
-  const conversation = conversationModule(agent.factory, { autoResume: false, autoRestart: false });
+  const conversation = conversationModule(agent.factory, { autoRestart: false });
   const s = await startService({ modules: [projectsModule, storiesModule, conversation, backlogModule(conversation)], log: () => {} });
   services.push(s);
   const api = async (method: string, path: string, body?: unknown) => {
@@ -204,7 +204,7 @@ test("backlog: request, follow, request changes, accept, abandon, settings, laun
 
 test("backlog: l'action longue dit le tour d'agent en cours, et la fusion prime sur lui", async () => {
   const agent = fakeAgent({ blocking: true });
-  const conversation = conversationModule(agent.factory, { autoResume: false, autoRestart: false });
+  const conversation = conversationModule(agent.factory, { autoRestart: false });
   const s = await startService({ modules: [projectsModule, storiesModule, conversation, backlogModule(conversation)], log: () => {} });
   services.push(s);
   const api = async (method: string, path: string, body?: unknown) => {
@@ -258,7 +258,7 @@ test("backlog: l'action longue dit le tour d'agent en cours, et la fusion prime 
 
 test("backlog: un message envoyé pendant la fusion attend sa fin ; refusée, le rappel de l'agent part en tête avec lui", async () => {
   const agent = fakeAgent();
-  const conversation = conversationModule(agent.factory, { autoResume: false, autoRestart: false });
+  const conversation = conversationModule(agent.factory, { autoRestart: false });
   const s = await startService({ modules: [projectsModule, storiesModule, conversation, backlogModule(conversation)], log: () => {} });
   services.push(s);
   const api = async (method: string, path: string, body?: unknown) => {
@@ -323,7 +323,7 @@ test("conversation: à toi, en pause après Stop, arrêtée avec la dernière ph
   const free = fakeAgent();
   let current = blocking;
   // Le faux agent change en cours de test : d'abord il retient son tour (Stop), puis il finit de lui-même.
-  const conversation = conversationModule((a, p) => current.factory(a, p), { autoResume: false, autoRestart: false });
+  const conversation = conversationModule((a, p) => current.factory(a, p), { autoRestart: false });
   const s = await startService({ modules: [projectsModule, storiesModule, conversation, backlogModule(conversation)], log: () => {} });
   services.push(s);
   const api = async (method: string, path: string, body?: unknown) => {

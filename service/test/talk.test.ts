@@ -71,7 +71,7 @@ function talkAgent(replies: string[], during?: (dir: string) => void): { factory
 
 test("talk: a scope conversation creates stories and epics through the service", async () => {
   const story = fakeAgent();
-  const conversation = conversationModule(story.factory, { autoResume: false, autoRestart: false });
+  const conversation = conversationModule(story.factory, { autoRestart: false });
   const replies = [
     `C'est un petit correctif, je le crée.\n\n${block({ create: "story", request: "Corrige la date vide de /equipment" })}`,
     "On a juste parlé.",

@@ -99,7 +99,7 @@ function talkAgent(replies: string[]): () => AgentAdapter {
 
 test("SGS-51: an epic created by the conversation is announced, at creation then at each story", async () => {
   const replies: string[] = [];
-  const conversation = conversationModule(fakeAgent().factory, { autoResume: false, autoRestart: false });
+  const conversation = conversationModule(fakeAgent().factory, { autoRestart: false });
   const { api, eventsUntil } = await open([projectsModule, storiesModule, conversation, backlogModule(conversation), talkModule(conversation, talkAgent(replies))]);
   const sound = spawnProject();
   gitOk(sound, ["checkout", "--quiet", "develop"]);

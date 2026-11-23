@@ -218,7 +218,7 @@ test("conversation: Stop ends the turn; an adapter refusal prevents the turn and
   assert.equal((await api("POST", path, { message: "x", agent: "gpt" })).status, 400);
 });
 
-test("interruption: closing the app mid-turn marks it interrupted; on restart the same session resumes on its own", async () => {
+test("interruption: closing the app mid-turn marks it interrupted; on restart nothing runs until Resume, which takes the same session", async () => {
   const first = fakeAgent({ blocking: true });
   const { s, api, root, id } = await service(first.factory);
   const path = `/api/projects/${id}/stories/coupe/conversation`;
@@ -232,13 +232,7 @@ test("interruption: closing the app mid-turn marks it interrupted; on restart th
   assert.equal(cut.turns[0].interrupted, true, "fermer l'app coupe le tour, ce n'est pas un Stop");
   assert.equal(cut.turns[0].stopped, false);
 
-  // Sans reprise automatique, la story se montre coupée et « resume » relance la session.
-  const manual = await startService({ modules: [projectsModule, storiesModule, conversationModule(fakeAgent().factory, { autoResume: false, autoRestart: false })], log: () => {} });
-  const seen = (await (await fetch(`http://127.0.0.1:${manual.port}/api/projects/${id}/stories`, { headers: { authorization: `Bearer ${manual.token}` } })).json()) as Body[];
-  assert.equal(seen.find((f) => f.story === "coupe")?.interrupted, true);
-  await manual.close();
-
-  // Redémarrage normal : la session reprend sans personne, avec une consigne de reprise.
+  // Redémarrage : la story se montre coupée, rien ne repart sans « resume » (étude du 23/11, point 4).
   const next = fakeAgent();
   const s2 = await startService({ modules: [projectsModule, storiesModule, conversationModule(next.factory, { autoRestart: false })], log: () => {} });
   services.push(s2);
@@ -246,6 +240,10 @@ test("interruption: closing the app mid-turn marks it interrupted; on restart th
     const r = await fetch(`http://127.0.0.1:${s2.port}${p}`, { method, headers: { authorization: `Bearer ${s2.token}` } });
     return { status: r.status, body: (await r.json()) as Body };
   };
+  await new Promise((ok) => setTimeout(ok, 300));
+  assert.equal(next.calls.length, 0, "rien ne repart au démarrage");
+  assert.equal(((await api2("GET", `/api/projects/${id}/stories`)).body as Body[]).find((f) => f.story === "coupe")?.interrupted, true);
+  assert.equal((await api2("POST", `${path}/resume`)).status, 200);
   await waitUntil(async () => next.calls.length === 1 && !(await api2("GET", path)).body.running);
   assert.equal(next.calls[0]?.session, session, "la même session est reprise");
   assert.match(next.calls[0]?.message ?? "", /coupée[\s\S]*git status[\s\S]*next/);

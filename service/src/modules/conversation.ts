@@ -7,7 +7,7 @@
 //
 // Une coupure (PC éteint, app fermée) ne perd rien : le code est dans le worktree, l'historique et l'identifiant de
 // session sont écrits dès qu'ils sont connus. Au démarrage, un tour resté sans fin est marqué interrompu, la story le
-// montre, et il est repris tout seul (même session) ; « reprendre » sert si cette reprise échoue.
+// montre, et il ne repart que par « reprendre » (même session).
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
@@ -270,9 +270,8 @@ export interface ConversationModule extends ServiceModule {
   summary(projectId: string, root: string, story: string): ConversationSummary;
 }
 
-export function conversationModule(factory: AgentFactory = defaultAgentFactory, options: { autoResume?: boolean; autoRestart?: boolean; runner?: boolean; turnTimeoutMs?: number } = {}): ConversationModule {
+export function conversationModule(factory: AgentFactory = defaultAgentFactory, options: { autoRestart?: boolean; runner?: boolean; turnTimeoutMs?: number } = {}): ConversationModule {
   const useRunner = options.runner ?? true;
-  const autoResume = options.autoResume ?? true;
   const autoRestart = options.autoRestart ?? true;
   const turnTimeoutMs = options.turnTimeoutMs ?? TURN_TIMEOUT_MS;
   // Relances automatiques consécutives, par « projet/story » ; remises à zéro par un message de l'utilisateur.
@@ -570,8 +569,8 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
             markInterrupted(p.root, story);
             const state = readState(p.root, story);
             if (state) releasePlaces(p.root, story, state.session, state.turns);
-            // Reprise sans l'utilisateur ; si elle échoue, la story reste coupée et l'app propose « Reprendre ».
-            if (autoResume && conversationInterrupted(p.root, story)) setTimeout(() => void resume(p.id, story).catch(() => {}), 0);
+            // Pas de reprise ici : un fil coupé attend « Reprendre » (étude du 23/11, point 4 : au démarrage, tous les
+            // fils coupés repartaient ensemble, sans limite, et arrêter l'app ne rendait pas la main).
           }
         }
       }
