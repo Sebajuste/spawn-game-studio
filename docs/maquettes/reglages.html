@@ -125,6 +125,9 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .module small { display:block; color:var(--discret); font-size:12px; }
 .ligne { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #e6e3da; }
 .ligne .droite { margin-left:auto; }
+.poignee { cursor:grab; color:var(--discret); }
+.attente { margin:12px 18px; border:1px solid var(--bord); border-left:4px solid var(--discret); border-radius:8px; padding:10px 12px; background:#fff; }
+.attente p { margin:4px 0 8px; color:#55564f; }
 .ligne small { display:block; }
 .danger { border:1px solid #e3b4ae; border-radius:8px; padding:10px 12px; margin-top:18px; background:#fdf5f4; }
 .danger h4 { margin:0 0 6px; color:var(--rouge); font-size:13px; }
@@ -169,7 +172,7 @@ const porteeWs = `<div class="portee"><button data-aller="menu-portee"><span cla
 const porteeP = `<div class="portee"><button data-aller="menu-portee"><span class="logo">A</span><span><strong>ar-api</strong><small>dans Arena · node 24</small></span><span class="chevron">▾</span></button><button class="jouer">▶</button></div>`;
 const barreWs = (c) => `<aside class="lieux">${porteeWs}<button class="lieu ${c === "home" ? "choisi" : ""}">Accueil<span class="nb">2</span><kbd>Ctrl+1</kbd></button><button class="lieu ${c === "epics" ? "choisi" : ""}">Epics<kbd>Ctrl+2</kbd></button><button class="lieu ${c === "projets" ? "choisi" : ""}">Projets<kbd>Ctrl+3</kbd></button></aside>`;
 const barreP = (c) => `<aside class="lieux">${porteeP}<button class="lieu ${c === "home" ? "choisi" : ""}">Accueil<span class="nb">1</span><kbd>Ctrl+1</kbd></button><button class="lieu ${c === "backlog" ? "choisi" : ""}">Backlog<kbd>Ctrl+2</kbd></button></aside>`;
-const fenetre = (menus, barre, principal, flottant = "") => `<div class="fenetre">${menus}<div class="corps">${barre}<section class="principal">${principal}</section></div>${etat}${flottant}</div>`;
+const fenetre = (menus, barre, principal, flottant = "", bas = etat) => `<div class="fenetre">${menus}<div class="corps">${barre}<section class="principal">${principal}</section></div>${bas}${flottant}</div>`;
 const fondWs = (flottant) => fenetre(MENUS_WS, barreWs("projets"), ariane(["Arena", "Projets"]) + `<div class="entete"><div><h2>Projets</h2><p>3 projets dans Arena</p></div><button class="btn" data-aller="ws">Gérer les projets…</button></div><div class="defile"><div class="carte v"><span><strong>ar-db</strong><small>rien en cours</small></span></div><div class="carte o"><span><strong>ar-api</strong><small>1 à juger</small></span></div><div class="carte"><span><strong>ar-site</strong><small>rien en cours</small></span></div></div>`, flottant);
 const nav = (choisi) => `<nav><h4>Application</h4><button class="${choisi === "app" ? "choisi" : ""}" data-aller="app">Application</button><h4>Portée</h4><button class="${choisi === "ws" ? "choisi" : ""}" data-aller="ws">Workspace « Arena »</button>${choisi === "projet" ? `<button class="choisi">Projet « ar-api »</button>` : ""}</nav>`;
 const reglages = (choisi, contenu) => `<div class="voile"></div><div class="reglages">${nav(choisi)}<div class="contenu">${contenu}</div><button class="fermer" title="Fermer (Échap)">✕</button></div>`;
@@ -181,6 +184,15 @@ const APP = `<h3>Application</h3><p>Pour toute l'app, sur cette machine.</p>
   <div class="module"><input type="checkbox"><span><strong>Godot</strong><small>jeu · aucun projet</small></span></div>
   <div class="module"><input type="checkbox" checked><span><strong>Node (web, services)</strong><small>app · 3 projets</small></span></div>
   <div class="module"><input type="checkbox" checked><span><strong>Conteneur (Maven, Gradle)</strong><small>service · aucun projet · demande Docker</small></span></div>
+  <h4 style="margin:16px 0 4px">Charge de la machine</h4>
+  <p style="margin:0 0 4px">Pour tous les projets à la fois. Une seule suite de tests tourne à la fois, quelle que soit la story.</p>
+  <div class="champ"><label>Stories au travail</label><span><input type="number" value="2" style="width:64px"><small>En même temps. Au-delà, une story lancée attend sa place.</small></span></div>
+  <div class="champ"><label>Agents</label><span><input type="number" value="4" style="width:64px"><small>En même temps, toutes stories confondues. La limite de chaque projet (spawn.json) reste en dessous.</small></span></div>
+  <div class="champ" style="align-items:start"><label>Ordre des projets</label><span>
+    <div class="ligne"><span class="poignee">⠿</span><span>1. <strong>ar-api</strong></span></div>
+    <div class="ligne"><span class="poignee">⠿</span><span>2. <strong>ar-db</strong></span></div>
+    <div class="ligne"><span class="poignee">⠿</span><span>3. <strong>ar-site</strong></span></div>
+    <small>Glisser pour changer l'ordre. Quand une place se libère, démarre la story en attente du premier projet, dans l'ordre de son Backlog.</small></span></div>
   <h4 style="margin:16px 0 4px">Fonctions facultatives</h4>
   <div class="module"><input type="checkbox" checked><span><strong>Conversation de portée</strong><small>L'Accueil de chaque portée : parler avec un agent qui crée les stories et les epics.</small></span></div>
   <div class="module"><input type="checkbox" checked><span><strong>Activité</strong><small>Ce que fait l'agent, en direct, sous la conversation.</small></span></div>
@@ -274,8 +286,12 @@ const MENU_STORY = `<div class="menu-objet" style="top:128px; right:22px"><butto
 const MENU_PORTEE = `<div class="menu-objet" style="top:62px; left:10px"><button>Changer de portée<kbd>Ctrl+P</kbd></button><hr><button class="sel" data-aller="ws">Réglages du workspace…</button></div>`;
 const story = (flottant) => fenetre(MENUS_P, barreP("backlog"), ariane(["Arena", "ar-api", "Backlog", "equipment-routes"]) + `<div class="entete"><div><h2>equipment-routes</h2><p>ARN-2 · Claude Code · depuis 12 min</p></div><button class="btn" data-aller="menu-story">⋯</button></div><div class="onglets"><span class="actif">Avancement</span><span>Conversation</span><span>Fichiers</span><span>Journal</span></div><div class="defile"><div class="decision"><strong>Question de l'agent</strong><p>Format de la date ?</p></div></div>`, flottant);
 
+const ETAT_CHARGE = `<div class="etat">2 stories au travail sur 2 · 1 en attente · 3 agents sur 4<span class="droite">service connecté</span></div>`;
+const ATTENTE = fenetre(MENUS_P, barreP("backlog"), ariane(["Arena", "ar-api", "Backlog", "invoice-export"]) + `<div class="entete"><div><h2>invoice-export</h2><p>ARN-3 · Claude Code · en attente d'une place, 1re</p></div><button class="btn">⋯</button></div><div class="onglets"><span class="actif">Avancement</span><span>Conversation</span><span>Fichiers</span><span>Journal</span></div><div class="defile"><div class="attente"><strong>En attente d'une place</strong><p>Les 2 places sont prises : ar-api › equipment-routes et ar-db › migrations. Elle démarre seule dès qu'une se libère ; elle passe la 1re (ar-api est le premier projet).</p><button class="btn" data-aller="app">Charge de la machine…</button></div></div>`, "", ETAT_CHARGE);
+
 const ECRANS = {
-  "app": { nom: "1. Réglages : Application", note: "Ctrl+, ou Fichier > Réglages. Une seule fenêtre, une section par portée. La langue et les modules quittent le menu Affichage. Les moteurs se choisissent par machine (Godot décoché ici ; le dernier moteur coché serait grisé). Un changement s'enregistre aussitôt.", rendu: () => fondWs(reglages("app", APP)) },
+  "app": { nom: "1. Réglages : Application", note: "Ctrl+, ou Fichier > Réglages. Une seule fenêtre, une section par portée. La langue et les modules quittent le menu Affichage. Les moteurs se choisissent par machine (Godot décoché ici ; le dernier moteur coché serait grisé). La charge de la machine : stories et agents en même temps, et l'ordre des projets qui décide quelle story attendue démarre. Un changement s'enregistre aussitôt.", rendu: () => fondWs(reglages("app", APP)) },
+  "attente": { nom: "1 bis. Une story attend sa place", note: "La limite de stories au travail est atteinte : la story lancée (message, validation, Reprendre) attend, son rang affiché. Rien à faire : elle démarre seule quand une place se libère (story finie, en pause, arrêtée ou bloquée). La barre d'état dit la charge de la machine.", rendu: () => ATTENTE },
   "ws": { nom: "2. Réglages : Workspace", note: "Nom, composition (ajouter un projet connu, ajouter un projet existant qui sera adopté, nouveau projet ; retirer) et zone dangereuse. Le lieu Projets ne gère plus rien, il montre (« Gérer les projets… » ouvre ici).", rendu: () => fondWs(reglages("ws", WS)) },
   "projet": { nom: "3. Réglages : Projet", note: "Les réglages machine du projet (ceux d'aujourd'hui), ce que dit spawn.json en lecture, et « Retirer de Spawn » (le dossier reste).", rendu: () => fenetre(MENUS_P, barreP("home"), ariane(["Arena", "ar-api", "Accueil"]), reglages("projet", PROJET)) },
   "confirmer": { nom: "4. Confirmation partagée", note: "Une seule confirmation pour toute suppression ou abandon : elle nomme l'objet et dit la conséquence. Entrée ne confirme pas : il faut cliquer (ou Tab puis Entrée) ; Échap annule.", rendu: () => fondWs(reglages("ws", WS) + `<div class="confirmer"><h3>Supprimer le workspace « Arena » ?</h3><p>Ses 3 projets restent dans Spawn et sur le disque. Ses 2 epics disparaissent ; leurs stories restent dans leurs projets.</p><div class="actions"><button class="btn">Annuler</button><button class="btn rouge fort">Supprimer</button></div></div>`) },

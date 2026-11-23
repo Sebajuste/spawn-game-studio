@@ -27,7 +27,7 @@ Ctrl+, ou Fichier > Réglages. À gauche les sections, à droite leur contenu ; 
 
 | Section | Contenu |
 |---|---|
-| **Application** | Langue ; moteurs (§3.1) ; fonctions facultatives (les modules non socle, avec leur description et la raison d'un module indisponible) |
+| **Application** | Langue ; moteurs (§3.1) ; charge de la machine (§3.2) ; fonctions facultatives (les modules non socle, avec leur description et la raison d'un module indisponible) |
 | **Workspace « nom »** (si la portée est un workspace, ou un projet dans un workspace) | Nom ; Projets : la liste, « Retirer » sur chacun, « Ajouter » (projets connus, « Ajouter un projet existant… », « Nouveau projet… ») ; Zone dangereuse : Supprimer le workspace (ses projets restent) |
 | **Projet « nom »** (si la portée est un projet) | Agent, modèle local, contexte (les réglages machine d'aujourd'hui) ; Projet : moteur, version, préfixe d'exigences et dossier, en lecture ; Zone dangereuse : Retirer de Spawn (le dossier reste, il se rouvre par « Ajouter un projet existant ») |
 
@@ -47,6 +47,27 @@ Une même installation sert des usages différents : des jeux Godot sur une mach
 - Le choix est gardé dans `~/.spawn/app.json` (`"engines": { "<moteur>": false }`), à côté des modules ; absent veut dire coché. L'installation du runtime n'en dépend pas : elle copie tous les adaptateurs.
 
 Service : `GET /api/adapters` rend `{ engine, title, product, active, projects }` ; `PUT /api/adapters/:engine` `{ active }` (409 si c'est le dernier coché). Le diagnostic et l'adoption reçoivent la liste des moteurs cochés ; le cœur du kit ne change pas (`kit/core/src/adapters.ts` et `kit/core/src/adopt/` n'en font pas partie).
+
+### 3.2 Charge de la machine (étude du 2026-11-23, point 3)
+
+Aujourd'hui la seule limite est `parallel_agents`, par projet : trois projets ouverts, c'est jusqu'à neuf agents et trois suites lourdes en même temps sur la machine. La charge se règle désormais pour toute la machine.
+
+- **Stories au travail** (2 par défaut) : le nombre de stories dont un tour d'agent tourne en même temps, tous projets confondus. Une story lancée au-delà (message, validation du cadrage, Reprendre) **attend sa place** : elle n'est ni refusée ni oubliée.
+- **Agents** (4 par défaut) : les sous-agents en même temps, toutes stories confondues. `parallel_agents` de `spawn.json` reste la limite du projet, sous celle de la machine. Un sous-agent refusé l'est avec le message d'aujourd'hui, qui nomme la limite atteinte.
+- **Ordre des projets** : une liste à glisser. Quand une place se libère (story finie, en pause, arrêtée, bloquée ou à juger), démarre la story en attente du premier projet qui en a une ; dans un projet, la première dans l'ordre du Backlog (P7 : le glisser est dans la maquette `app.html`, pas encore dans l'app ; il est fait avec ce point) ; à rang égal, la plus ancienne en attente. Un projet absent de la liste (nouvellement inscrit) se range à la fin.
+- **Une seule suite de tests à la fois** sur la machine (`spawn engine test`) : la suivante attend la fin de la précédente. Pas de réglage : c'est la cause des délais dépassés du 22/11.
+
+Ce qui se voit :
+
+- la story en attente le dit dans son en-tête (« en attente d'une place, 1re ») et dans son Avancement, avec les stories qui tiennent les places ;
+- la barre d'état dit la charge (« 2 stories au travail sur 2 · 1 en attente · 3 agents sur 4 ») ;
+- Stop sur une story en attente la retire de la file ; elle reste à reprendre.
+
+Rien ne démarre une story que personne n'a lancée : prendre d'elles-mêmes les stories prêtes du Backlog relève du cadrage par EPIC (étude, point 2).
+
+Gardé dans `~/.spawn/app.json` : `"load": { "stories": 2, "agents": 4, "projects": ["<id>", …] }` ; absent, les valeurs par défaut. Bornes : 1 à 10 stories, 1 à 20 agents.
+
+Service : `GET /api/load` rend les réglages et l'état (`running`, `waiting` avec le rang de chacune, `agents`) ; `PUT /api/load` `{ stories?, agents?, projects? }`. Le cœur change pour les agents et la suite : la réservation d'un sous-agent (`kit/core/src/hooks/agents.ts`, `agents.ts`) compte aussi la machine, et `engine test` prend un verrou dans `~/.spawn/`.
 
 ## 4. Les menus
 
@@ -98,3 +119,4 @@ Routes ajoutées (module `workspaces`, fonctions dans `kit/core/src/workspaces.t
 2. « Ouvrir un projet » devient « Ajouter un projet existant » et adopte le dossier s'il n'est pas encore un projet Spawn (`adoption.md`).
 3. Pas de réglage de thème ni de préférences d'affichage : rien ne les demande.
 4. Les moteurs proposés se choisissent par machine dans Réglages > Application (§3.1), sans toucher aux projets déjà inscrits (le mainteneur, 2026-11-21).
+5. La charge se règle pour toute la machine ; la story en attente qui démarre est celle du premier projet dans l'ordre choisi par l'utilisateur, puis dans l'ordre de son Backlog (§3.2, le mainteneur, 2026-11-23).

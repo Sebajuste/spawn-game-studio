@@ -82,7 +82,8 @@ Une story pas commencée se modifie librement (titre, demande, version, epic, or
 ## P7. Planifier
 
 - Versions > **Planifier une version** : numéro, objectif. Les stories pas commencées s'y déplacent (glisser, ou « ⋯ > Version »).
-- Backlog : l'ordre se change en glissant ; les agents prennent les stories dans cet ordre, jusqu'à `parallel_agents` à la fois.
+- Backlog : l'ordre se change en glissant.
+- Réglages > Application > Charge de la machine : combien de stories et d'agents en même temps, et l'ordre des projets. Une story lancée au-delà attend sa place ; quand une se libère, démarre celle du premier projet, dans l'ordre de son Backlog (`reglages.md` §3.2).
 
 ## P8. Suivre l'architecture
 
