@@ -5,7 +5,7 @@ import { basename, extname, join } from "node:path";
 import type { Diagnostic } from "../../../core/src/adapter/types.ts";
 import { diagnostic } from "./result.ts";
 
-export const THEMES = ["games", "actors", "gui", "systems"] as const;
+export const THEMES = ["games", "maps", "actors", "gui", "systems"] as const;
 const CODE = new Set([".gd", ".tscn", ".scn", ".gdshader", ".gdshaderinc", ".tres", ".res"]);
 const RAW = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg", ".bmp", ".tga", ".exr", ".hdr", ".wav", ".ogg", ".mp3", ".glb", ".gltf", ".fbx", ".obj", ".blend", ".ttf", ".otf", ".woff2"]);
 // Fichiers que Godot attend à la racine.
@@ -87,6 +87,7 @@ Par composant réutilisable, à la manière de React : un composant = un dossier
 | \`libs/\` | Réutilisable entre projets, hors éditeur |
 | \`assets/\` | Textures, modèles, sons, polices |
 | \`core/games/\` | Scènes lançables : \`main\`, scènes de test manuelles |
+| \`core/maps/\` | Cartes et niveaux, géométrie et décor plaçables, sans personnage, contrôleur ni règles ; une scène lançable de \`core/games/\` les instancie |
 | \`core/actors/\` | Objets de gameplay plaçables |
 | \`core/gui/\` | Interface seulement |
 | \`core/systems/\` | Code de jeu ni plaçable ni d'interface : règles, autoloads, systèmes |

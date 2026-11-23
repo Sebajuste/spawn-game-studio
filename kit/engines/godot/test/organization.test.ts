@@ -24,6 +24,7 @@ test("organization by component: well-placed files silent, misplaced ones report
     "core/actors/grille/croix.png",
     "core/actors/vehicules/voiture/voiture.gd",
     "core/games/main/main.tscn",
+    "core/maps/foret/foret.tscn",
     "core/systems/regles/regles.gd",
     "libs/maths/vecteurs/vecteurs.gd",
     "assets/textures/fond.png",
