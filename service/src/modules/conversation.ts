@@ -451,7 +451,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
       } catch (e) {
         text = `enchaîneur en échec : ${(e as Error).message}\n\n${RESTART_MESSAGE}`;
       } finally {
-        // Coupé par la fermeture : repris au démarrage ; par Stop : en pause.
+        // Coupé par la fermeture : à reprendre par « Reprendre » ; par Stop : en pause.
         markTurn((t) => {
           delete t.chaining;
           if (closing) t.interrupted = true;
@@ -524,7 +524,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
     // sans fin n'a rien à reprendre : le message suffit.
     if (!state || !last || last.end === null || (last.refused.length > 0 && !last.interrupted)) throw new HttpError(409, "rien à reprendre : aucun tour de ce fil n'a été coupé, arrêté ou fini sans point d'arrêt");
     const message = last.interrupted ? resumeMessage(last.message, state.session !== null) : RESTART_MESSAGE;
-    // Reprendre lève la pause ; une question coupée par la fermeture, reprise au démarrage, la garde.
+    // Reprendre lève la pause ; une question coupée par la fermeture la garde.
     return launch(projectId, project, story, message, state.agent, false, false, !(last.interrupted && last.paused));
   };
 
