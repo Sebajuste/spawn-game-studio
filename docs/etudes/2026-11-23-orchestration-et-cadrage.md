@@ -6,6 +6,8 @@ Question du mainteneur : la nuit du 22 au 23/11, l'EPIC « Intégration POI » m
 
 **Verdict : à quantité de tokens comparable, la console livre et Spawn ne livre pas.** Deux tiers du budget de Spawn partent dans l'orchestration, ses plans sont trop fins, ses EPIC ne sont pas cadrées, et rien ne règle la charge de la machine.
 
+> **Corrigé le 23/11** (`2026-11-23-epics-console.md`, dernière section) : le constat du point 1 est faux (une seule session d'orchestrateur par fil) et les parts par rôle du tableau sont surestimées.
+
 ## Mesure
 
 | | Spawn, 3 fils Godot (22/11, 18 h → 00 h) | Console, nuit (23:29 → 06:59) |
