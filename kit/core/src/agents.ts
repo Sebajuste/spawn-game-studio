@@ -1,8 +1,10 @@
-// Sous-agents en cours dans un projet : limite `agents_paralleles` (spawn.json) et `sous_agents` des fils pour l'app.
+// Sous-agents en cours dans un projet : limite `parallel_agents` (spawn.json), limite `agents` de la machine (tous les
+// projets du registre, docs/reglages.md §3.2) et `subagents` des fils pour l'app.
 // SubagentStart/Stop tiennent le registre ; PreToolUse sur l'outil Agent réserve une place ou refuse.
 // Une réservation couvre le délai entre l'accord et le démarrage, pour que deux lancements simultanés ne passent pas tous deux.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { readRegistry } from "./registry.ts";
 import { readStory, updateStory } from "./stories.ts";
 
 export const RESERVATION_DURATION_MS = 60_000;
@@ -51,9 +53,39 @@ export function running(root: string, now = Date.now()): { agents: RunningAgent[
 
 export type Decision = { allowed: true } | { allowed: false; reason: string };
 
-export function reserve(root: string, limit: number, callId: string, now = new Date()): Decision {
+const sameRoot = (p: string) => (process.platform === "win32" ? resolve(p).toLowerCase() : resolve(p));
+
+// Sous-agents et réservations de tous les projets inscrits, et de `root` s'il ne l'est pas (un terminal hors de l'app).
+export function machineBusy(root: string, now = Date.now()): number {
+  const roots = new Map<string, string>([[sameRoot(root), root]]);
+  try {
+    for (const p of readRegistry()) roots.set(sameRoot(p.root), p.root);
+  } catch {
+    // Registre illisible : seul ce projet compte, la limite du projet tient toujours.
+  }
+  let busy = 0;
+  for (const r of roots.values()) {
+    const { agents, reservations } = running(r, now);
+    busy += agents.length + reservations;
+  }
+  return busy;
+}
+
+// `machineLimit` absent : seule la limite du projet (les tests du registre, qui n'ont pas de machine).
+export function reserve(root: string, limit: number, callId: string, now = new Date(), machineLimit?: number): Decision {
   const { agents, reservations } = running(root, now.getTime());
   const busy = agents.length + reservations;
+  if (machineLimit !== undefined && busy < limit) {
+    const all = machineBusy(root, now.getTime());
+    if (all >= machineLimit) {
+      return {
+        allowed: false,
+        reason:
+          `${all} sous-agent(s) déjà en cours sur la machine, tous projets confondus ; limite Agents = ${machineLimit} (Réglages > Application > Charge de la machine). ` +
+          "Ensuite : attendre la fin de l'un d'eux, puis relancer ; ne pas contourner la limite en faisant le travail toi-même.",
+      };
+    }
+  }
   if (busy >= limit) {
     const list = agents.map((a) => `${a.agent_type}${a.story ? ` (fil ${a.story})` : ""}`).join(", ");
     return {
@@ -66,6 +98,22 @@ export function reserve(root: string, limit: number, callId: string, now = new D
   mkdirSync(dir(root), { recursive: true });
   writeFileSync(join(dir(root), `reservation-${safeName(callId)}.json`), JSON.stringify({ since: now.toISOString() }));
   return { allowed: true };
+}
+
+// Attend une place (projet et machine) pour un sous-agent lancé par l'outil lui-même (enchaîneur) ; faux si arrêté avant.
+export async function acquire(root: string, limit: number, machineLimit: number, callId: string, signal?: AbortSignal, onWait?: (reason: string) => void, pollMs = 5000): Promise<boolean> {
+  let told = false;
+  for (;;) {
+    if (signal?.aborted) return false;
+    const d = reserve(root, limit, callId, new Date(), machineLimit);
+    if (d.allowed) return true;
+    if (!told) onWait?.(d.reason);
+    told = true;
+    await new Promise<void>((ok) => {
+      const t = setTimeout(ok, pollMs);
+      signal?.addEventListener("abort", () => (clearTimeout(t), ok()), { once: true });
+    });
+  }
 }
 
 export function start(root: string, agent: Omit<RunningAgent, "since">, now = new Date()): void {

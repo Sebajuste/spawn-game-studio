@@ -6,7 +6,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Context } from "./context.ts";
+import { acquire, start, stop } from "./agents.ts";
 import { git } from "./git.ts";
+import { readLoad } from "./load.ts";
 import { CLI_PATH, nextAction, tasksDir, type Action, type RunStep } from "./next.ts";
 import type { AgentAdapter } from "./agent/type.ts";
 
@@ -26,6 +28,8 @@ export interface RunOptions {
   maxSteps?: number;
   signal?: AbortSignal;
   log?: (line: string) => void;
+  // Limite Agents de la machine ; par défaut celle de ~/.spawn/app.json.
+  machineAgents?: number;
 }
 
 const REWRITE = "Ta relecture précédente n'a pas écrit ce fichier : un verdict dit dans ta réponse ne compte pas, écris-le avec ton outil d'écriture de fichiers.";
@@ -91,16 +95,28 @@ export async function runTasks(o: RunOptions): Promise<RunOutcome> {
       if (!agent.delegate) return { reason: "agent-failed", detail: `l'agent ${agent.name} ne sait pas lancer un sous-agent seul` };
       const before = head(ctx.dir);
       const output = join(outputs, `${stamp}-${String(index + 1).padStart(2, "0")}-${step.agent}.jsonl`);
+      // Un agent lancé par l'enchaîneur compte comme un sous-agent : limite du projet et de la machine (§3.2 de
+      // docs/reglages.md). Sans place, il attend ; Stop l'interrompt.
+      const id = `run-${stamp}-${i}-${index}-${step.agent}`;
+      const root = ctx.project.root;
+      const placed = await acquire(root, ctx.project.config.limits.parallel_agents, o.machineAgents ?? readLoad().agents, id, o.signal, (reason) => log(`  en attente d'une place : ${reason}`));
+      if (!placed) return { reason: "stopped", detail: null };
+      start(root, { agent_id: id, agent_type: `spawnstudio:${step.agent}`, story: ctx.story });
       log(`  ${step.agent} (${step.model}) lancé`);
-      const turn = await agent.delegate({
-        dir: ctx.dir,
-        agent: step.agent,
-        model: step.model,
-        prompt: rewrite ? `${step.prompt} ${REWRITE}` : step.prompt,
-        output,
-        timeoutMs: o.agentTimeoutMs ?? 45 * 60_000,
-        ...(o.signal ? { signal: o.signal } : {}),
-      });
+      let turn: Awaited<ReturnType<NonNullable<AgentAdapter["delegate"]>>>;
+      try {
+        turn = await agent.delegate({
+          dir: ctx.dir,
+          agent: step.agent,
+          model: step.model,
+          prompt: rewrite ? `${step.prompt} ${REWRITE}` : step.prompt,
+          output,
+          timeoutMs: o.agentTimeoutMs ?? 45 * 60_000,
+          ...(o.signal ? { signal: o.signal } : {}),
+        });
+      } finally {
+        stop(root, id);
+      }
       const after = head(ctx.dir);
       range = before === after ? "" : `${before}..${after}`;
       log(`  ${step.agent} fini (code ${turn.code ?? "arrêté"})`);

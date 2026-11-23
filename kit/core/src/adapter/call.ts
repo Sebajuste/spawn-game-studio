@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
+import { LOCK_ENV, machineLock } from "../machine-lock.ts";
 import { NOT_APPLICABLE, type AdapterDescriptor, type AdapterResult, type NotApplicable } from "./types.ts";
 import { validateResponse } from "./validate.ts";
 
@@ -112,11 +113,29 @@ export function adapterTimeoutMs(options: Readonly<Record<string, OptionValue>>)
   return Math.max(SAFETY_MS, (seconds("seconds") + 120) * 1000 + ANSWER_MARGIN_MS);
 }
 
-export function callAdapter(
+// Une seule suite de tests à la fois sur la machine (docs/reglages.md §3.2) : `test` attend le verrou avant de partir,
+// et son délai ne court qu'une fois parti.
+export async function callAdapter(
   adapter: Adapter,
   subcommand: string,
   options: Readonly<Record<string, OptionValue>> = {},
-  { timeoutMs = adapterTimeoutMs(options), env }: CallOptions = {},
+  call: CallOptions = {},
+): Promise<Response> {
+  if (subcommand !== "test") return run(adapter, subcommand, options, call);
+  const release = await machineLock("test", (who) => process.stderr.write(`[spawn] une autre suite de tests tourne sur la machine (${who}) : attente de sa fin
+`));
+  try {
+    return await run(adapter, subcommand, options, { ...call, env: { ...(call.env ?? process.env), [LOCK_ENV]: "1" } });
+  } finally {
+    release();
+  }
+}
+
+function run(
+  adapter: Adapter,
+  subcommand: string,
+  options: Readonly<Record<string, OptionValue>>,
+  { timeoutMs = adapterTimeoutMs(options), env }: CallOptions,
 ): Promise<Response> {
   const { program, args } = resolveProgram(adapter);
   const childEnv = { ...(env ?? process.env) };

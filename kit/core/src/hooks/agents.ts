@@ -18,7 +18,8 @@ try {
     const registry = await import("../agents.ts");
     const root = ctx.project.root;
     if (action === "reserve") {
-      const d = registry.reserve(root, ctx.project.config.limits.parallel_agents, input.tool_use_id ?? `${Date.now()}`);
+      const { readLoad } = await import("../load.ts");
+      const d = registry.reserve(root, ctx.project.config.limits.parallel_agents, input.tool_use_id ?? `${Date.now()}`, new Date(), readLoad().agents);
       if (!d.allowed) exit(d.reason, 2);
     } else if (action === "start") {
       // Les agents internes de Claude Code (suggestions, /btw) arrivent sans type : ils ne comptent pas.
