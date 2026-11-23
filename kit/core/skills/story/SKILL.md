@@ -23,8 +23,13 @@ Le ledger du fil ne s'écrit que par `spawn ledger <type> --option valeur…` (f
 
 ## 2. Spec
 
-Lire `CLAUDE.md`, `knowledge/organization.md` et ce qu'il faut de `context/` et du code : tout le jeu se fait avec le moteur du projet (`spawn.json`), jamais en technologies web. Puis écrire `docs/specs/AAAA-MM-JJ-<fil>.md`, une page au plus :
+Lire `CLAUDE.md`, `knowledge/organization.md` et ce qu'il faut de `context/` et du code : tout le jeu se fait avec le moteur du projet (`spawn.json`), jamais en technologies web.
 
+**D'abord l'inventaire**, avant d'écrire une ligne. Pour chaque besoin de la demande, chercher ce qui existe déjà, dans le projet et dans ce qu'il utilise : addons, bibliothèques, dépôts que cite `CLAUDE.md`. C'est en lecture seule : un agent d'exploration par dépôt ou composant, en parallèle, si l'outil le permet. Une feature étend ce qui existe, elle ne le réécrit pas (nuit du 22 au 23/11 : un scatter réécrit dans la démo, alors que l'addon terrain en avait un).
+
+Puis écrire `docs/specs/AAAA-MM-JJ-<fil>.md`, une page au plus :
+
+- **Existant** (`## Existant`) : un élément de liste par besoin, soit le composant qu'on étend avec son chemin, soit `rien d'existant (cherché : <dossiers, dépôts>)`. L'outil refuse une spec sans cette section. L'utilisateur la voit en validant, et chaque implémenteur la reçoit dans son brief.
 - **Résultat attendu** : ce que l'utilisateur pourra voir ou jouer, et comment, en 3 à 5 lignes (scène, touche, situation).
 - **Exigences** : une par élément de liste, `- **<TAG>-NN** <phrase observable>. Preuve : <test | bout en bout | capture | aucune>.` (`<TAG>` : préfixe du projet). La **preuve** dit ce qui sera testé et ce qui ne le sera pas ; l'utilisateur la valide avec le reste :
   - `test`, `bout en bout` : un test écrit avec l'outillage qui existe déjà ; il nomme son **contrôle négatif**, le cas qui doit échouer. Un test de bout en bout charge la scène principale et rejoue « Ce que tu verras ». Le projet garde au moins un test de bout en bout : s'il n'en a pas, une exigence a cette preuve ;

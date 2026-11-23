@@ -4,7 +4,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { ledgerPath, type Context } from "./context.ts";
 import { domain, hasScenes } from "./domain.ts";
-import { citedRequirements, planSection, readPlan, requirementLines, specRequirements } from "./plan.ts";
+import { citedRequirements, planSection, readPlan, requirementLines, specRequirements, specSection } from "./plan.ts";
 import { readStory, listStories } from "./stories.ts";
 import { unmetDependencies } from "./workspaces.ts";
 import { readDecisions } from "./merge.ts";
@@ -112,6 +112,8 @@ export function taskBrief(ctx: Context, specPath: string, planPath: string, task
   const tag = ctx.project.config.tag;
   const spec = readPlan(ctx.dir, specPath) ?? "";
   const requirements = requirementLines(spec, citedRequirements(section, tag), tag);
+  // L'inventaire de la spec, recopié : c'est l'implémenteur qui réécrivait ce qui existait (nuit du 22 au 23/11).
+  const existing = specSection(spec, "Existant")?.split(/\r?\n/).slice(1).join("\n").trim();
   const closed = evs.flatMap((e) => (e.type === "task-done" ? [`- tâche ${e.task} : commits ${e.commits}`] : []));
   const rulings = evs.flatMap((e) =>
     e.type === "ruling" ? [`- ${e.decision} — ${e.reason} — ${e.cost}`] : e.type === "task-parked" ? [`- tâche ${e.task} parquée : ${e.ruling}`] : [],
@@ -125,6 +127,7 @@ export function taskBrief(ctx: Context, specPath: string, planPath: string, task
     "## Exigences couvertes (spec validée)",
     ...(requirements.length > 0 ? requirements : ["- aucune citée par la tâche"]),
     "",
+    ...(existing ? ["## Existant (spec validée : à étendre, jamais à réécrire)", existing, ""] : []),
     "## Tâches précédentes (leurs interfaces sont dans ces commits)",
     ...(closed.length > 0 ? closed : ["- aucune"]),
     "",
@@ -276,7 +279,8 @@ function stepAction(ctx: Context, agent?: Agent): Action {
     return {
       step: "spec",
       instruction:
-        `${framing(ctx)} Écrire ${join(ctx.dir, path)} (une page) : « Résultat attendu » (ce que l'utilisateur pourra voir ou jouer, et comment, en 3 à 5 lignes), « Exigences » (numérotées ${config.tag ?? "TAG"}-01, ${config.tag ?? "TAG"}-02, ${config.tag ?? "TAG"}-03…, une phrase observable chacune, en élément de liste « - **${config.tag ?? "TAG"}-NN** <phrase>. Preuve : <test | bout en bout | capture | aucune>. » ; une preuve « test » nomme son contrôle négatif, le cas qui doit échouer), « Hors périmètre ». La preuve dit ce qui sera testé, et ce qui ne le sera pas : l'utilisateur la valide avec le reste. « test » et « bout en bout » s'écrivent avec l'outillage de test qui existe déjà ; si un test demanderait un outillage absent, la preuve est « capture » ou « aucune », et la spec dit ce qu'un test demanderait. Une capture montre ce que le projet affiche au lancement (sa scène ou sa page), sans clic ni touche : une exigence qui demande une action (menu déplié, saut, survol) n'a pas la preuve « capture », mais « test », ou « aucune » quand l'utilisateur la regarde lui-même à la recette. Le projet garde au moins un test de bout en bout (la preuve de l'outil l'exige) : s'il n'en a pas encore, une exigence a la preuve « bout en bout ». ` +
+        `${framing(ctx)} D'abord l'inventaire, avant d'écrire une ligne : ce qui existe déjà pour chaque besoin de la demande, dans le projet et dans ce qu'il utilise (addons, bibliothèques, dépôts que cite CLAUDE.md), en lecture seule, un agent d'exploration par dépôt ou composant si ton outil le permet. Une feature étend ce qui existe, elle ne le réécrit pas. ` +
+        `Puis écrire ${join(ctx.dir, path)} (une page) : « Existant » (un élément de liste par besoin : le composant qu'on étend, avec son chemin, ou « rien d'existant (cherché : <dossiers, dépôts>) »), « Résultat attendu » (ce que l'utilisateur pourra voir ou jouer, et comment, en 3 à 5 lignes), « Exigences » (numérotées ${config.tag ?? "TAG"}-01, ${config.tag ?? "TAG"}-02, ${config.tag ?? "TAG"}-03…, une phrase observable chacune, en élément de liste « - **${config.tag ?? "TAG"}-NN** <phrase>. Preuve : <test | bout en bout | capture | aucune>. » ; une preuve « test » nomme son contrôle négatif, le cas qui doit échouer), « Hors périmètre ». La preuve dit ce qui sera testé, et ce qui ne le sera pas : l'utilisateur la valide avec le reste. « test » et « bout en bout » s'écrivent avec l'outillage de test qui existe déjà ; si un test demanderait un outillage absent, la preuve est « capture » ou « aucune », et la spec dit ce qu'un test demanderait. Une capture montre ce que le projet affiche au lancement (sa scène ou sa page), sans clic ni touche : une exigence qui demande une action (menu déplié, saut, survol) n'a pas la preuve « capture », mais « test », ou « aucune » quand l'utilisateur la regarde lui-même à la recette. Le projet garde au moins un test de bout en bout (la preuve de l'outil l'exige) : s'il n'en a pas encore, une exigence a la preuve « bout en bout ». ` +
         "La commiter, puis la proposer et mettre le fil en attente par les deux commandes, et t'arrêter : c'est l'utilisateur qui la valide, dans l'app. C'est la seule question de la feature.",
       commands: propose,
       proof: "spec commitée et proposée, fil en attente de validation",
@@ -448,7 +452,7 @@ function stepAction(ctx: Context, agent?: Agent): Action {
     const final = finalReviewPath(root, story.story);
     const corrections = evs.findLast((e) => e.type === "final-review" && e.verdict === "changes")?.date ?? "";
     if (!finalReviewUpToDate(final, lastTask, corrections)) {
-      const finalPrompt = `Relecture finale du fil ${story.story} ; le ${dom.product} est dans le dossier courant (le worktree du fil). Relis toute la branche (git diff $(git merge-base develop HEAD)..HEAD) contre la spec ${spec.path} et le plan ${plan.path}, avec les findings mineurs et les tâches parquées du ledger (${SPAWN} ledger). Écris ton verdict dans ${final}, en commençant par une ligne exacte « VERDICT : APPROUVÉ » (aucun finding Critique ni Important) ou « VERDICT : À CORRIGER », puis les findings numérotés (Critique, Important, Mineur).`;
+      const finalPrompt = `Relecture finale du fil ${story.story} ; le ${dom.product} est dans le dossier courant (le worktree du fil). Relis toute la branche (git diff $(git merge-base develop HEAD)..HEAD) contre la spec ${spec.path} et le plan ${plan.path} ; un composant que la section « Existant » de la spec dit d'étendre et que la branche réécrit à côté est un finding Important. Avec les findings mineurs et les tâches parquées du ledger (${SPAWN} ledger). Écris ton verdict dans ${final}, en commençant par une ligne exacte « VERDICT : APPROUVÉ » (aucun finding Critique ni Important) ou « VERDICT : À CORRIGER », puis les findings numérotés (Critique, Important, Mineur).`;
       return {
         step: "relecture finale",
         instruction: `Toutes les tâches sont terminées ou parquées. Lance UN agent ${v.subagent("task-reviewer")}${v.model(limits.escalation_model)}, par ${v.subagentTool}, avec exactement ce prompt : « ${finalPrompt} » Jamais de relecture faite par toi.`,

@@ -75,7 +75,40 @@ export function specDefects(text: string, tag?: string): string[] {
       defects.push(`${r.id} : preuve « ${r.proof} » inconnue, attendu ${PROOFS.join(", ")}. Un test qui demanderait un outillage absent du projet ne s'invente pas : écris la preuve possible avec l'existant et dis, dans la spec, ce qu'un test demanderait ; l'utilisateur tranche en validant`);
     }
   }
+  defects.push(...existingDefects(text));
   return defects;
+}
+
+// Une section « ## Titre » (ou « ### Titre »), titre compris, jusqu'au titre suivant de même niveau ou plus haut.
+export function specSection(text: string, title: string): string | null {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((l) => new RegExp(`^#{2,3}\\s+${title}\\s*$`, "i").test(l.trim()));
+  if (start < 0) return null;
+  const level = /^#+/.exec(lines[start]?.trim() ?? "")?.[0].length ?? 2;
+  const end = lines.findIndex((l, i) => i > start && (/^#+/.exec(l)?.[0].length ?? 99) <= level);
+  return lines.slice(start, end < 0 ? lines.length : end).join("\n").trim();
+}
+
+// Inventaire de l'existant, fait avant d'écrire la spec. Nuit du 22 au 23/11 : un scatter réécrit dans la démo alors que
+// l'addon terrain en avait un. Chaque besoin nomme le composant étendu (un chemin), ou dit qu'il n'y en a pas et où on a
+// cherché : l'utilisateur le voit en validant, l'implémenteur le reçoit dans son brief.
+const PATH_LIKE = /[\w.-]+[/\\][\w./\\-]+|[\w-]+\.[a-z0-9]{1,6}\b/i;
+
+function existingDefects(text: string): string[] {
+  const form = "un élément de liste par besoin : le composant qui existe et qu'on étend, avec son chemin, ou « rien d'existant (cherché : <dossiers, dépôts>) »";
+  const section = specSection(text, "Existant");
+  if (section === null) {
+    return [`section « ## Existant » absente : fais d'abord l'inventaire de ce qui existe (le projet, ses addons et bibliothèques, les dépôts que cite CLAUDE.md), puis écris-la : ${form}`];
+  }
+  // Une exigence (« - **TAG-NN** … ») n'est pas un élément de l'inventaire, même sans titre « Exigences » entre les deux.
+  const items = section
+    .split(/\r?\n/)
+    .filter((l) => /^\s*[-*]\s+\S/.test(l) && !/^\s*[-*]\s*(?:\*\*)?[A-Z][A-Z0-9]{1,5}-\d+\b/.test(l))
+    .map((l) => l.replace(/^\s*[-*]\s+/, "").trim());
+  if (items.length === 0) return [`« ## Existant » sans élément de liste : ${form}`];
+  return items
+    .filter((i) => !PATH_LIKE.test(i) && !/rien d.existant/i.test(i))
+    .map((i) => `Existant, « ${i} » : ni chemin ni « rien d'existant » ; ${form}`);
 }
 
 // Un fichier de test cité (`menubar.test.ts`, `test_grille.gd`) ou « test d'abord » : la tâche écrit un test.

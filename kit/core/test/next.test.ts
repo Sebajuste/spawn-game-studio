@@ -10,7 +10,7 @@ import { updateStory } from "../src/stories.ts";
 import { gitOk } from "../src/git.ts";
 import { createWorktree } from "../src/hooks/worktree.ts";
 import { write, type LedgerEvent } from "../src/ledger.ts";
-import { needsChanges, nextAction as stepOf, planTasks, type Action } from "../src/next.ts";
+import { needsChanges, nextAction as stepOf, planTasks, taskBrief, type Action } from "../src/next.ts";
 
 // Règle vérifiée à chaque étape de ces tests : aucun chemin absolu dans ce que lit l'agent (il le recopie dans ses plans
 // et ses docs ; essai du 19/11, nom de compte de la machine dans un plan commité).
@@ -40,6 +40,25 @@ function ctx(dir: string): Context {
   assert.ok(c);
   return c;
 }
+
+// Nuit du 22 au 23/11 : l'implémenteur a réécrit un scatter qui existait dans l'addon. Le brief lui donne l'inventaire.
+test("brief: the « Existant » section of the approved spec is copied for the implementer", () => {
+  const dir = mkdtempSync(join(tmpdir(), "spawn-brief-"));
+  try {
+    mkdirSync(join(dir, "docs", "specs"), { recursive: true });
+    mkdirSync(join(dir, "docs", "plans"), { recursive: true });
+    writeFileSync(join(dir, "docs", "specs", "s.md"), "# Saut\n## Existant\n- Scatter : `addons/terrain/scatter.gd`, étendu.\n## Exigences\n- **SAU-01** Le héros saute. Preuve : test.\n");
+    writeFileSync(join(dir, "docs", "plans", "p.md"), "## Tâche 1 : saut\nExigences : SAU-01.\n");
+    const c = { project: { config: { tag: "SAU" } }, story: "saut", dir } as unknown as Context;
+    const brief = taskBrief(c, "docs/specs/s.md", "docs/plans/p.md", 1, []) ?? "";
+    assert.match(brief, /## Existant \(spec validée : à étendre, jamais à réécrire\)\n- Scatter : `addons\/terrain\/scatter\.gd`, étendu\./);
+    assert.match(brief, /- \*\*SAU-01\*\* Le héros saute/);
+    writeFileSync(join(dir, "docs", "specs", "s.md"), "## Exigences\n- **SAU-01** Le héros saute. Preuve : test.\n");
+    assert.doesNotMatch(taskBrief(c, "docs/specs/s.md", "docs/plans/p.md", 1, []) ?? "", /Existant/, "spec d'avant l'inventaire : rien d'inventé");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test("plan tasks: « ## Tâche N : titre » headings, in order", () => {
   assert.deepEqual(planTasks("# Plan\n## Tâche 2 : saut\ntexte\n## Tache 1 - grille\n### Tâche 10 : fin\n## Autre"), [

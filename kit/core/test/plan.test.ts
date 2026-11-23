@@ -1,7 +1,10 @@
 // Vérification d'un plan à l'enregistrement : forme lisible par spawn next, fichiers du moteur et pas d'une autre plateforme.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { planDefects, planProofDefects, specDefects, specRequirements } from "../src/plan.ts";
+import { planDefects, planProofDefects, specDefects, specRequirements, specSection } from "../src/plan.ts";
+
+// Inventaire fait avant la spec : ce qu'on étend, ou ce qu'on a cherché sans le trouver.
+const EXISTING = "## Existant\n\n- Barre de menus : `src/menubar/MenuBar.tsx`, étendue.\n- Raccourci : rien d'existant (cherché : `src/`, `docs/`).\n";
 
 const GODOT = [".gd", ".tscn", ".tres", ".gdshader"];
 
@@ -34,6 +37,7 @@ Runtime versionné (essai du 19/11, « + » dans le chemin) : node "C:\Users\x\.
 
 // Preuve par exigence, fixée au cadrage. Cas réel : essai Spawn sur Spawn du 18/11 (menu « Jeu » renommé « Projet »).
 const MENU_SPEC = [
+  EXISTING,
   "## Exigences",
   "",
   "- **SGS-31** Le deuxième menu de la barre s'intitule « Projet ». Preuve : capture.",
@@ -48,11 +52,29 @@ test("spec: every requirement carries a proof from the closed list", () => {
     { id: "SGS-35", proof: "aucune" },
   ]);
   assert.deepEqual(specDefects(MENU_SPEC, "SGS"), []);
-  assert.deepEqual(specDefects("- **SGS-01** Le saut. Preuve : bout en bout.\n- **SGS-02** La chute. Preuve : test (contrôle négatif : sans gravité, rouge).\n", "SGS"), []);
+  assert.deepEqual(specDefects(`${EXISTING}- **SGS-01** Le saut. Preuve : bout en bout.\n- **SGS-02** La chute. Preuve : test (contrôle négatif : sans gravité, rouge).\n`, "SGS"), []);
+});
+
+// Nuit du 22 au 23/11 : un scatter réécrit dans la démo au lieu d'étendre celui de l'addon terrain. Rien n'obligeait à
+// regarder l'existant avant d'écrire, ni ne le donnait à l'implémenteur.
+test("spec: the « Existant » section is required, each item names what is extended or what was searched", () => {
+  const requirements = "## Exigences\n- **SGS-01** Le saut. Preuve : bout en bout.\n";
+  assert.match(specDefects(requirements, "SGS")[0] ?? "", /section « ## Existant » absente[\s\S]*inventaire/);
+  assert.match(specDefects(`## Existant\n\nÀ voir.\n${requirements}`, "SGS")[0] ?? "", /« ## Existant » sans élément de liste/);
+  const vague = specDefects(`## Existant\n- Le scatter, réutilisé.\n${requirements}`, "SGS");
+  assert.match(vague[0] ?? "", /« Le scatter, réutilisé\. » : ni chemin ni « rien d'existant »/);
+  assert.deepEqual(specDefects(`## Existant\n- Scatter : addons/planet_terrain/scatter/scatter.gd, étendu.\n${requirements}`, "SGS"), []);
+  assert.deepEqual(specDefects(`### Existant\n- Rien d'existant (cherché : core/, addons/).\n${requirements}`, "SGS"), []);
+});
+
+test("spec: a section is read up to the next heading of the same level or above", () => {
+  assert.equal(specSection(`# Titre\n${EXISTING}\n### Détail\nx\n## Exigences\n- y\n`, "Existant"), `${EXISTING.trim()}\n\n### Détail\nx`);
+  assert.equal(specSection("## Exigences\n- y\n", "Existant"), null);
 });
 
 test("spec: the 18/11 spec (no proof per requirement) is refused, as are an unknown proof and a spec without requirements", () => {
   const trial = [
+    EXISTING,
     "- **SGS-31** Le deuxième menu s'intitule « Projet ». Contrôle négatif : le test qui vérifie ce titre échoue sur le code d'avant.",
     "- **SGS-35** Commentaires. Preuve : capture.",
   ].join("\n");

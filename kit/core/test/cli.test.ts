@@ -263,7 +263,10 @@ test("spawn ledger: the spec fixes each requirement's proof, the plan writes no 
   const refused = spawnCli(worktree, "ledger", "spec-proposed", "--path", "docs/specs/menu.md");
   assert.equal(refused.code, 2);
   assert.match(refused.stderr, /spec refusée[\s\S]*PNT-01 : preuve absente/);
+  // Sans inventaire, refusée aussi : l'existant se cherche avant d'écrire (nuit du 22 au 23/11).
   writeFileSync(spec, "- **PNT-01** Le menu s'intitule « Projet ». Preuve : capture.\n");
+  assert.match(spawnCli(worktree, "ledger", "spec-proposed", "--path", "docs/specs/menu.md").stderr, /section « ## Existant » absente/);
+  writeFileSync(spec, "## Existant\n- Menu : rien d'existant (cherché : src/).\n- **PNT-01** Le menu s'intitule « Projet ». Preuve : capture.\n");
   const proposed = spawnCli(worktree, "ledger", "spec-proposed", "--path", "docs/specs/menu.md");
   assert.equal(proposed.code, 0, proposed.stderr);
   // La validation est le geste de l'utilisateur (l'app) : écrite ici directement.
