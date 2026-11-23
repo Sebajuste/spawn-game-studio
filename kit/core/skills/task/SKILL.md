@@ -28,8 +28,8 @@ Lire `spawn ledger`. Une tâche déjà terminée ne se relance pas. Une tâche l
 
 - **DONE** : relecture (étape 3).
 - **DONE_WITH_CONCERNS** : lire les doutes. S'ils touchent la justesse, les traiter comme NEEDS_CONTEXT ; sinon les joindre à la relecture.
-- **NEEDS_CONTEXT** : compléter le brief, reprendre le même implémenteur (SendMessage).
-- **BLOCKED** : plus de contexte, le modèle `escalation_model` ou une découpe de la tâche dans le plan, avec un Ruling (`spawn ledger ruling …`). Un blocage qui demande de désactiver un test ou de relâcher une tolérance signale un code ou une spec faux, jamais un test à contourner.
+- **NEEDS_CONTEXT** : compléter le brief, reprendre le même implémenteur (SendMessage). S'il propose de changer un critère (seuil, tolérance, assertion) : trancher par l'objectif (ce que l'utilisateur verra, la marge raisonnable pour lui), noter la décision au ledger (`spawn ledger ruling …`, sa raison tirée de l'objectif), compléter le brief en conséquence ; refuser si le critère vient d'une décision de l'utilisateur, qui seul la change.
+- **BLOCKED** : plus de contexte, le modèle `escalation_model` ou une découpe de la tâche dans le plan, avec un Ruling (`spawn ledger ruling …`). Un blocage après le recul (3ᵉ rouge du même test) se lit d'abord par l'objectif : code faux, découpe à revoir, ou critère qui ne sert pas l'objectif. Désactiver un test n'est jamais une sortie ; changer un critère, seulement par un Ruling justifié par l'objectif.
 
 ## 3. Relecture
 

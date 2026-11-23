@@ -85,10 +85,10 @@ export function claudeAdapter(o: { model?: string; run?: Launcher } = {}): Agent
       const code = await run("claude", args, { cwd: dir, output, timeoutMs, env, ...(signal ? { signal } : {}) });
       return { code, session: firstField(output, "session_id") ?? session };
     },
-    async delegate({ dir, agent, model, prompt, output, timeoutMs, signal }) {
+    async delegate({ dir, agent, model, prompt, output, timeoutMs, signal, env: extra }) {
       // L'agent du plugin, comme l'outil Agent le lancerait ; le hook de périmètre du plugin vaut aussi ici.
       const args = ["-p", prompt, "--agent", `spawnstudio:${agent}`, "--model", model, "--output-format", "stream-json", "--verbose", "--permission-mode", "bypassPermissions"];
-      const env = { ...process.env };
+      const env = { ...process.env, ...extra };
       delete env.SPAWN_AGENT;
       const code = await run("claude", args, { cwd: dir, output, timeoutMs, env, ...(signal ? { signal } : {}) });
       return { code, session: firstField(output, "session_id") };

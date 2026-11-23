@@ -9,6 +9,7 @@ import type { Context } from "./context.ts";
 import { acquire, start, stop } from "./agents.ts";
 import { git } from "./git.ts";
 import { readLoad } from "./load.ts";
+import { AGENT_STARTED_ENV } from "./breath.ts";
 import { CLI_PATH, nextAction, tasksDir, type Action, type RunStep } from "./next.ts";
 import type { AgentAdapter } from "./agent/type.ts";
 
@@ -23,7 +24,8 @@ export interface RunOutcome {
 export interface RunOptions {
   ctx: Context;
   agent: AgentAdapter;
-  // Un agent qui tourne plus longtemps est arrêté (arbre du processus tué par son PID).
+  // Un agent qui tourne plus longtemps est arrêté (arbre du processus tué par son PID). Filet seulement : à 45 min,
+  // `spawn engine test` lui demande déjà de terminer proprement (breath.ts), sans perdre son travail.
   agentTimeoutMs?: number;
   maxSteps?: number;
   signal?: AbortSignal;
@@ -111,7 +113,8 @@ export async function runTasks(o: RunOptions): Promise<RunOutcome> {
           model: step.model,
           prompt: rewrite ? `${step.prompt} ${REWRITE}` : step.prompt,
           output,
-          timeoutMs: o.agentTimeoutMs ?? 45 * 60_000,
+          timeoutMs: o.agentTimeoutMs ?? 75 * 60_000,
+          env: { [AGENT_STARTED_ENV]: new Date().toISOString() },
           ...(o.signal ? { signal: o.signal } : {}),
         });
       } finally {

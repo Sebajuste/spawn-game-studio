@@ -174,6 +174,18 @@ test("spawn engine: project adapter on the current worktree, verdict as exit cod
   assert.equal(JSON.parse(healthy.stdout).next, undefined, "rien à faire quand tout est vert");
 });
 
+test("spawn engine test: the same test red a second time asks the agent to step back before fixing", async () => {
+  const { worktree } = await projectWithStory();
+  configure(worktree);
+  commit(worktree, "test/test_casse.fx", "FAIL\n");
+  const first = JSON.parse(spawnCli(worktree, "engine", "test").stdout);
+  assert.equal(first.ok, false);
+  assert.match(first.next, /^corriger test\/test_casse\.fx/);
+  const second = JSON.parse(spawnCli(worktree, "engine", "test").stdout);
+  assert.match(second.next, /^Recul : le même test est rouge pour la 2ᵉ fois.*Ensuite seulement : corriger test\/test_casse\.fx/);
+  assert.match(JSON.parse(spawnCli(worktree, "engine", "test").stdout).next, /^Arrêt : .*BLOCKED/);
+});
+
 test("compaction: handoff-format instructions, status active → compacting → active, state reinjected", async () => {
   const { root, worktree } = await projectWithStory();
   updateStory(root, "pont", { first_step: "relancer la tâche 3" });

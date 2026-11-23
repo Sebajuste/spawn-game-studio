@@ -22,7 +22,8 @@ import { pilot } from "./pilot.ts";
 import { apply, installPlan, checkPrerequisites } from "./prerequisites.ts";
 import { running } from "./agents.ts";
 import { createWorktree } from "./hooks/worktree.ts";
-import { needsChanges, reportPath, reviewPath, finalReviewPath, finalReviewUpToDate, renderAction, relativeTo, SPAWN, nextAction, singleTaskReview, capturedRequirements, briefPath, taskBrief } from "./next.ts";
+import { needsChanges, reportPath, reviewPath, finalReviewPath, finalReviewUpToDate, renderAction, relativeTo, SPAWN, nextAction, singleTaskReview, capturedRequirements, briefPath, taskBrief, tasksDir } from "./next.ts";
+import { breathe, STEP_BACK } from "./breath.ts";
 import { projectAdapter } from "./project.ts";
 import { domain } from "./domain.ts";
 import { readProjectSettings } from "./settings.ts";
@@ -411,7 +412,10 @@ ${prep.result ? JSON.stringify(prep.result, null, 2) : prep.defects.join(" ; ")}
         : firstError
           ? `corriger ${firstError.file ? `${firstError.file}${firstError.line ? `:${firstError.line}` : ""} ` : ""}(${firstError.code} : ${firstError.message.slice(0, 200)}) ; puis ${restart}${r.result.errors.length > 1 ? ` (${r.result.errors.length - 1} autre(s) erreur(s) dans la sortie)` : ""}`
           : null;
-      console.log(JSON.stringify({ ...r.result, ...(next ? { next } : {}) }, null, 2));
+      // Rouges successifs du même test, durée de l'agent : la consigne de recul passe avant la correction suivante.
+      const notice = sub === "test" && ctx.story ? breathe(join(tasksDir(ctx.project.root, ctx.story), "engine-reds.json"), r.result) : null;
+      const then = notice === STEP_BACK && next ? `${notice} Ensuite seulement : ${next}` : (notice ?? next);
+      console.log(JSON.stringify({ ...r.result, ...(then ? { next: then } : {}) }, null, 2));
       for (const d of r.defects) console.error(`défaut de l'adaptateur : ${d}`);
       return r.result.ok ? 0 : 1;
     }

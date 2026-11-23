@@ -202,9 +202,9 @@ export function opencodeAdapter(o: { model: string; load?: boolean; context?: nu
       return { code, session: session ?? firstField(output, "sessionID") };
     },
     // Un seul modèle local : celui demandé par le plan est ignoré (le vocabulaire OpenCode n'en nomme aucun).
-    async delegate({ dir, agent, prompt, output, timeoutMs, signal }) {
+    async delegate({ dir, agent, prompt, output, timeoutMs, signal, env }) {
       const args = ["run", "--standalone", "--auto", "-m", o.model, "--agent", `spawn-${agent}`, "--format", "json", prompt];
-      const code = await run("opencode", args, { cwd: dir, output, timeoutMs, env: ENV, ...(signal ? { signal } : {}) });
+      const code = await run("opencode", args, { cwd: dir, output, timeoutMs, env: { ...ENV, ...env }, ...(signal ? { signal } : {}) });
       return { code, session: firstField(output, "sessionID") };
     },
     async check() {

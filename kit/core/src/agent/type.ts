@@ -24,7 +24,8 @@ export interface AgentAdapter {
   turn(o: { dir: string; message: string; session: string | null; output: string; timeoutMs: number; signal?: AbortSignal; env?: Record<string, string> }): Promise<Turn>;
   // Lance un agent du kit (implémenteur, relecteur) seul, en mode non interactif, pour l'enchaîneur (`spawn run`) :
   // une session neuve par geste, son prompt exact, aucune conversation.
-  delegate?(o: { dir: string; agent: "implementer" | "task-reviewer"; model: string; prompt: string; output: string; timeoutMs: number; signal?: AbortSignal }): Promise<Turn>;
+  // `env` : variables ajoutées à l'agent (heure de départ, lue par `spawn engine test` pour la fin de durée).
+  delegate?(o: { dir: string; agent: "implementer" | "task-reviewer"; model: string; prompt: string; output: string; timeoutMs: number; signal?: AbortSignal; env?: Record<string, string> }): Promise<Turn>;
   // Lit une ligne de la sortie brute du tour en événements normalisés (vide pour une ligne sans intérêt).
   read(line: string): AgentEvent[];
   // Taille de contexte à laquelle rapporter la jauge (seuil de compactage, ou contexte chargé du modèle local) ;
