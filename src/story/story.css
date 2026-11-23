@@ -85,3 +85,5 @@
 .queued { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; max-width: 75%; }
 .queued-bubble { opacity: 0.55; max-width: 100%; }
 .queued button { padding: 0 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); }
+/* En attente d'une place : les deux gestes restent sur une ligne. */
+.banner.place .place-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }

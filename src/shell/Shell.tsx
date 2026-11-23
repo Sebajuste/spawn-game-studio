@@ -5,6 +5,7 @@ import type { Api, ProjectView } from "../shared/api.ts";
 import { t, useLang } from "../i18n/i18n.ts";
 import { working } from "../data/inbox.ts";
 import { useBacklogs } from "../data/useBacklogs.ts";
+import { useLoad } from "../data/useLoad.ts";
 import { useClock } from "../data/useClock.ts";
 import { useEvents } from "../data/useEvents.ts";
 import { useModules } from "../data/useModules.ts";
@@ -76,6 +77,7 @@ export function Shell({ api }: { api: Api }) {
 
   const scope = useMemo(() => scopeProjects(route, allWorkspaces), [route, allWorkspaces]);
   const { backlogs } = useBacklogs(api, events, scope, active.has("backlog"), onError);
+  const { load } = useLoad(api, events, active.has("conversation"));
 
   const go = useCallback(
     (next: Route, replace = false) => {
@@ -151,6 +153,7 @@ export function Shell({ api }: { api: Api }) {
   );
   const status = (
     <StatusBar
+      load={load}
       working={working(backlogs, scope)}
       connected={connected}
       notice={notice}
@@ -199,7 +202,7 @@ export function Shell({ api }: { api: Api }) {
               <ScopePicker projects={allProjects} workspaces={allWorkspaces} inline notice={gone ? t("nav.picker.gone") : null} onPick={go} onNewProject={() => setDialog("new")} onOpenProject={() => setDialog("adopt")} onNewWorkspace={() => setDialog("workspace")} onClose={() => undefined} />
             </div>
           ) : route.kind === "project" && project ? (
-            <ProjectContent api={api} events={events} route={route} project={project} backlogs={backlogs} active={active} focus={talkFocus} onTalk={() => actions.talk()} navigate={go} onLaunch={run} onError={onError} />
+            <ProjectContent api={api} events={events} route={route} project={project} backlogs={backlogs} load={load} active={active} focus={talkFocus} onTalk={() => actions.talk()} navigate={go} onLaunch={run} onLoadSettings={() => actions.settings("app")} onError={onError} />
           ) : route.kind === "workspace" && workspace ? (
             <WorkspaceContent api={api} events={events} route={route} workspace={workspace} projects={allProjects} backlogs={backlogs} active={active} projectName={projectName} focus={talkFocus} navigate={go} onNewEpic={() => setDialog("epic")} onManage={() => actions.settings("workspace")} onChanged={() => void reloadWorkspaces()} />
           ) : null}

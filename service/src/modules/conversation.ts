@@ -409,6 +409,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
     // Un agent travaille : le runtime refuse d'être réinstallé ou changé pendant ce temps (SGS-09).
     recordActivity("service", [...running.keys()]);
     emit("conversation", { project: projectId, story, turn: n, events: [] });
+    emit("load", {});
 
     const work = (async () => {
       const adapter = factory(agent, project);
@@ -518,6 +519,7 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
     running.set(key, controller);
     recordActivity("service", [...running.keys()]);
     emit("conversation", { project: projectId, story, turn: readState(project.root, story)?.turns.at(-1)?.n ?? 0, events: [] });
+    emit("load", {});
     const work = (async () => {
       let text: string;
       let failed = true;

@@ -2,13 +2,14 @@
 // (question, recette), une ligne « maintenant », puis les étapes. Les autres onglets (Conversation, Fichiers, Journal,
 // Technique) gardent le détail, chacun selon son module.
 import { useCallback, useEffect, useState } from "react";
-import type { Api, AgentEvent, ConversationEvent, StoryDetail } from "../shared/api.ts";
+import type { Api, AgentEvent, ConversationEvent, LoadView, StoryDetail } from "../shared/api.ts";
 import { label, Refusal, useAction } from "../shared/action.ts";
 import { Conversation } from "./conversation/Conversation.tsx";
 import { Files } from "./files/Files.tsx";
 import { Steps } from "./Steps.tsx";
 import { Outcome } from "./Outcome.tsx";
 import { Idle } from "./Idle.tsx";
+import { Place } from "./Place.tsx";
 import { ApproveSpec } from "./ApproveSpec.tsx";
 import { Answer } from "./Answer.tsx";
 import { Acceptance } from "./Acceptance.tsx";
@@ -28,13 +29,16 @@ export interface StoryPageProps {
   story: string;
   active: ReadonlySet<string>;
   onLaunch: () => void;
+  // Charge de la machine : qui tient les places quand cette story attend la sienne.
+  machine?: LoadView | null;
+  onLoadSettings?: () => void;
   onError: (e: string | null) => void;
   onClosed: () => void;
 }
 
 type Tab = "progress" | "conversation" | "files" | "log" | "technical";
 
-export function StoryPage({ api, events, project, story, active, onLaunch, onError, onClosed }: StoryPageProps) {
+export function StoryPage({ api, events, project, story, active, onLaunch, machine = null, onLoadSettings, onError, onClosed }: StoryPageProps) {
   const [detail, setDetail] = useState<StoryDetail | null>(null);
   const [tab, setTab] = useState<Tab>("progress");
   const [now, setNow] = useState<string | null>(null);
@@ -200,6 +204,7 @@ export function StoryPage({ api, events, project, story, active, onLaunch, onErr
             </div>
           ) : (
             <>
+              <Place detail={detail} machine={machine} act={act} onLeave={() => void conversationAction("leave", "stop")} onSettings={onLoadSettings} />
               <Outcome detail={detail} />
               <Idle detail={detail} act={act} onResume={() => void conversationAction("resume", "resume")} />
               {detail.group === "blocked" && detail.waiting?.reason === "spec-approval" && <ApproveSpec api={api} project={project} detail={detail} act={act} onApprove={() => action("approve", "approve-spec")} onAnswer={(m) => action("changes", "answer", { message: m })} />}

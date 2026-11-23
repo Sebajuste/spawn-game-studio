@@ -35,6 +35,7 @@ export function readableStep(step: string | null): string | null {
 export function subtitle(f: StoryView): string {
   if (f.group === "history") return t(f.result === "accepted" ? "project.sub.delivered" : f.result === "abandoned" ? "project.sub.abandoned" : "project.sub.closed", { since: since(f.updated) });
   if (f.group === "acceptance") return t("project.sub.acceptance", { since: since(f.updated) });
+  if (f.place !== null) return f.place === 1 ? t("project.sub.place.first") : t("project.sub.place.other", { rank: f.place });
   if (f.waiting?.reason === "spec-approval") return t("project.sub.specApproval");
   if (f.waiting?.reason === "question") return t("project.sub.question");
   if (f.waiting?.reason === "interrupted") return t("project.sub.interrupted");

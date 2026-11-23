@@ -1,8 +1,9 @@
-// Réglages > Application : pour toute l'app, sur cette machine. La langue, les moteurs proposés, et les fonctions
+// Réglages > Application : pour toute l'app, sur cette machine. La langue, les moteurs proposés, la charge, et les fonctions
 // facultatives (les modules hors socle) avec ce qu'elles font, ou pourquoi l'une est éteinte malgré le choix.
 import { getLang, LANGS, setLang, t, type Lang } from "../i18n/i18n.ts";
 import type { AdapterChoice, Api, ModuleState } from "../shared/api.ts";
 import { EnginesSettings } from "./EnginesSettings.tsx";
+import { LoadSettings } from "./LoadSettings.tsx";
 import { SettingRow } from "./SettingRow.tsx";
 
 interface Props {
@@ -30,6 +31,7 @@ export function AppSection({ api, modules, onToggle, adapters, onAdapters, onErr
         </select>
       </SettingRow>
       <EnginesSettings api={api} adapters={adapters} onChanged={onAdapters} onError={onError} />
+      <LoadSettings api={api} onError={onError} />
       <h4>{t("settings.app.modules")}</h4>
       {optional.length === 0 && <p className="muted">{t("settings.app.noModules")}</p>}
       {optional.map((m) => (

@@ -25,3 +25,4 @@
 .creation-steps li { margin: 4px 0; }
 .creation-steps li.done::marker { color: var(--active); }
 .creation-steps li.running { color: var(--muted); }
+.dragging { opacity: 0.45; }

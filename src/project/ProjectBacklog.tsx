@@ -1,7 +1,9 @@
 // Lieu « Backlog » d'un projet (docs/navigation.md §4) : les stories ouvertes par groupe, les livrées et les fermées en
-// filtres. Rien ne s'y crée : on demande dans la conversation de l'Accueil (docs/conversation.md).
+// filtres. Rien ne s'y crée : on demande dans la conversation de l'Accueil (docs/conversation.md). Les stories ouvertes se
+// rangent en glissant dans leur groupe : cet ordre décide laquelle démarre quand une place se libère (docs/reglages.md §3.2).
 import { useMemo, useState } from "react";
-import type { StoryGroup, StoryView } from "../shared/api.ts";
+import type { Api, StoryGroup, StoryView } from "../shared/api.ts";
+import { moved } from "../shared/reorder.ts";
 import { PlaceHeader } from "../shared/PlaceHeader.tsx";
 import { t } from "../i18n/i18n.ts";
 import { BacklogFilters } from "./BacklogFilters.tsx";
@@ -17,22 +19,33 @@ const OPEN_GROUPS: { id: StoryGroup; title: () => string }[] = [
 ];
 
 interface Props {
+  api: Api;
+  project: string;
   stories: StoryView[] | null;
   onOpen: (story: string) => void;
   // Ctrl+J : l'Accueil, curseur dans la conversation.
   onTalk: () => void;
+  onError: (e: string) => void;
 }
 
 function subtitleOf(n: number): string {
   return n === 0 ? t("nav.backlog.subtitle.zero") : t(n === 1 ? "nav.backlog.subtitle.one" : "nav.backlog.subtitle.other", { n });
 }
 
-export function ProjectBacklog({ stories, onOpen, onTalk }: Props) {
+export function ProjectBacklog({ api, project, stories, onOpen, onTalk, onError }: Props) {
   const [filter, setFilter] = useState<BacklogFilter>("open");
   const [search, setSearch] = useState("");
   const all = useMemo(() => stories ?? [], [stories]);
   const counts = useMemo(() => countByFilter(all), [all]);
   const list = useMemo(() => filterBacklog(all, filter, search), [all, filter, search]);
+  const [dragged, setDragged] = useState<string | null>(null);
+  // Tout l'ordre ouvert est envoyé : le service range le Backlog entier d'après cette liste.
+  const drop = (target: string) => {
+    if (!dragged || dragged === target) return setDragged(null);
+    const open = all.filter((s) => s.group !== "history").map((s) => s.story);
+    setDragged(null);
+    api.call("PUT", `/api/projects/${project}/backlog/order`, { stories: moved(open, dragged, target) }).catch((e: Error) => onError(e.message));
+  };
 
   return (
     <>
@@ -66,7 +79,22 @@ export function ProjectBacklog({ stories, onOpen, onTalk }: Props) {
                     <section key={id}>
                       <h3 className="group-title">{title()}</h3>
                       {group.map((s) => (
-                        <StoryCard key={s.story} story={s} onOpen={() => onOpen(s.story)} />
+                        <div
+                          key={s.story}
+                          draggable
+                          className={dragged === s.story ? "dragging" : ""}
+                          onDragStart={() => setDragged(s.story)}
+                          onDragEnd={() => setDragged(null)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            // Seulement dans son groupe : l'ordre entre groupes dit l'état, pas la priorité.
+                            if (all.find((x) => x.story === dragged)?.group === id) drop(s.story);
+                            else setDragged(null);
+                          }}
+                        >
+                          <StoryCard story={s} onOpen={() => onOpen(s.story)} />
+                        </div>
                       ))}
                     </section>
                   );

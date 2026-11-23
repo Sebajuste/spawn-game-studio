@@ -39,3 +39,9 @@
 .danger-zone-box .setting-line { border: 0; padding-bottom: 0; }
 .danger-zone-box .setting-line-text small { white-space: normal; }
 .btn.danger-outline { border-color: var(--blocked); color: var(--blocked); background: var(--card); }
+
+/* Charge de la machine : ordre des projets, à glisser. */
+.load-order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
+.load-order li { display: flex; gap: 8px; align-items: center; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-bar); cursor: grab; }
+.load-order .grip { color: var(--muted); }
+.dragging { opacity: 0.45; }

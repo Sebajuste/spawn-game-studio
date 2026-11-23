@@ -32,6 +32,9 @@ export const navigation = {
     "nav.picker.gone": "This project or workspace no longer exists. Choose another one.",
 
     "nav.status.none": "No agent at work",
+    "nav.status.loadStories": "{running} of {max} stories at work",
+    "nav.status.loadWaiting": "{n} waiting",
+    "nav.status.loadAgents": "{running} of {max} agents",
     "nav.status.connected": "service connected",
     "nav.status.disconnected": "service unreachable: reconnecting…",
 
@@ -114,6 +117,9 @@ export const navigation = {
     "nav.picker.gone": "Ce projet ou ce workspace n'existe plus. Choisis-en un autre.",
 
     "nav.status.none": "Aucun agent au travail",
+    "nav.status.loadStories": "{running} stories au travail sur {max}",
+    "nav.status.loadWaiting": "{n} en attente",
+    "nav.status.loadAgents": "{running} agents sur {max}",
     "nav.status.connected": "service connecté",
     "nav.status.disconnected": "service injoignable : reconnexion…",
 
