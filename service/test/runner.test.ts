@@ -2,7 +2,7 @@
 // l'enchaîne (implémenteur, relecteur, ledger) puis rend la main à l'orchestrateur avec le résultat. Après un échec de
 // l'enchaîneur, l'orchestrateur reprend sans lui (pas de boucle).
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,7 @@ import { write, type LedgerEvent } from "../../kit/core/src/ledger.ts";
 import { renderAction, RUNNER_ENV, type Action } from "../../kit/core/src/next.ts";
 import type { AgentAdapter } from "../../kit/core/src/agent/type.ts";
 import { cleanDirs, spawnProject } from "../../kit/core/test/git-helper.ts";
-import { conversationModule } from "../src/modules/conversation.ts";
+import { conversationModule, FRESH_NOTICE, renewAfterPlan } from "../src/modules/conversation.ts";
 import { projectsModule } from "../src/modules/projects.ts";
 import { storiesModule } from "../src/modules/stories.ts";
 import { startService, type Service } from "../src/server.ts";
@@ -28,6 +28,7 @@ type Delegate = Parameters<NonNullable<AgentAdapter["delegate"]>>[0];
 interface TurnCall {
   message: string;
   env: Record<string, string> | undefined;
+  session: string | null;
 }
 // Les chemins des consignes sont relatifs au dossier de l'agent : ils se lisent depuis lui, comme un agent les lit.
 const pathAfter = (dir: string, prompt: string, re: RegExp) => resolve(dir, re.exec(prompt)?.[1] ?? assert.fail(`chemin introuvable dans « ${prompt} »`));
@@ -39,8 +40,8 @@ function agent(root: () => string, play: (c: Delegate) => void): { adapter: Agen
   const delegated: Delegate[] = [];
   const adapter: AgentAdapter = {
     name: "claude-code",
-    turn({ dir, message, output, env }) {
-      turns.push({ message, env });
+    turn({ dir, message, output, env, session }) {
+      turns.push({ message, env, session });
       writeFileSync(output, "");
       if (turns.length === 1) {
         mkdirSync(join(dir, "docs", "specs"), { recursive: true });
@@ -108,8 +109,31 @@ test("runner: after the plan the service chains the task, then hands back to the
   await waitUntil(() => turns.length === 2);
   assert.deepEqual(turns[0]?.env, { [RUNNER_ENV]: "service" }, "l'orchestrateur sait que l'outil enchaîne");
   assert.deepEqual(delegated.map((c) => c.agent), ["implementer", "task-reviewer"]);
-  assert.match(turns[1]?.message ?? "", /^enchaîneur : \d+ étape\(s\) faite\(s\)[\s\S]*arrêt : l'action suivante demande ton jugement[\s\S]*étape : preuve et captures/);
+  assert.match(turns[1]?.message ?? "", /enchaîneur : \d+ étape\(s\) faite\(s\)[\s\S]*arrêt : l'action suivante demande ton jugement[\s\S]*étape : preuve et captures/);
   assert.deepEqual(turns[1]?.env, { [RUNNER_ENV]: "service" });
+  // Mesure 3 de l'étude du 23/11 : l'exécution repart d'une session neuve, une seule fois, avec la consigne de reprise.
+  assert.equal(turns[0]?.session, null);
+  assert.equal(turns[1]?.session, null, "session neuve après le plan");
+  assert.ok(turns[1]?.message.startsWith(FRESH_NOTICE));
+  assert.match(turns[1]?.message ?? "", /lance « .* next »/);
+});
+
+test("runner: the fresh session after the plan is opened once, and only once a plan is in the ledger", () => {
+  const root = spawnProject();
+  const state = (session: string | null, renewed?: string) => {
+    mkdirSync(join(root, ".spawn", "conversations", "grille"), { recursive: true });
+    writeFileSync(join(root, ".spawn", "conversations", "grille", "state.json"), JSON.stringify({ agent: "claude-code", session, turns: [], ...(renewed ? { renewed } : {}) }));
+  };
+  const read = () => JSON.parse(readFileSync(join(root, ".spawn", "conversations", "grille", "state.json"), "utf8")) as { session: string | null; renewed?: string };
+  state("s1");
+  assert.equal(renewAfterPlan(root, "grille"), false, "pas de plan : la session continue");
+  write(ledgerPath(root, "grille"), { date: new Date().toISOString(), type: "plan", path: "docs/plans/p.md" });
+  assert.equal(renewAfterPlan(root, "grille"), true);
+  assert.deepEqual(read(), { agent: "claude-code", session: null, turns: [], renewed: "plan" });
+  state("s2", "plan");
+  assert.equal(renewAfterPlan(root, "grille"), false, "une seule fois par story");
+  assert.equal(read().session, "s2");
+  assert.equal(renewAfterPlan(root, "absente"), false, "aucune conversation : rien");
 });
 
 test("runner: after a failed chain the orchestrator takes the step itself, without the runner", async () => {

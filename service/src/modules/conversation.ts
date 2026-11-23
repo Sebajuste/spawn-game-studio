@@ -26,8 +26,10 @@ import { readRegistry } from "../../../kit/core/src/registry.ts";
 import { nextAction, renderAction, RUNNER_ENV, SPAWN } from "../../../kit/core/src/next.ts";
 import { recordActivity } from "../../../kit/core/src/activity.ts";
 import { createWorktree } from "../../../kit/core/src/hooks/worktree.ts";
+import { resumeContext } from "../../../kit/core/src/hooks/compaction.ts";
 import { tidyMerged } from "../../../kit/core/src/cleanup.ts";
 import { contextOf, ledgerPath, type Context } from "../../../kit/core/src/context.ts";
+import { readLedger } from "../../../kit/core/src/ledger.ts";
 import { renderOutcome, runTasks } from "../../../kit/core/src/runner.ts";
 import { findProject, type Project } from "../../../kit/core/src/project.ts";
 import type { AgentName, ConversationTurn, ConversationView, LoadView } from "../contract.ts";
@@ -51,6 +53,10 @@ const MAX_WITHOUT_PROGRESS = 2;
 export const ASK_USER = `ou quand il te faut une réponse de l'utilisateur : dans ce cas, mets d'abord le fil en attente (${SPAWN} story update --status blocked:decision --task "<ta question>"), écris la question dans ton dernier message, puis arrête-toi. Jamais d'outil de question : personne n'y répond pendant ton tour.`;
 
 export const RESTART_MESSAGE = `Continue : lance « ${SPAWN} next » et fais exactement l'action qu'il donne, puis recommence. Arrête-toi seulement quand il dit que la feature est à juger, ${ASK_USER}`;
+
+// Premier message d'une session neuve après le plan : elle n'a rien vu de la spec ni de sa discussion, le document du
+// fil (réinjecté au démarrage par le hook SessionStart) et `spawn next` lui suffisent.
+export const FRESH_NOTICE = `Session neuve pour l'exécution du plan : la discussion de la spec n'est plus dans ton contexte. Ce que tu dois savoir est dans le document du fil donné au démarrage (spec, plan, décisions de l'utilisateur, arbitrages) ; relis la spec ou le plan seulement si l'action le demande.`;
 
 export const timeoutNotice = (ms: number) => `Ton tour précédent a été coupé au bout de ${Math.round(ms / 60_000)} min (délai dépassé) : une commande attendait sans doute sans rendre la main (programme lancé au premier plan, invite interactive). Lance les programmes qui durent par les commandes de Spawn, jamais en direct.`;
 
@@ -117,6 +123,8 @@ interface ConversationState {
   agent: AgentName;
   session: string | null;
   turns: StoredTurn[];
+  // Session neuve déjà ouverte après le plan : une seule fois par story.
+  renewed?: "plan";
 }
 
 const conversationDir = (root: string, story: string) => join(root, ".spawn", "conversations", story);
@@ -137,6 +145,17 @@ function readState(root: string, story: string): ConversationState | null {
 function writeState(root: string, story: string, state: ConversationState): void {
   mkdirSync(conversationDir(root, story), { recursive: true });
   writeFileSync(statePath(root, story), JSON.stringify(state, null, 2) + "\n");
+}
+
+// Après le plan, l'orchestrateur repart d'une session neuve (étude du 23/11, mesure 3) : chaque appel de l'exécution
+// relisait toute la discussion de la spec (150 à 200 k par appel sur les fils Godot du 22/11). Une seule fois par story ;
+// rien n'est perdu, les décisions sont au ledger et le hook SessionStart les réinjecte.
+export function renewAfterPlan(root: string, story: string): boolean {
+  const state = readState(root, story);
+  if (!state || state.session === null || state.renewed === "plan") return false;
+  if (!readLedger(ledgerPath(root, story)).some((e) => e.type === "plan")) return false;
+  writeState(root, story, { ...state, session: null, renewed: "plan" });
+  return true;
 }
 
 // File des messages envoyés pendant un tour ou une fusion. Dans son propre fichier : le tour en cours réécrit state.json
@@ -542,6 +561,11 @@ export function conversationModule(factory: AgentFactory = defaultAgentFactory, 
       if (closing || controller.signal.aborted) {
         emit("conversation-end", { project: projectId, story, turn: readState(project.root, story)?.turns.at(-1)?.n ?? 0, code: null, stopped: true, refused: [], restarted: false });
         return;
+      }
+      if (renewAfterPlan(project.root, story)) {
+        // Claude Code reçoit le document du fil par son hook SessionStart ; les autres agents n'en ont pas : il vient ici.
+        const document = agent === "claude-code" ? null : resumeContext(ctx.dir, "startup");
+        text = [FRESH_NOTICE, document, text, RESTART_MESSAGE].filter(Boolean).join("\n\n");
       }
       await launch(projectId, project, story, text, agent, true, failed);
     })();
